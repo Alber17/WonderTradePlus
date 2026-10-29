@@ -1,0 +1,79 @@
+{
+  "general": {
+    "requireConfirmation": true,
+    "confirmationTimeoutSeconds": 45,
+    "allowInBattle": false,
+    "allowFaintedPokemon": false,
+    "allowShinyPokemon": true,
+    "allowSpecialPokemon": true,
+    "allowAlphaPokemon": true,
+    "allowHeldItems": true,
+    "minimumOfferedLevel": 1,
+    "maximumOfferedLevel": 100,
+    "speciesBlacklist": [],
+    "useSpeciesWhitelist": false,
+    "speciesWhitelist": []
+  },
+  "trade": {
+    "cooldownMinutes": 10,
+    "dailyLimit": 0,
+    "adminBypassPermissionLevel": 2,
+    "matchSpecialTier": true,
+    "specialLabels": ["legendary", "mythical", "ultra_beast", "paradox"],
+    "avoidSameSpecies": false,
+    "matchLevel": false,
+    "levelDifference": 10,
+    "shinyMode": "MATCH_IF_AVAILABLE"
+  },
+  "pool": {
+    "enabled": true,
+    "acceptDonations": true,
+    "randomFallback": true,
+    "maximumEntries": 5000,
+    "trimOldestFirst": true,
+    "clampDonatedLevel": false,
+    "donatedMinimumLevel": 1,
+    "donatedMaximumLevel": 100
+  },
+  "fallback": {
+    "minimumLevel": 1,
+    "maximumLevel": 100,
+    "speciesGenerationAttempts": 128,
+    "shinyBehavior": "MATCH_INPUT"
+  },
+  "broadcast": {
+    "enabled": true,
+    "normalDonations": false,
+    "shinyDonations": true
+  },
+  "messages": {
+    "prefix": "&8[&dWonderTrade&8] &r",
+    "help": "&7Usa &e/wt <slot> &7para iniciar un intercambio. &e/wt confirm &7para confirmar.",
+    "invalidSlot": "&cEl slot debe estar entre 1 y 6.",
+    "emptySlot": "&cNo tienes ningún Pokémon en ese slot.",
+    "confirmation": "&eVas a intercambiar &f{sent}&e. Escribe &a/wt confirm&e antes de {seconds} segundos.",
+    "confirmationExpired": "&cLa confirmación ha caducado. Vuelve a usar /wt <slot>.",
+    "nothingToConfirm": "&cNo tienes ningún intercambio pendiente.",
+    "notTradeable": "&cEse Pokémon no se puede intercambiar.",
+    "faintedBlocked": "&cNo puedes intercambiar un Pokémon debilitado.",
+    "shinyBlocked": "&cLos Pokémon shiny están desactivados en Wonder Trade.",
+    "specialBlocked": "&cLos Pokémon legendarios/míticos/especiales están desactivados.",
+    "alphaBlocked": "&cLos Pokémon alfa están desactivados.",
+    "heldItemBlocked": "&cQuítale el objeto equipado antes de intercambiarlo.",
+    "levelBlocked": "&cEl nivel de ese Pokémon está fuera del rango permitido ({min}-{max}).",
+    "speciesBlocked": "&cEsa especie no está permitida en Wonder Trade.",
+    "cooldown": "&cDebes esperar {time} para volver a intercambiar.",
+    "dailyLimit": "&cYa has alcanzado el límite diario de Wonder Trade ({limit}).",
+    "noCandidate": "&cNo hay ningún Pokémon compatible en el pool y la generación aleatoria está desactivada.",
+    "generationFailed": "&cNo se ha podido generar un Pokémon que cumpla las reglas. No se ha intercambiado nada.",
+    "success": "&aIntercambio completado: &f{sent} &7→ &b{received}&a.",
+    "poolInfo": "&7Pool de Wonder Trade: &e{size} &7Pokémon.",
+    "reload": "&aConfiguración y pool recargados.",
+    "poolCleared": "&aPool vaciado.",
+    "adminOnly": "&cNecesitas ser operador de nivel 2 para usar ese comando.",
+    "saveFailed": "&cNo se pudo guardar el intercambio de forma segura. Se ha intentado restaurar tu equipo; revisa la consola si aparece un error.",
+    "cancelled": "&7Intercambio cancelado.",
+    "broadcastNormal": "&7{player} ha añadido un Pokémon al pool de Wonder Trade.",
+    "broadcastShiny": "&d✨ {player} ha añadido un Pokémon shiny al pool de Wonder Trade: &f{pokemon}&d!"
+  }
+}

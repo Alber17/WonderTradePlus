@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "wondertradeplus",
+  "version": "${version}",
+  "name": "WonderTrade Plus",
+  "description": "Wonder Trade configurable y persistente para Cobblemon.",
+  "authors": ["OpenWonderTrade contributors"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["dev.openwondertrade.WonderTradePlus"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.5",
+    "minecraft": "1.21.1",
+    "java": ">=21",
+    "fabric-api": "*",
+    "fabric-language-kotlin": ">=1.13.0",
+    "cobblemon": ">=1.8.4"
+  }
+}
