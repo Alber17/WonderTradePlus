@@ -1,6 +1,6 @@
 plugins {
-    id("fabric-loom") version property("loom_version") as String
-    kotlin("jvm") version property("kotlin_version") as String
+    id("fabric-loom") version "1.11-SNAPSHOT"
+    kotlin("jvm") version "2.2.20"
 }
 
 group = property("maven_group") as String
