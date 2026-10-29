@@ -43,6 +43,12 @@ La configuración inicial se copia en `config/wondertradeplus/config.json`. Edit
 - `speciesGenerationAttempts`: intentos máximos para encontrar una especie que respete los filtros.
 - `shinyBehavior`: `MATCH_INPUT`, `SERVER_RATE`, `NEVER` o `ALWAYS`.
 
+## `gui`
+
+- `enabled`: `/wt` sin argumentos abre el menú. Si es `false`, muestra la ayuda.
+- `poolViewPermissionLevel`: nivel de operador necesario para `/wt pool view` y el botón "Ver pool". `0` = todos los jugadores, `2` = solo operadores, `4` = solo owner.
+- `showDonorNames`: muestra quién aportó cada Pokémon en la vista del pool.
+
 ## `broadcast`
 
 - `enabled`: activa anuncios.

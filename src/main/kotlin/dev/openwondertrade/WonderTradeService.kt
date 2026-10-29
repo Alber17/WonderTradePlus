@@ -2,6 +2,7 @@ package dev.openwondertrade
 
 import com.cobblemon.mod.common.Cobblemon
 import com.cobblemon.mod.common.api.pokemon.PokemonProperties
+import com.cobblemon.mod.common.api.storage.PokemonStore
 import com.cobblemon.mod.common.pokemon.Pokemon
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.network.chat.Component
@@ -126,6 +127,34 @@ object WonderTradeService {
             send(player, "confirmationExpired")
             return
         }
+        performTrade(player, party, offered)
+    }
+
+    /** Usado por la GUI: busca el Pokémon por UUID en el equipo o en el PC y lo intercambia. */
+    fun tradeFromStore(player: ServerPlayer, fromPc: Boolean, pokemonId: UUID) {
+        val store: PokemonStore<*> = if (fromPc) Cobblemon.storage.getPC(player) else Cobblemon.storage.getParty(player)
+        val offered = store.firstOrNull { it.uuid == pokemonId }
+        if (offered == null) {
+            send(player, "confirmationExpired")
+            return
+        }
+        pending.remove(player.uuid)
+        performTrade(player, store, offered)
+    }
+
+    /** Comprueba reglas, cooldown y límite diario antes de abrir la confirmación de la GUI. */
+    fun precheck(player: ServerPlayer, pokemon: Pokemon): Boolean {
+        WonderTradeRules.validateOffer(pokemon)?.let { key ->
+            send(player, key, mapOf("min" to ConfigManager.int("general.minimumOfferedLevel", 1), "max" to ConfigManager.int("general.maximumOfferedLevel", 100)))
+            return false
+        }
+        if (checkLimits(player) != null) return false
+        return true
+    }
+
+    fun poolEntries(): List<PoolEntry> = pool.all()
+
+    private fun performTrade(player: ServerPlayer, party: PokemonStore<*>, offered: Pokemon) {
         if (!ConfigManager.bool("general.allowInBattle", false) && Cobblemon.battleRegistry.getBattleByParticipatingPlayer(player) != null) {
             player.sendSystemMessage(colour("${ConfigManager.string("messages.prefix")} &cNo puedes intercambiar Pokémon durante un combate."))
             return
@@ -316,19 +345,19 @@ object WonderTradeService {
         player.server.playerList.broadcastSystemMessage(colour(ConfigManager.string("messages.prefix") + content), false)
     }
 
-    private fun send(player: ServerPlayer, key: String, values: Map<String, Any> = emptyMap()) {
+    fun send(player: ServerPlayer, key: String, values: Map<String, Any> = emptyMap()) {
         val fallback = defaultMessage(key)
         val template = ConfigManager.string("messages.$key", fallback)
         player.sendSystemMessage(colour(ConfigManager.string("messages.prefix", "") + format(template, values)))
     }
 
-    private fun format(value: String, replacements: Map<String, Any>): String {
+    fun format(value: String, replacements: Map<String, Any>): String {
         var result = value
         replacements.forEach { (key, replacement) -> result = result.replace("{$key}", replacement.toString()) }
         return result
     }
 
-    private fun colour(value: String): Component = Component.literal(value.replace('&', '§'))
+    fun colour(value: String): Component = Component.literal(value.replace('&', '§'))
 
     private fun defaultMessage(key: String): String = when (key) {
         "emptySlot" -> "&cNo tienes ningún Pokémon en ese slot."

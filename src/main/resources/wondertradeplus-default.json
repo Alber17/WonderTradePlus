@@ -41,6 +41,11 @@
     "speciesGenerationAttempts": 128,
     "shinyBehavior": "MATCH_INPUT"
   },
+  "gui": {
+    "enabled": true,
+    "poolViewPermissionLevel": 0,
+    "showDonorNames": true
+  },
   "broadcast": {
     "enabled": true,
     "normalDonations": false,
@@ -48,7 +53,7 @@
   },
   "messages": {
     "prefix": "&8[&dWonderTrade&8] &r",
-    "help": "&7Usa &e/wt <slot> &7para iniciar un intercambio. &e/wt confirm &7para confirmar.",
+    "help": "&7Usa &e/wt &7para abrir el menú, o &e/wt <slot> &7para intercambiar directamente. &e/wt confirm &7para confirmar.",
     "invalidSlot": "&cEl slot debe estar entre 1 y 6.",
     "emptySlot": "&cNo tienes ningún Pokémon en ese slot.",
     "confirmation": "&eVas a intercambiar &f{sent}&e. Escribe &a/wt confirm&e antes de {seconds} segundos.",

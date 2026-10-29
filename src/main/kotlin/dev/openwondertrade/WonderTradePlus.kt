@@ -25,9 +25,22 @@ class WonderTradePlus : ModInitializer {
     private fun registerCommands(dispatcher: CommandDispatcher<CommandSourceStack>, root: String) {
         val command = literal(root)
             .executes { context ->
-                context.source.sendSuccess({ WonderTradeService.helpComponent() }, false)
+                val player = context.source.player
+                if (player != null && ConfigManager.bool("gui.enabled", true)) {
+                    WonderTradeGui.openMain(player)
+                } else {
+                    context.source.sendSuccess({ WonderTradeService.helpComponent() }, false)
+                }
                 1
             }
+            .then(literal("help").executes { context ->
+                context.source.sendSuccess({ WonderTradeService.helpComponent() }, false)
+                1
+            })
+            .then(literal("gui").executes { context ->
+                WonderTradeGui.openMain(context.source.playerOrException)
+                1
+            })
             .then(argument("slot", IntegerArgumentType.integer(1, 6))
                 .executes { context ->
                     val player = context.source.playerOrException
@@ -51,7 +64,12 @@ class WonderTradePlus : ModInitializer {
             .then(literal("pool").executes { context ->
                 context.source.sendSuccess({ WonderTradeService.poolSummaryComponent() }, false)
                 1
-            })
+            }.then(literal("view")
+                .requires { it.hasPermission(ConfigManager.int("gui.poolViewPermissionLevel", 0).coerceIn(0, 4)) }
+                .executes { context ->
+                    WonderTradeGui.openPool(context.source.playerOrException, 0)
+                    1
+                }))
             .then(literal("reload").requires { it.hasPermission(2) }.executes { context ->
                 WonderTradeService.reload()
                 context.source.sendSuccess({ WonderTradeService.configuredMessage("reload", "&aConfiguración y pool recargados.") }, true)
@@ -66,7 +84,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.1.0"
+        const val MOD_VERSION = "0.2.0"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

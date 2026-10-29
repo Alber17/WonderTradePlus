@@ -46,6 +46,8 @@ En un servidor dedicado, instala el JAR solo en el servidor: los jugadores no ti
 
 | Comando | Función |
 |---|---|
+| `/wt` o `/wt gui` | Abre el menú: equipo, PC y confirmación. |
+| `/wt pool view` | Abre el pool completo en un menú paginado (solo lectura). |
 | `/wt <slot>` | Pide confirmación para intercambiar el Pokémon de ese slot (1–6). |
 | `/wt confirm` | Confirma el intercambio pendiente. |
 | `/wt <slot> confirm` | Intercambia ese slot inmediatamente, saltando la confirmación. |
