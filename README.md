@@ -57,10 +57,11 @@ Requieren el nivel de operador de `admin.permissionLevel` (por defecto 2).
 | Comando | Función |
 |---|---|
 | `/wt admin add <slot>` | Añade al pool una **copia** del Pokémon de tu equipo en ese slot. Tú conservas el tuyo. |
-| `/wt admin addspecies <especie> <nivel> [shiny]` | Crea un Pokémon de esa especie y nivel y lo añade al pool. Ej.: `/wt admin addspecies pikachu 25 shiny`. |
+| `/wt admin addspecies <especie> <nivel> [shiny]` | Crea un Pokémon de esa especie y nivel y lo añade al pool. Ej.: `/wt admin addspecies pikachu 25 shiny`. La especie se autocompleta con Tab. |
 | `/wt admin fill <cantidad> [nivelMin nivelMax]` | Genera hasta 500 Pokémon aleatorios para el pool. Respeta las listas de especies y los permisos de shiny/especial/alfa. Sin niveles usa `fallback.minimumLevel` y `fallback.maximumLevel`. |
 | `/wt admin remove` | Abre el pool en modo administrador: **un clic en un Pokémon lo elimina**. |
-| `/wt admin removedonor <jugador>` | Elimina del pool todo lo que aportó ese jugador (usa `Servidor` para lo creado con los comandos admin). |
+| `/wt admin removeplayer <jugador>` | Elimina del pool todo lo que aportó ese jugador (usa `Servidor` para lo creado con los comandos admin). |
+| `/wt admin history [jugador]` | Abre el **historial de intercambios** en un menú paginado: quién dio qué y qué recibió, con el icono del Pokémon recibido, origen (pool o azar) y fecha. Con un nombre filtra por ese jugador. |
 | `/wt admin clear` | Vacía el pool. |
 
 `/wondertrade` es un alias de `/wt`.
@@ -93,7 +94,7 @@ La plantilla completa está en [`src/main/resources/wondertradeplus-default.json
 Opciones principales:
 
 - `general.requireConfirmation`: pide confirmación antes de intercambiar.
-- `trade.cooldownMinutes`: tiempo mínimo entre intercambios (`0` lo desactiva).
+- `trade.cooldownMinutes`: tiempo mínimo entre intercambios, en minutos. Por defecto `720` (**12 horas**); `0` lo desactiva. Los operadores lo ignoran.
 - `trade.dailyLimit`: máximo diario (`0` = ilimitado).
 - `trade.matchSpecialTier`: normales por normales y especiales por especiales.
 - `trade.specialLabels`: etiquetas que definen un Pokémon como especial (`legendary`, `mythical`, `ultra_beast`, `paradox` por defecto).
@@ -102,6 +103,7 @@ Opciones principales:
 - `general.speciesBlacklist`, `general.useSpeciesWhitelist`, `general.speciesWhitelist`: listas de especies.
 - `pool.enabled`, `pool.randomFallback`, `pool.maximumEntries`: comportamiento del pool.
 - `fallback.shinyBehavior`: `MATCH_INPUT`, `SERVER_RATE`, `NEVER` o `ALWAYS`.
+- `history.enabled` / `history.maxEntries`: registro de intercambios.
 - `admin.permissionLevel`: nivel de operador para los comandos `/wt admin`.
 - `gui.enabled`: si es `false`, `/wt` muestra la ayuda en lugar del menú.
 - `gui.poolViewPermissionLevel`: nivel de operador para ver el pool (`0` = todos, `2` = solo operadores).
@@ -114,6 +116,7 @@ El modo shiny es una regla importante: revísalo antes de abrir el servidor. Ver
 
 - `pool.json`: Pokémon almacenados y sus índices de búsqueda.
 - `player-data.json`: último intercambio y contador diario de cada jugador.
+- `history.json`: historial de intercambios.
 - `config.json`: reglas del servidor.
 
 Prueba los cambios de configuración en una copia del servidor antes de producción. Si el guardado falla durante un intercambio, se revierte, pero una caída brusca del proceso entre escrituras independientes de Cobblemon y de WonderTrade Plus no puede garantizar atomicidad absoluta.

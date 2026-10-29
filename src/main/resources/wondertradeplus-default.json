@@ -15,7 +15,7 @@
     "speciesWhitelist": []
   },
   "trade": {
-    "cooldownMinutes": 10,
+    "cooldownMinutes": 720,
     "dailyLimit": 0,
     "adminBypassPermissionLevel": 2,
     "matchSpecialTier": true,
@@ -40,6 +40,10 @@
     "maximumLevel": 100,
     "speciesGenerationAttempts": 128,
     "shinyBehavior": "MATCH_INPUT"
+  },
+  "history": {
+    "enabled": true,
+    "maxEntries": 1000
   },
   "admin": {
     "permissionLevel": 2

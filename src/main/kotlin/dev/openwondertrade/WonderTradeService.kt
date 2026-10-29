@@ -2,6 +2,7 @@ package dev.openwondertrade
 
 import com.cobblemon.mod.common.Cobblemon
 import com.cobblemon.mod.common.api.pokemon.PokemonProperties
+import com.cobblemon.mod.common.api.pokemon.PokemonSpecies
 import com.cobblemon.mod.common.api.storage.PokemonStore
 import com.cobblemon.mod.common.pokemon.Pokemon
 import net.fabricmc.loader.api.FabricLoader
@@ -15,6 +16,7 @@ object WonderTradeService {
     private val pending = mutableMapOf<UUID, PendingTrade>()
     private lateinit var pool: PoolStore
     private lateinit var playerData: PlayerDataStore
+    private lateinit var history: HistoryStore
 
     fun initialize() {
         pending.clear()
@@ -22,8 +24,10 @@ object WonderTradeService {
         val directory = FabricLoader.getInstance().configDir.resolve("wondertradeplus")
         pool = PoolStore(directory.resolve("pool.json"))
         playerData = PlayerDataStore(directory.resolve("player-data.json"))
+        history = HistoryStore(directory.resolve("history.json"))
         pool.load()
         playerData.load()
+        history.load()
         WonderTradePlus.LOGGER.info("WonderTrade Plus {} preparado.", WonderTradePlus.MOD_VERSION)
     }
 
@@ -31,6 +35,7 @@ object WonderTradeService {
         ConfigManager.load()
         pool.load()
         playerData.load()
+        history.load()
         pending.clear()
     }
 
@@ -156,6 +161,37 @@ object WonderTradeService {
 
     // ------------------------------------------------------------ administración
 
+    private fun recordHistory(player: ServerPlayer, sent: Pokemon, received: Pokemon, fromPool: Boolean, now: Long) {
+        if (!ConfigManager.bool("history.enabled", true)) return
+        runCatching {
+            history.add(
+                HistoryEntry(
+                    time = now,
+                    player = player.gameProfile.name,
+                    sentSpecies = sent.species.resourceIdentifier.path,
+                    sentName = sent.getDisplayName().string,
+                    sentLevel = sent.level,
+                    sentShiny = sent.shiny,
+                    receivedSpecies = received.species.resourceIdentifier.path,
+                    receivedName = received.getDisplayName().string,
+                    receivedLevel = received.level,
+                    receivedShiny = received.shiny,
+                    fromPool = fromPool
+                ),
+                ConfigManager.int("history.maxEntries", 1000).coerceAtLeast(1)
+            )
+            history.save()
+        }.onFailure { WonderTradePlus.LOGGER.error("No se pudo guardar el historial de intercambios.", it) }
+    }
+
+    fun historyEntries(player: String? = null): List<HistoryEntry> = history.recent(player)
+    fun historyPlayers(): List<String> = history.players()
+    fun poolDonors(): List<String> = pool.all().map { it.donorName }.distinct()
+
+    /** Nombres de especie para el autocompletado de /wt admin addspecies. */
+    fun speciesNames(): List<String> =
+        PokemonSpecies.species.map { it.resourceIdentifier.path }.sorted()
+
     fun adminLevel(): Int = ConfigManager.int("admin.permissionLevel", 2).coerceIn(0, 4)
 
     fun info(text: String): Component = colour(ConfigManager.string("messages.prefix", "") + text)
@@ -277,16 +313,23 @@ object WonderTradeService {
         }
 
         val chosenEntry = choosePoolEntry(offered)
-        val incoming: Pokemon = if (chosenEntry != null) {
-            try {
+        var fromPool = false
+        val incoming: Pokemon = (if (chosenEntry != null) {
+            val loaded = try {
                 Pokemon.loadFromJSON(registryAccess, chosenEntry.pokemonJson.deepCopy())
             } catch (exception: Exception) {
                 WonderTradePlus.LOGGER.error("No se pudo recuperar un Pokémon del pool ({}).", chosenEntry.id, exception)
                 null
-            } ?: generateFallback(player, offered)
+            }
+            if (loaded != null) {
+                fromPool = true
+                loaded
+            } else {
+                generateFallback(player, offered)
+            }
         } else {
             generateFallback(player, offered)
-        } ?: run {
+        }) ?: run {
             send(player, if (ConfigManager.bool("pool.randomFallback", true)) "generationFailed" else "noCandidate")
             return
         }
@@ -317,6 +360,7 @@ object WonderTradeService {
             pending.remove(player.uuid)
             send(player, "success", mapOf("sent" to offered.getDisplayName().string, "received" to incoming.getDisplayName().string))
             announceDonation(player, donation)
+            recordHistory(player, offered, incoming, fromPool, now)
         } catch (exception: Exception) {
             WonderTradePlus.LOGGER.error("Ha fallado el intercambio de Wonder Trade para {}. Se intentará revertirlo.", player.gameProfile.name, exception)
             runCatching { party.remove(incoming) }
@@ -403,13 +447,11 @@ object WonderTradeService {
     private fun checkLimits(player: ServerPlayer): Boolean? {
         val bypassLevel = ConfigManager.int("trade.adminBypassPermissionLevel", 2).coerceIn(0, 4)
         val bypass = player.hasPermissions(bypassLevel)
-        val cooldown = ConfigManager.int("trade.cooldownMinutes", 10).coerceAtLeast(0).toLong() * 60L
+        val cooldown = ConfigManager.int("trade.cooldownMinutes", 720).coerceAtLeast(0).toLong() * 60L
         val limit = ConfigManager.int("trade.dailyLimit", 0).coerceAtLeast(0)
         val check = playerData.check(player.uuid, System.currentTimeMillis(), cooldown, limit, bypass)
         if (check.cooldownSeconds > 0L) {
-            val minutes = check.cooldownSeconds / 60L
-            val seconds = check.cooldownSeconds % 60L
-            send(player, "cooldown", mapOf("time" to if (minutes > 0) "${minutes}m ${seconds}s" else "${seconds}s"))
+            send(player, "cooldown", mapOf("time" to formatDuration(check.cooldownSeconds)))
             return true
         }
         if (check.dailyLimitReached) {
@@ -417,6 +459,17 @@ object WonderTradeService {
             return true
         }
         return null
+    }
+
+    private fun formatDuration(totalSeconds: Long): String {
+        val hours = totalSeconds / 3600L
+        val minutes = (totalSeconds % 3600L) / 60L
+        val seconds = totalSeconds % 60L
+        return when {
+            hours > 0 -> "${hours}h ${minutes}m"
+            minutes > 0 -> "${minutes}m ${seconds}s"
+            else -> "${seconds}s"
+        }
     }
 
     private fun getPartyPokemon(player: ServerPlayer, slotNumber: Int): Pokemon? {

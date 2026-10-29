@@ -7,6 +7,7 @@ import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import net.minecraft.commands.CommandSourceStack
+import net.minecraft.commands.SharedSuggestionProvider
 import net.minecraft.commands.Commands.argument
 import net.minecraft.commands.Commands.literal
 import org.slf4j.LoggerFactory
@@ -98,6 +99,7 @@ class WonderTradePlus : ModInitializer {
             1
         }))
         .then(literal("addspecies").then(argument("species", StringArgumentType.word())
+            .suggests { _, builder -> SharedSuggestionProvider.suggest(WonderTradeService.speciesNames(), builder) }
             .then(argument("level", IntegerArgumentType.integer(1, 100))
                 .executes { context -> addSpecies(context, false) }
                 .then(literal("shiny").executes { context -> addSpecies(context, true) }))))
@@ -113,7 +115,20 @@ class WonderTradePlus : ModInitializer {
             WonderTradeGui.openPool(context.source.playerOrException, 0, true)
             1
         })
-        .then(literal("removedonor").then(argument("player", StringArgumentType.word()).executes { context ->
+        .then(literal("history")
+            .executes { context ->
+                WonderTradeGui.openHistory(context.source.playerOrException)
+                1
+            }
+            .then(argument("player", StringArgumentType.word())
+                .suggests { _, builder -> SharedSuggestionProvider.suggest(WonderTradeService.historyPlayers(), builder) }
+                .executes { context ->
+                    WonderTradeGui.openHistory(context.source.playerOrException, StringArgumentType.getString(context, "player"))
+                    1
+                }))
+        .then(literal("removeplayer").then(argument("player", StringArgumentType.word())
+            .suggests { _, builder -> SharedSuggestionProvider.suggest(WonderTradeService.poolDonors(), builder) }
+            .executes { context ->
             val donor = StringArgumentType.getString(context, "player")
             val removed = WonderTradeService.removeDonorEntries(donor)
             context.source.sendSuccess({ WonderTradeService.info("&aSe han eliminado &f$removed &aPokémon aportados por &f$donor&a.") }, true)

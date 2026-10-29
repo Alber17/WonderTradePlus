@@ -87,6 +87,15 @@ object WonderTradeGui {
         open(player, title, 6) { renderPool(it, player, page, admin) }
     }
 
+    fun openHistory(player: ServerPlayer, filter: String? = null, page: Int = 0) {
+        if (!player.hasPermissions(WonderTradeService.adminLevel())) {
+            WonderTradeService.send(player, "adminOnly")
+            return
+        }
+        val title = if (filter == null) "&5Wonder Trade &8- &fHistorial" else "&5Historial &8- &f$filter"
+        open(player, title, 6) { renderHistory(it, player, filter, page) }
+    }
+
     private fun open(player: ServerPlayer, title: String, rows: Int, build: (GuiMenu) -> Unit) {
         val type = if (rows == 3) MenuType.GENERIC_9x3 else MenuType.GENERIC_9x6
         player.openMenu(SimpleMenuProvider({ id, inventory, _ ->
@@ -188,6 +197,51 @@ object WonderTradeGui {
         menu.put(49, named(Items.PAPER, "&fPágina ${page + 1}/$pages", "&7${entries.size} Pokémon en el pool"))
         if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente")) { renderPool(menu, it, page + 1, admin) }
         menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+    }
+
+    private fun renderHistory(menu: GuiMenu, player: ServerPlayer, filter: String?, requestedPage: Int) {
+        menu.wipe()
+        fill(menu, 54)
+        val entries = WonderTradeService.historyEntries(filter)
+        val pages = maxOf(1, (entries.size + POOL_PER_PAGE - 1) / POOL_PER_PAGE)
+        val page = requestedPage.coerceIn(0, pages - 1)
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm")
+
+        entries.drop(page * POOL_PER_PAGE).take(POOL_PER_PAGE).forEachIndexed { i, entry ->
+            menu.put(i, historyStack(player, entry, dateFormat))
+        }
+        if (entries.isEmpty()) menu.put(22, named(Items.BARRIER, "&cNo hay intercambios registrados"))
+
+        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, "&aCerrar historial")) { it.closeContainer() }
+        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior")) { renderHistory(menu, it, filter, page - 1) }
+        menu.put(49, named(Items.PAPER, "&fPágina ${page + 1}/$pages", "&7${entries.size} intercambios" + if (filter != null) " de $filter" else ""))
+        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente")) { renderHistory(menu, it, filter, page + 1) }
+        menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+    }
+
+    private fun historyStack(player: ServerPlayer, entry: HistoryEntry, dateFormat: SimpleDateFormat): ItemStack {
+        // El icono es el Pokémon que RECIBIÓ el jugador; se recrea a partir del resumen guardado.
+        val icon = runCatching {
+            val pokemon = com.cobblemon.mod.common.api.pokemon.PokemonProperties().apply {
+                this.species = entry.receivedSpecies
+                this.level = entry.receivedLevel.coerceIn(1, 100)
+                this.shiny = entry.receivedShiny
+            }.create(player)
+            PokemonItem.from(pokemon)
+        }.getOrElse { ItemStack(Items.PAPER) }
+
+        val star = "&e✨"
+        icon.set(DataComponents.CUSTOM_NAME, lit("&b${entry.player}"))
+        val lines = listOf(
+            "&8────────────────",
+            "&c▼ Dio: &f${entry.sentName} &7Nv.${entry.sentLevel}" + if (entry.sentShiny) " $star" else "",
+            "&a▲ Recibió: &f${entry.receivedName} &7Nv.${entry.receivedLevel}" + if (entry.receivedShiny) " $star" else "",
+            "&8────────────────",
+            "&7Origen: &f" + if (entry.fromPool) "pool de jugadores" else "generado al azar",
+            "&7Fecha: &f${dateFormat.format(Date(entry.time))}"
+        )
+        icon.set(DataComponents.LORE, ItemLore(lines.map<String, Component> { lit(it) }))
+        return icon
     }
 
     private fun openConfirm(player: ServerPlayer, pokemon: Pokemon, fromPc: Boolean) {

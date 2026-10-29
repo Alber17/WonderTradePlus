@@ -17,7 +17,7 @@ La configuración inicial se copia en `config/wondertradeplus/config.json`. Edit
 
 ## `trade`
 
-- `cooldownMinutes`: espera entre intercambios. `0` desactiva el cooldown.
+- `cooldownMinutes`: espera entre intercambios, en **minutos**. Por defecto `720` (12 horas). `0` desactiva el cooldown. Ejemplos: `60` = 1 h, `360` = 6 h, `1440` = 24 h. Los operadores (`adminBypassPermissionLevel`) lo ignoran.
 - `dailyLimit`: número máximo de intercambios por día. `0` significa ilimitado.
 - `adminBypassPermissionLevel`: nivel de operador que ignora cooldown y límite diario; rango `0–4`.
 - `matchSpecialTier`: intenta emparejar Pokémon especiales con especiales y normales con normales.
@@ -42,6 +42,13 @@ La configuración inicial se copia en `config/wondertradeplus/config.json`. Edit
 - `minimumLevel`, `maximumLevel`: rango de nivel de Pokémon generados por el sistema de respaldo.
 - `speciesGenerationAttempts`: intentos máximos para encontrar una especie que respete los filtros.
 - `shinyBehavior`: `MATCH_INPUT`, `SERVER_RATE`, `NEVER` o `ALWAYS`.
+
+## `history`
+
+- `enabled`: guarda un registro de cada intercambio en `history.json`.
+- `maxEntries`: máximo de intercambios guardados; al superarlo se borran los más antiguos.
+
+Se consulta con `/wt admin history`.
 
 ## `admin`
 
