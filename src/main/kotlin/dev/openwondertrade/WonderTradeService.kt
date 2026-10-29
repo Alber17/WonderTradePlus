@@ -154,6 +154,100 @@ object WonderTradeService {
 
     fun poolEntries(): List<PoolEntry> = pool.all()
 
+    // ------------------------------------------------------------ administración
+
+    fun adminLevel(): Int = ConfigManager.int("admin.permissionLevel", 2).coerceIn(0, 4)
+
+    fun info(text: String): Component = colour(ConfigManager.string("messages.prefix", "") + text)
+
+    private fun addAdminEntry(pokemon: Pokemon, registryAccess: net.minecraft.core.RegistryAccess) {
+        pool.add(PoolEntry.fromPokemon(pokemon, registryAccess, "Servidor"))
+    }
+
+    private fun trimAndSave() {
+        pool.trim(
+            ConfigManager.int("pool.maximumEntries", 5000).coerceAtLeast(1),
+            ConfigManager.bool("pool.trimOldestFirst", true)
+        )
+        pool.save()
+    }
+
+    /** Copia el Pokémon del slot del admin al pool (el admin conserva el suyo). Devuelve su nombre o null. */
+    fun adminAddFromParty(player: ServerPlayer, slot: Int): String? {
+        if (slot !in 1..6) return null
+        val pokemon = Cobblemon.storage.getParty(player).get(slot - 1) ?: return null
+        val registryAccess = player.server.registryAccess()
+        val copy = try {
+            pokemon.clone(newUUID = true, registryAccess = registryAccess)
+        } catch (exception: Exception) {
+            WonderTradePlus.LOGGER.error("No se pudo clonar el Pokémon para el pool.", exception)
+            return null
+        }
+        addAdminEntry(copy, registryAccess)
+        trimAndSave()
+        return pokemon.getDisplayName().string
+    }
+
+    /** Crea un Pokémon de una especie concreta y lo añade al pool. Devuelve su nombre o null si la especie no existe. */
+    fun adminAddSpecies(player: ServerPlayer, species: String, level: Int, shiny: Boolean): String? {
+        val pokemon = runCatching {
+            PokemonProperties().apply {
+                this.species = species
+                this.level = level.coerceIn(1, 100)
+                this.shiny = shiny
+            }.create(player)
+        }.getOrNull() ?: return null
+        val created = pokemon.species.resourceIdentifier.path
+        if (!created.equals(species.substringAfter(':'), ignoreCase = true)) return null
+        addAdminEntry(pokemon, player.server.registryAccess())
+        trimAndSave()
+        return pokemon.getDisplayName().string
+    }
+
+    /** Genera Pokémon aleatorios respetando las listas y permisos de la configuración. Devuelve cuántos se añadieron. */
+    fun adminFill(player: ServerPlayer, amount: Int, minimumLevel: Int, maximumLevel: Int): Int {
+        val low = minimumLevel.coerceIn(1, 100)
+        val high = maximumLevel.coerceIn(low, 100)
+        val attempts = ConfigManager.int("fallback.speciesGenerationAttempts", 128).coerceIn(1, 1000)
+        val registryAccess = player.server.registryAccess()
+        var added = 0
+        repeat(amount) {
+            var tries = 0
+            while (tries < attempts) {
+                tries++
+                val candidate = try {
+                    PokemonProperties().apply {
+                        this.species = "random"
+                        this.level = Random.nextInt(low, high + 1)
+                    }.create(player)
+                } catch (exception: Exception) {
+                    continue
+                }
+                if (!ConfigManager.bool("general.allowShinyPokemon", true) && candidate.shiny) continue
+                if (!ConfigManager.bool("general.allowSpecialPokemon", true) && WonderTradeRules.isSpecial(candidate)) continue
+                if (!ConfigManager.bool("general.allowAlphaPokemon", true) && candidate.isAlpha) continue
+                if (!WonderTradeRules.isSpeciesAllowed(candidate.species.resourceIdentifier.toString())) continue
+                addAdminEntry(candidate, registryAccess)
+                added++
+                break
+            }
+        }
+        if (added > 0) trimAndSave()
+        return added
+    }
+
+    fun removeFromPool(id: String): Boolean {
+        val removed = pool.remove(id)
+        if (removed) pool.save()
+        return removed
+    }
+
+    fun removeDonorEntries(donor: String): Int {
+        val removed = pool.removeWhere { it.donorName.equals(donor, ignoreCase = true) }
+        if (removed > 0) pool.save()
+        return removed
+    }
+
     private fun performTrade(player: ServerPlayer, party: PokemonStore<*>, offered: Pokemon) {
         if (!ConfigManager.bool("general.allowInBattle", false) && Cobblemon.battleRegistry.getBattleByParticipatingPlayer(player) != null) {
             player.sendSystemMessage(colour("${ConfigManager.string("messages.prefix")} &cNo puedes intercambiar Pokémon durante un combate."))

@@ -77,12 +77,14 @@ object WonderTradeGui {
     fun canViewPool(player: ServerPlayer): Boolean =
         player.hasPermissions(ConfigManager.int("gui.poolViewPermissionLevel", 0).coerceIn(0, 4))
 
-    fun openPool(player: ServerPlayer, page: Int = 0) {
-        if (!canViewPool(player)) {
+    fun openPool(player: ServerPlayer, page: Int = 0, admin: Boolean = false) {
+        val allowed = if (admin) player.hasPermissions(WonderTradeService.adminLevel()) else canViewPool(player)
+        if (!allowed) {
             WonderTradeService.send(player, "adminOnly")
             return
         }
-        open(player, "&5Wonder Trade &8- &fPool", 6) { renderPool(it, player, page) }
+        val title = if (admin) "&5Wonder Trade &8- &fPool &c(admin)" else "&5Wonder Trade &8- &fPool"
+        open(player, title, 6) { renderPool(it, player, page, admin) }
     }
 
     private fun open(player: ServerPlayer, title: String, rows: Int, build: (GuiMenu) -> Unit) {
@@ -116,7 +118,7 @@ object WonderTradeGui {
 
         menu.button(22, named(Items.ENDER_CHEST, "&bAbrir PC", "&7Elige un Pokémon de tus cajas.")) { openPc(it, 0) }
         if (canViewPool(player)) {
-            menu.button(24, named(Items.CHEST, "&6Ver pool", "&7Pokémon aportados por los jugadores.")) { openPool(it, 0) }
+            menu.button(24, named(Items.CHEST, "&6Ver pool", "&7Pokémon aportados por los jugadores.")) { openPool(it, 0, false) }
         }
         menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
@@ -151,7 +153,7 @@ object WonderTradeGui {
         menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
-    private fun renderPool(menu: GuiMenu, player: ServerPlayer, requestedPage: Int) {
+    private fun renderPool(menu: GuiMenu, player: ServerPlayer, requestedPage: Int, admin: Boolean) {
         menu.wipe()
         fill(menu, 54)
         val entries = WonderTradeService.poolEntries().sortedByDescending { it.addedAt }
@@ -166,15 +168,25 @@ object WonderTradeGui {
             if (showDonors) extra += "&7Aportado por: &f${entry.donorName}"
             extra += "&7Fecha: &f${format.format(Date(entry.addedAt))}"
             val pokemon = runCatching { Pokemon.loadFromJSON(registryAccess, entry.pokemonJson.deepCopy()) }.getOrNull()
+            if (admin) extra += "&c✖ Clic para eliminar del pool"
             val stack = if (pokemon != null) pokemonStack(pokemon, false, extra)
             else named(Items.BARRIER, "&c${entry.species}", "&7No se pudo cargar este Pokémon.")
-            menu.put(i, stack)
+            if (admin) {
+                menu.button(i, stack) { p ->
+                    if (p.hasPermissions(WonderTradeService.adminLevel())) {
+                        WonderTradeService.removeFromPool(entry.id)
+                        renderPool(menu, p, page, true)
+                    }
+                }
+            } else {
+                menu.put(i, stack)
+            }
         }
 
         menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver")) { openMain(it) }
-        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior")) { renderPool(menu, it, page - 1) }
+        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior")) { renderPool(menu, it, page - 1, admin) }
         menu.put(49, named(Items.PAPER, "&fPágina ${page + 1}/$pages", "&7${entries.size} Pokémon en el pool"))
-        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente")) { renderPool(menu, it, page + 1) }
+        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente")) { renderPool(menu, it, page + 1, admin) }
         menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 

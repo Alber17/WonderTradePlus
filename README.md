@@ -50,6 +50,19 @@ En un servidor dedicado, el mod va **solo en el servidor**. En un mundo individu
 | `/wt reload` | Recarga configuración y archivos. Operador nivel 2. |
 | `/wt clearpool` | Vacía el pool. Operador nivel 2. |
 
+### Comandos de administrador
+
+Requieren el nivel de operador de `admin.permissionLevel` (por defecto 2).
+
+| Comando | Función |
+|---|---|
+| `/wt admin add <slot>` | Añade al pool una **copia** del Pokémon de tu equipo en ese slot. Tú conservas el tuyo. |
+| `/wt admin addspecies <especie> <nivel> [shiny]` | Crea un Pokémon de esa especie y nivel y lo añade al pool. Ej.: `/wt admin addspecies pikachu 25 shiny`. |
+| `/wt admin fill <cantidad> [nivelMin nivelMax]` | Genera hasta 500 Pokémon aleatorios para el pool. Respeta las listas de especies y los permisos de shiny/especial/alfa. Sin niveles usa `fallback.minimumLevel` y `fallback.maximumLevel`. |
+| `/wt admin remove` | Abre el pool en modo administrador: **un clic en un Pokémon lo elimina**. |
+| `/wt admin removedonor <jugador>` | Elimina del pool todo lo que aportó ese jugador (usa `Servidor` para lo creado con los comandos admin). |
+| `/wt admin clear` | Vacía el pool. |
+
 `/wondertrade` es un alias de `/wt`.
 
 **Ejemplos**
@@ -89,6 +102,7 @@ Opciones principales:
 - `general.speciesBlacklist`, `general.useSpeciesWhitelist`, `general.speciesWhitelist`: listas de especies.
 - `pool.enabled`, `pool.randomFallback`, `pool.maximumEntries`: comportamiento del pool.
 - `fallback.shinyBehavior`: `MATCH_INPUT`, `SERVER_RATE`, `NEVER` o `ALWAYS`.
+- `admin.permissionLevel`: nivel de operador para los comandos `/wt admin`.
 - `gui.enabled`: si es `false`, `/wt` muestra la ayuda en lugar del menú.
 - `gui.poolViewPermissionLevel`: nivel de operador para ver el pool (`0` = todos, `2` = solo operadores).
 - `gui.showDonorNames`: muestra quién aportó cada Pokémon en la vista del pool.

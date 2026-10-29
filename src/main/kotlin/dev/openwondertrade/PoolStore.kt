@@ -77,6 +77,11 @@ class PoolStore(private val file: Path) {
     fun add(entry: PoolEntry) { entries.add(entry.deepCopyEntry()) }
     fun remove(id: String): Boolean = entries.removeIf { it.id == id }
     fun clear() = entries.clear()
+    fun removeWhere(predicate: (PoolEntry) -> Boolean): Int {
+        val before = entries.size
+        entries.removeAll { predicate(it) }
+        return before - entries.size
+    }
 
     fun snapshot(): List<PoolEntry> = entries.map { it.deepCopyEntry() }
     fun restore(snapshot: List<PoolEntry>) {

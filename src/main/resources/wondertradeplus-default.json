@@ -41,6 +41,9 @@
     "speciesGenerationAttempts": 128,
     "shinyBehavior": "MATCH_INPUT"
   },
+  "admin": {
+    "permissionLevel": 2
+  },
   "gui": {
     "enabled": true,
     "poolViewPermissionLevel": 0,

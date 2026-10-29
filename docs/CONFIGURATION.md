@@ -43,6 +43,10 @@ La configuración inicial se copia en `config/wondertradeplus/config.json`. Edit
 - `speciesGenerationAttempts`: intentos máximos para encontrar una especie que respete los filtros.
 - `shinyBehavior`: `MATCH_INPUT`, `SERVER_RATE`, `NEVER` o `ALWAYS`.
 
+## `admin`
+
+- `permissionLevel`: nivel de operador (`0–4`) necesario para los comandos `/wt admin ...`. Por defecto `2`.
+
 ## `gui`
 
 - `enabled`: `/wt` sin argumentos abre el menú. Si es `false`, muestra la ayuda.
