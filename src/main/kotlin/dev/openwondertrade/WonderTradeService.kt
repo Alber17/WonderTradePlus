@@ -333,12 +333,40 @@ object WonderTradeService {
         return Cobblemon.storage.getParty(player).get(slotNumber - 1)
     }
 
+    private val pastParadox = setOf(
+        "greattusk", "screamtail", "brutebonnet", "fluttermane", "slitherwing",
+        "sandyshocks", "roaringmoon", "walkingwake", "gougingfire", "ragingbolt"
+    )
+    private val futureParadox = setOf(
+        "irontreads", "ironbundle", "ironhands", "ironjugulis", "ironmoth",
+        "ironthorns", "ironvaliant", "ironleaves", "ironboulder", "ironcrown"
+    )
+
+    /** Devuelve "UltraBeast", "PastParadox", "FutureParadox", "Special" o "" si es un Pokémon normal. */
+    private fun donationCategory(pokemon: Pokemon): String {
+        val id = pokemon.species.resourceIdentifier.path.lowercase()
+        return when {
+            runCatching { pokemon.isUltraBeast() }.getOrDefault(false) -> "UltraBeast"
+            id in pastParadox -> "PastParadox"
+            id in futureParadox -> "FutureParadox"
+            WonderTradeRules.isSpecial(pokemon) -> "Special"
+            else -> ""
+        }
+    }
+
     private fun announceDonation(player: ServerPlayer, pokemon: Pokemon) {
         if (!ConfigManager.bool("broadcast.enabled", true)) return
-        val enabled = if (pokemon.shiny) ConfigManager.bool("broadcast.shinyDonations", true)
-        else ConfigManager.bool("broadcast.normalDonations", false)
-        if (!enabled) return
-        val key = if (pokemon.shiny) "broadcastShiny" else "broadcastNormal"
+        val category = donationCategory(pokemon)
+        val toggle: String
+        val key: String
+        when {
+            category.isEmpty() && pokemon.shiny -> { toggle = "shinyDonations"; key = "broadcastShiny" }
+            category.isEmpty() -> { toggle = "normalDonations"; key = "broadcastNormal" }
+            pokemon.shiny -> { toggle = "shiny${category}Donations"; key = "broadcastShiny$category" }
+            else -> { toggle = category.replaceFirstChar { it.lowercase() } + "Donations"; key = "broadcast$category" }
+        }
+        val defaultEnabled = toggle != "normalDonations"
+        if (!ConfigManager.bool("broadcast.$toggle", defaultEnabled)) return
         val template = ConfigManager.string("messages.$key", "")
         if (template.isBlank()) return
         val content = format(template, mapOf("player" to player.gameProfile.name, "pokemon" to pokemon.getDisplayName().string))

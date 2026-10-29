@@ -49,7 +49,15 @@
   "broadcast": {
     "enabled": true,
     "normalDonations": false,
-    "shinyDonations": true
+    "shinyDonations": true,
+    "specialDonations": true,
+    "shinySpecialDonations": true,
+    "ultraBeastDonations": true,
+    "shinyUltraBeastDonations": true,
+    "pastParadoxDonations": true,
+    "shinyPastParadoxDonations": true,
+    "futureParadoxDonations": true,
+    "shinyFutureParadoxDonations": true
   },
   "messages": {
     "prefix": "&8[&dWonderTrade&8] &r",
@@ -79,6 +87,14 @@
     "saveFailed": "&cNo se pudo guardar el intercambio de forma segura. Se ha intentado restaurar tu equipo; revisa la consola si aparece un error.",
     "cancelled": "&7Intercambio cancelado.",
     "broadcastNormal": "&7{player} ha añadido un Pokémon al pool de Wonder Trade.",
+    "broadcastSpecial": "&6\u2605 {player} ha a\u00f1adido un Pok\u00e9mon legendario al pool de Wonder Trade: &f{pokemon}&6!",
+    "broadcastShinySpecial": "&d\u2728&6\u2605 {player} ha a\u00f1adido un Pok\u00e9mon LEGENDARIO SHINY al pool de Wonder Trade: &f{pokemon}&d!",
+    "broadcastUltraBeast": "&3\u25c6 {player} ha a\u00f1adido un Ultraente al pool de Wonder Trade: &f{pokemon}&3!",
+    "broadcastShinyUltraBeast": "&d\u2728&3\u25c6 {player} ha a\u00f1adido un ULTRAENTE SHINY al pool de Wonder Trade: &f{pokemon}&d!",
+    "broadcastPastParadox": "&c\u231b {player} ha a\u00f1adido un Pok\u00e9mon del pasado al pool de Wonder Trade: &f{pokemon}&c!",
+    "broadcastShinyPastParadox": "&d\u2728&c\u231b {player} ha a\u00f1adido un Pok\u00e9mon del PASADO SHINY al pool de Wonder Trade: &f{pokemon}&d!",
+    "broadcastFutureParadox": "&b\u269b {player} ha a\u00f1adido un Pok\u00e9mon del futuro al pool de Wonder Trade: &f{pokemon}&b!",
+    "broadcastShinyFutureParadox": "&d\u2728&b\u269b {player} ha a\u00f1adido un Pok\u00e9mon del FUTURO SHINY al pool de Wonder Trade: &f{pokemon}&d!",
     "broadcastShiny": "&d✨ {player} ha añadido un Pokémon shiny al pool de Wonder Trade: &f{pokemon}&d!"
   }
 }

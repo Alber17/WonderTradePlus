@@ -54,6 +54,12 @@ La configuración inicial se copia en `config/wondertradeplus/config.json`. Edit
 - `enabled`: activa anuncios.
 - `normalDonations`: anuncia aportaciones normales.
 - `shinyDonations`: anuncia aportaciones shiny.
+- `specialDonations` / `shinySpecialDonations`: legendarios, míticos y etiquetas de `trade.specialLabels` (normal / shiny).
+- `ultraBeastDonations` / `shinyUltraBeastDonations`: Ultraentes.
+- `pastParadoxDonations` / `shinyPastParadoxDonations`: Paradoja del pasado (Great Tusk, Scream Tail, Brute Bonnet, Flutter Mane, Slither Wing, Sandy Shocks, Roaring Moon, Walking Wake, Gouging Fire, Raging Bolt).
+- `futureParadoxDonations` / `shinyFutureParadoxDonations`: Paradoja del futuro (Iron Treads, Iron Bundle, Iron Hands, Iron Jugulis, Iron Moth, Iron Thorns, Iron Valiant, Iron Leaves, Iron Boulder, Iron Crown).
+
+Cada intercambio genera un solo anuncio. Prioridad: Ultraente > Paradoja pasado/futuro > legendario/especial > shiny sin categoría > normal. Cada categoría tiene su versión shiny con mensaje propio en `messages` (`broadcastUltraBeast`, `broadcastShinyUltraBeast`, `broadcastPastParadox`, etc.).
 
 ## `messages`
 
