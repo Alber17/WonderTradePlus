@@ -201,17 +201,12 @@ object WonderTradeService {
 
     private var speciesCache: List<String>? = null
 
-    /** Especies y formas para el autocompletado; acepta el nombre de la forma y su ID de Showdown. */
-    fun speciesNames(): List<String> = speciesCache ?: PokemonSpecies.species.flatMap { species ->
-        val base = species.resourceIdentifier.path
-        listOf(base) + species.forms
-            .filter { !it.name.equals("normal", ignoreCase = true) }
-            .flatMap { form ->
-                listOf(form.name, form.formOnlyShowdownId())
-                    .filter { it.isNotBlank() }
-                    .map { "$base-${it.lowercase().replace(' ', '-') }" }
-            }
-    }.distinct().sorted().also { speciesCache = it }
+    /** Solo especies base. Las formas regionales se eligen después como opciones (alolan, galarian…). */
+    fun speciesNames(): List<String> = speciesCache ?: PokemonSpecies.species
+        .map { it.resourceIdentifier.path }
+        .distinct()
+        .sorted()
+        .also { speciesCache = it }
 
     fun adminLevel(): Int = ConfigManager.int("admin.permissionLevel", 2).coerceIn(0, 4)
 
@@ -248,65 +243,81 @@ object WonderTradeService {
     data class AddedSpeciesResult(val name: String, val level: Int)
 
     /**
-     * Crea una especie (o una forma regional) y la añade al pool con un nivel aleatorio.
-     * Ejemplos: "pikachu", "vulpix-alola", "meowth-galar", "growlithe-hisui", "wooper-paldea".
-     * Lanza IllegalArgumentException si la especie existe pero no tiene esa forma.
+     * Crea una especie base o una forma regional con las mismas propiedades que admite /pokegive.
+     * Ejemplos: addspecies vulpix, addspecies vulpix alolan, addspecies vulpix alolan shiny.
      */
-    fun adminAddSpecies(player: ServerPlayer, speciesInput: String, shiny: Boolean): AddedSpeciesResult? {
-        val cleaned = speciesInput.substringAfter(':').trim().lowercase()
+    fun adminAddSpecies(
+        player: ServerPlayer,
+        speciesInput: String,
+        shiny: Boolean,
+        regionalFormInput: String? = null
+    ): AddedSpeciesResult? {
+        val cleaned = speciesInput.trim().lowercase()
         if (cleaned.isBlank()) return null
 
-        // Busca la especie por el prefijo más largo. Así también funcionan especies cuyo ID
-        // ya contiene guiones (por ejemplo jangmo-o) antes del sufijo de la forma.
-        val species = PokemonSpecies.species
-            .filter { candidate ->
-                val base = candidate.resourceIdentifier.path.lowercase()
-                cleaned == base || cleaned.startsWith("$base-")
-            }
-            .maxByOrNull { it.resourceIdentifier.path.length }
-            ?: return null
+        val species = PokemonSpecies.species.firstOrNull { candidate ->
+            val identifier = candidate.resourceIdentifier.toString().lowercase()
+            val path = candidate.resourceIdentifier.path.lowercase()
+            cleaned == identifier || (':' !in cleaned && cleaned == path)
+        } ?: return null
 
-        val baseName = species.resourceIdentifier.path.lowercase()
-        val formTag = cleaned.removePrefix(baseName).removePrefix("-").takeIf { it.isNotBlank() }
-        val selectedForm = if (formTag != null) {
-            val requested = formTag.filter(Char::isLetterOrDigit)
-            species.forms.firstOrNull { form ->
-                val aliases = listOf(form.name, form.formOnlyShowdownId())
-                    .filter { it.isNotBlank() }
-                    .map { it.lowercase().filter(Char::isLetterOrDigit) }
-                requested in aliases
-            } ?: throw IllegalArgumentException(
-                "${species.resourceIdentifier.path} no tiene la forma '$formTag'. Formas disponibles: " +
-                    species.forms.joinToString(", ") { it.formOnlyShowdownId() }
-            )
-        } else null
+        // Los nombres visibles de las opciones siguen el estilo de /pokegive,
+        // pero Cobblemon 1.8.x selecciona las formas de FormData mediante form=<id>.
+        // Ej.: /pokegive vulpix form=alola -> /wt admin addspecies vulpix alolan.
+        val regionalForm = regionalFormInput?.trim()?.lowercase()?.takeIf { it.isNotBlank() }
+        val regionalFormIds = mapOf(
+            "alolan" to "alola",
+            "galarian" to "galar",
+            "hisuian" to "hisui",
+            "paldean" to "paldea"
+        )
+        val formId = regionalForm?.let { requested ->
+            val id = regionalFormIds[requested]
+                ?: throw IllegalArgumentException("Forma regional no reconocida: '$requested'. Opciones: ${regionalFormIds.keys.joinToString()}.")
+            if (!ConfigManager.bool("admin.regionalForms.$requested", true)) {
+                throw IllegalArgumentException("La opción regional '$requested' está desactivada en config.json.")
+            }
+            species.forms.firstOrNull { it.name.equals(id, ignoreCase = true) }
+                ?: throw IllegalArgumentException("${species.resourceIdentifier.path} no tiene una forma regional '$requested' en los datos cargados por Cobblemon.")
+            id
+        }
 
         val low = ConfigManager.int("fallback.minimumLevel", 1).coerceIn(1, 100)
         val high = ConfigManager.int("fallback.maximumLevel", 100).coerceIn(low, 100)
         val randomLevel = Random.nextInt(low, high + 1)
 
-        // No se pasa la forma a PokemonProperties.create(): create() llama a initialize(),
-        // que puede volver a establecer la forma estándar. Se aplica la FormData registrada
-        // directamente después de crear e inicializar el Pokémon.
-        val pokemon = runCatching {
-            PokemonProperties().apply {
-                this.species = species.resourceIdentifier.toString()
-                this.level = randomLevel
-                this.shiny = shiny
-            }.create(player)
-        }.getOrNull() ?: return null
-
+        // Se utiliza el parser oficial de propiedades de Cobblemon 1.8.x:
+        // form=alola, form=galar, form=hisui o form=paldea.
+        val propertyText = buildList {
+            add(species.resourceIdentifier.toString())
+            add("level=$randomLevel")
+            add("shiny=$shiny")
+            formId?.let { add("form=$it") }
+        }.joinToString(" ")
+        val properties = try {
+            PokemonProperties.parse(propertyText)
+        } catch (exception: Exception) {
+            WonderTradePlus.LOGGER.error("No se pudieron interpretar las propiedades de addspecies: {}", propertyText, exception)
+            return null
+        }
+        val pokemon = runCatching { properties.create(player) }.getOrNull() ?: return null
         if (pokemon.species.resourceIdentifier != species.resourceIdentifier) return null
-        if (selectedForm != null) {
-            pokemon.form = selectedForm
-            // Regenera los movimientos con el learnset de la forma regional elegida.
-            pokemon.initializeMovesetFromDefault()
-            if (pokemon.form != selectedForm) {
-                WonderTradePlus.LOGGER.warn(
-                    "Cobblemon no mantuvo la forma {} de {} al ejecutar addspecies.",
-                    selectedForm.name, species.resourceIdentifier
+
+        if (formId != null) {
+            // create() inicializa el Pokémon. Reaplicamos form= después de initialize()
+            // para que se mantenga la FormData regional, y regeneramos los movimientos.
+            try {
+                properties.apply(pokemon)
+                pokemon.initializeMovesetFromDefault()
+            } catch (exception: Exception) {
+                WonderTradePlus.LOGGER.error("No se pudo aplicar form={} a {}.", formId, species.resourceIdentifier, exception)
+                throw IllegalArgumentException("No se pudo aplicar la forma regional '$regionalForm' a ${species.resourceIdentifier.path}.")
+            }
+            if (!pokemon.form.name.equals(formId, ignoreCase = true)) {
+                throw IllegalArgumentException(
+                    "Cobblemon no ha aplicado la forma '$regionalForm' (form=$formId) a ${species.resourceIdentifier.path}. " +
+                        "Comprueba que esa forma esté registrada por los datos/datapacks cargados."
                 )
-                return null
             }
         }
 
@@ -431,7 +442,12 @@ object WonderTradeService {
         val bonusEnabled = ConfigManager.bool("bonus.enabled", true)
         val offeredRare = WonderTradeRules.isRare(offered)
         val bonusBefore = if (bonusEnabled) playerData.bonus(player.uuid) else 0.0
-        val effectiveChance = bonusBefore + eventExtraChance()
+        val maximumBonus = ConfigManager.double("bonus.maximum", 60.0).coerceIn(0.0, 100.0)
+        // Los intercambios normales suman +0,1% antes de tirar la probabilidad de ESTE intercambio.
+        // Las aportaciones especiales suman su bonus al terminar y se aplican al siguiente WT normal.
+        val normalGain = if (bonusEnabled && !offeredRare) bonusGain(offered) else 0.0
+        val bonusForRoll = if (!offeredRare) (bonusBefore + normalGain).coerceAtMost(maximumBonus) else bonusBefore
+        val effectiveChance = bonusForRoll + eventExtraChance()
         val forceSpecial = !offeredRare && effectiveChance > 0.0 && Random.nextDouble() * 100.0 < effectiveChance
 
         // Si se activa el bonus, se prioriza un especial que ya exista en el pool.
@@ -481,12 +497,13 @@ object WonderTradeService {
             playerData.setName(player.uuid, player.gameProfile.name)
             var bonusAfter = bonusBefore
             if (bonusEnabled) {
-                if (offeredRare) {
-                    val gain = bonusGain(offered)
-                    val maximum = ConfigManager.double("bonus.maximum", 60.0).coerceIn(0.0, 100.0)
-                    bonusAfter = (bonusBefore + gain).coerceAtMost(maximum)
-                } else if (incomingRare) {
-                    bonusAfter = 0.0
+                bonusAfter = when {
+                    // Si un normal recibe un especial, el bonus se consume y vuelve a cero.
+                    !offeredRare && incomingRare -> 0.0
+                    // Un intercambio normal añade +0,1% (configurable), ya usado en la tirada actual.
+                    !offeredRare -> bonusForRoll
+                    // Ofrecer un especial añade +0,5% (configurable) para el siguiente WT normal.
+                    else -> (bonusBefore + bonusGain(offered)).coerceAtMost(maximumBonus)
                 }
                 playerData.setBonus(player.uuid, bonusAfter)
             }
@@ -497,10 +514,22 @@ object WonderTradeService {
             recordHistory(player, offered, incoming, fromPool, now)
             notifyDiscord(player, offered, incoming)
             if (bonusEnabled) {
-                if (offeredRare && bonusAfter > bonusBefore) {
-                    send(player, "bonusIncreased", mapOf("percent" to percentText(bonusAfter)))
-                } else if (!offeredRare && incomingRare && bonusBefore > 0.0) {
-                    send(player, "bonusReset", mapOf("percent" to percentText(0.0)))
+                when {
+                    !offeredRare && incomingRare && bonusForRoll > 0.0 -> {
+                        send(player, "bonusReset", mapOf("percent" to percentText(0.0)))
+                    }
+                    offeredRare && bonusAfter > bonusBefore -> {
+                        send(player, "bonusIncreased", mapOf(
+                            "gain" to percentText(bonusAfter - bonusBefore),
+                            "percent" to percentText(bonusAfter)
+                        ))
+                    }
+                    !offeredRare && bonusAfter > bonusBefore -> {
+                        send(player, "bonusNormalIncreased", mapOf(
+                            "gain" to percentText(bonusAfter - bonusBefore),
+                            "percent" to percentText(bonusAfter)
+                        ))
+                    }
                 }
             }
         } catch (exception: Exception) {
@@ -537,12 +566,25 @@ object WonderTradeService {
 
     // ------------------------------------------------------------ bonus por rareza
 
-    /** Cada Pokémon especial ofrecido suma una única vez al bonus personal (0,5 puntos porcentuales por defecto). */
+    /**
+     * Bonus por Pokémon ofrecido. Los Pokémon especiales suman el incremento base y,
+     * si además son shiny, el extra configurable. El extra solo aplica a legendarios,
+     * míticos, Ultraentes y Paradoja; un shiny de especie normal no lo recibe.
+     */
     fun bonusGain(pokemon: Pokemon): Double {
-        if (!WonderTradeRules.isRare(pokemon)) return 0.0
-        val base = ConfigManager.double("bonus.specialTradeGain", 0.5).coerceAtLeast(0.0)
-        return base * eventBonusMultiplier()
+        val rare = WonderTradeRules.isRare(pokemon)
+        val key = if (rare) "bonus.specialTradeGain" else "bonus.normalTradeGain"
+        val fallback = if (rare) 0.5 else 0.1
+        val base = ConfigManager.double(key, fallback).coerceAtLeast(0.0)
+        val specialShinyExtra = if (pokemon.shiny && WonderTradeRules.categoryLabel(pokemon) != null) {
+            ConfigManager.double("bonus.specialShinyExtraGain", 0.2).coerceAtLeast(0.0)
+        } else 0.0
+        return (base + specialShinyExtra) * eventBonusMultiplier()
     }
+
+    fun normalBonusGainText(): String = percentText(ConfigManager.double("bonus.normalTradeGain", 0.1).coerceAtLeast(0.0))
+    fun specialBonusGainText(): String = percentText(ConfigManager.double("bonus.specialTradeGain", 0.5).coerceAtLeast(0.0))
+    fun specialShinyExtraGainText(): String = percentText(ConfigManager.double("bonus.specialShinyExtraGain", 0.2).coerceAtLeast(0.0))
 
     // ------------------------------------------------------------ evento temporal
 
@@ -829,7 +871,18 @@ object WonderTradeService {
     /** Muestra al jugador su probabilidad acumulada de recibir un especial. */
     fun showBonus(player: ServerPlayer) {
         val value = if (ConfigManager.bool("bonus.enabled", true)) playerData.bonus(player.uuid) else 0.0
-        send(player, "bonusInfo", mapOf("percent" to percentText(value)))
+        val shinyExtra = specialShinyExtraGainText()
+        send(player, "bonusInfo", mapOf(
+            "percent" to percentText(value),
+            "normalGain" to normalBonusGainText(),
+            "specialGain" to specialBonusGainText(),
+            "specialShinyExtraGain" to shinyExtra
+        ))
+        // Configuraciones antiguas pueden tener un mensaje bonusInfo personalizado
+        // que todavía no contiene el nuevo marcador; mostramos el extra en otra línea.
+        if (!ConfigManager.string("messages.bonusInfo", "").contains("{specialShinyExtraGain}")) {
+            send(player, "bonusShinyExtraInfo", mapOf("specialShinyExtraGain" to shinyExtra))
+        }
     }
 
     private fun checkLimits(player: ServerPlayer): Boolean? {

@@ -38,7 +38,7 @@ La configuración inicial se copia en `config/wondertradeplus/config.json`. Edit
 
 ## `fallback`
 
-- `minimumLevel`, `maximumLevel`: rango de nivel aleatorio para `/wt admin addspecies` y `/wt admin fill`.
+- `minimumLevel`, `maximumLevel`: rango de nivel aleatorio para `/wt admin addspecies` y `/wt admin fill`. El comando `addspecies` recibe primero la especie base y, opcionalmente, una opción regional separada (`alolan`, `galarian`, `hisuian` o `paldean`) y `shiny`. También acepta la sintaxis de Cobblemon 1.8.x: `form=alola`, `form=galar`, `form=hisui` o `form=paldea`.
 - `speciesGenerationAttempts`: intentos máximos para que `/wt admin fill` genere una especie válida.
 - `shinyBehavior`: opción heredada que ya no afecta a los intercambios.
 
@@ -54,13 +54,10 @@ Si ninguna entrada del pool es válida para un jugador, el intercambio se cancel
 Mantenimiento automático del pool, cada `intervalMinutes` minutos. Solo elimina las entradas caducadas; no genera Pokémon automáticamente.
 
 - `expireAfterDays`: borra las entradas más antiguas que estos días. `0` lo desactiva. Por defecto `14`.
-- `autoRefill`: opción heredada que se ignora. El mantenimiento ya no rellena el pool automáticamente; para añadir Pokémon generados de forma explícita, usa `/wt admin fill`.
-- `minimumEntries`: tamaño mínimo del pool. Por defecto `100`.
-- `refillBatchSize`: máximo de Pokémon generados por pasada, para no cargar el servidor. Por defecto `50`.
-- `refillSpecialChance`: probabilidad (%) de que cada Pokémon generado sea especial. Por defecto `1.0`.
+- `autoRefill`, `minimumEntries`, `refillBatchSize` y `refillSpecialChance`: opciones heredadas que se ignoran. El mantenimiento no rellena el pool; para añadir Pokémon generados de forma explícita, usa `/wt admin fill`.
 - `intervalMinutes`: cada cuánto se ejecuta. Por defecto `30`.
 
-Los Pokémon generados salen con el donante `Servidor`. Se puede lanzar a mano con `/wt admin maintenance`.
+El mantenimiento manual con `/wt admin maintenance` solo elimina entradas caducadas. Los Pokémon generados con `/wt admin fill` salen con el donante `Servidor`.
 
 ## `backup`
 
@@ -91,17 +88,21 @@ Sistema de probabilidad acumulada **por jugador** para recibir un Pokémon espec
 
 - `enabled`: activa o desactiva el sistema.
 - `maximum`: límite del porcentaje acumulado (`0–100`). Por defecto `60`.
-- `specialTradeGain`: porcentaje que suma cada Pokémon especial ofrecido. Por defecto `0.5` puntos porcentuales por intercambio, independientemente de si es shiny, legendario, mítico, Ultraente o Paradoja. Se suma una sola vez aunque el Pokémon pertenezca a varias categorías.
+- `normalTradeGain`: puntos porcentuales que suma ofrecer un Pokémon normal. Por defecto `0.1` por intercambio. Se suma antes de la tirada de probabilidad de ese mismo intercambio. Es un porcentaje en puntos porcentuales: `0.1` significa +0,1%, no 10%.
+- `specialTradeGain`: puntos porcentuales que suma cada Pokémon clasificado como especial por el sistema (shiny, legendario, mítico, Ultraente o Paradoja). Por defecto `0.5` por intercambio. Se suma una sola vez aunque el Pokémon pertenezca a varias categorías.
+- `specialShinyExtraGain`: puntos porcentuales adicionales cuando el Pokémon ofrecido es **shiny y además** es legendario, mítico, Ultraente o Paradoja. Por defecto `0.2`; por tanto, un especial shiny suma `0.5 + 0.2 = 0.7` puntos porcentuales. Un shiny de especie normal conserva el incremento base `specialTradeGain` (+0,5% por defecto), pero no recibe este extra.
 - `shiny`, `legendary`, `mythical`, `ultraBeast`, `paradox`, `other` y `combineMode`: opciones heredadas que se conservan en archivos antiguos por compatibilidad, pero ya no intervienen en el cálculo.
 
-Funcionamiento: cuando el jugador ofrece un Pokémon **normal**, se tira un dado con su porcentaje acumulado; si sale, se intenta entregar un especial existente en la pool. Si no hay ninguno disponible, recibe cualquier Pokémon válido de la pool y conserva el bonus. Si recibe un especial, su porcentaje vuelve a 0. Ofrecer un especial nunca resetea el porcentaje, solo lo aumenta. El jugador puede consultarlo con `/wt chance` y los admins con `/wt chance <jugador>`. Los mensajes (`bonusIncreased`, `bonusReset`, `bonusInfo`) son editables.
+Todos los incrementos se expresan en puntos porcentuales (`0.1` = +0,1%, no 10%). Durante un evento activo, se aplica `event.bonusGainMultiplier` tanto al incremento base como al extra shiny.
+
+Funcionamiento: cuando el jugador ofrece un Pokémon **normal**, primero se suma `normalTradeGain` y después se tira un dado con el porcentaje acumulado actualizado para ese mismo intercambio; si sale, se intenta entregar un especial existente en la pool. Si no hay ninguno disponible, recibe cualquier Pokémon válido de la pool y conserva el bonus acumulado. Al recibir un especial, el porcentaje vuelve a 0. Ofrecer un Pokémon especial suma `specialTradeGain` y, si además es shiny y pertenece a las categorías legendario, mítico, Ultraente o Paradoja, suma también `specialShinyExtraGain`; ese incremento se aplica al siguiente intercambio normal. El jugador puede consultarlo con `/wt chance` y los admins con `/wt chance <jugador>`. Los mensajes (`bonusIncreased`, `bonusNormalIncreased`, `bonusReset`, `bonusInfo`) son editables; `bonusInfo` admite `{specialShinyExtraGain}`. Si un `bonusInfo` personalizado de una configuración anterior no incluye ese marcador, se muestra adicionalmente `bonusShinyExtraInfo`, que también es editable.
 
 ## `event`
 
 Valores del evento temporal (`/wt admin event start [minutos]`). Mientras está activo:
 
 - `cooldownMultiplier`: multiplica el cooldown de intercambio (`0.5` = la mitad, `0` = sin cooldown). Por defecto `0.5`.
-- `bonusGainMultiplier`: multiplica lo que suma cada especial ofrecido al bonus. Por defecto `2.0`.
+- `bonusGainMultiplier`: multiplica los incrementos `normalTradeGain`, `specialTradeGain` y `specialShinyExtraGain` mientras el evento está activo. Por defecto `2.0`.
 - `extraSpecialChance`: porcentaje extra (suma plana) de recibir un especial al ofrecer un Pokémon normal. Por defecto `5.0`.
 - `defaultDurationMinutes`: duración si no se indican minutos. Por defecto `60`.
 
@@ -117,6 +118,7 @@ Se consulta con `/wt admin history`.
 ## `admin`
 
 - `permissionLevel`: nivel de operador (`0–4`) necesario para los comandos `/wt admin ...`. Por defecto `2`.
+- `regionalForms.alolan`, `regionalForms.galarian`, `regionalForms.hisuian`, `regionalForms.paldean`: activa o desactiva cada opción de forma regional para `/wt admin addspecies`. Todas están activadas por defecto. Se aceptan los alias de comando `alolan`, `galarian`, `hisuian`, `paldean` y las propiedades nativas de Cobblemon 1.8.x `form=alola`, `form=galar`, `form=hisui`, `form=paldea`. Ejemplos: `/wt admin addspecies vulpix alolan`, `/wt admin addspecies vulpix form=alola`, `/wt admin addspecies meowth galarian shiny`. El mod comprueba que la forma exista para esa especie y que Cobblemon la haya aplicado antes de guardarla en el pool.
 
 ## `gui`
 

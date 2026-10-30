@@ -166,10 +166,7 @@ class WonderTradePlus : ModInitializer {
             }
             1
         }))
-        .then(literal("addspecies").then(argument("species", StringArgumentType.word())
-            .suggests { _, builder -> SharedSuggestionProvider.suggest(WonderTradeService.speciesNames(), builder) }
-            .executes { context -> addSpecies(context, false) }
-            .then(literal("shiny").executes { context -> addSpecies(context, true) })))
+        .then(addSpeciesCommand())
         .then(literal("fill").then(argument("amount", IntegerArgumentType.integer(1, 500))
             .executes { context ->
                 fill(context, null, ConfigManager.int("fallback.minimumLevel", 1), ConfigManager.int("fallback.maximumLevel", 100))
@@ -311,19 +308,78 @@ class WonderTradePlus : ModInitializer {
         return 1
     }
 
-    private fun addSpecies(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>, shiny: Boolean): Int {
+    /**
+     * Registra las opciones regionales como propiedades de Cobblemon, igual que /pokegive:
+     * /wt admin addspecies vulpix alolan [shiny]
+     * También se acepta el orden /wt admin addspecies vulpix shiny alolan.
+     */
+    private fun addSpeciesCommand() = literal("addspecies").then(
+        argument("species", StringArgumentType.word())
+            .suggests { _, builder -> SharedSuggestionProvider.suggest(WonderTradeService.speciesNames(), builder) }
+            .executes { context -> addSpecies(context, shiny = false, regionalForm = null) }
+            // greedyString permite también form=alola, ya que '=' forma parte de la
+            // sintaxis de propiedades de Cobblemon y no es una palabra simple Brigadier.
+            .then(argument("options", StringArgumentType.greedyString()).executes { context ->
+                val tokens = StringArgumentType.getString(context, "options")
+                    .trim()
+                    .split(Regex("\\s+"))
+                    .filter { it.isNotBlank() }
+                val regionalAliases = mapOf(
+                    "alolan" to "alolan", "alola" to "alolan", "form=alola" to "alolan",
+                    "galarian" to "galarian", "galar" to "galarian", "form=galar" to "galarian",
+                    "hisuian" to "hisuian", "hisui" to "hisuian", "form=hisui" to "hisuian",
+                    "paldean" to "paldean", "paldea" to "paldean", "form=paldea" to "paldean"
+                )
+                var shiny = false
+                var regionalForm: String? = null
+                for (token in tokens) {
+                    when (token.lowercase()) {
+                        "shiny", "shiny=true" -> shiny = true
+                        else -> {
+                            val resolvedForm = regionalAliases[token.lowercase()]
+                            if (resolvedForm == null) {
+                                context.source.sendFailure(WonderTradeService.info(
+                                    "&cOpción desconocida: &f$token&c. Usa &fshiny&c, &falolan&c, &fgalarian&c, &fhisuian&c, &fpaldean&c o &fform=alola/galar/hisui/paldea&c."
+                                ))
+                                return@executes 1
+                            }
+                            if (regionalForm != null && regionalForm != resolvedForm) {
+                                context.source.sendFailure(WonderTradeService.info("&cSolo puedes indicar una forma regional por Pokémon."))
+                                return@executes 1
+                            }
+                            regionalForm = resolvedForm
+                        }
+                    }
+                }
+                addSpecies(context, shiny = shiny, regionalForm = regionalForm)
+            })
+    )
+
+    private fun addSpecies(
+        context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>,
+        shiny: Boolean,
+        regionalForm: String?
+    ): Int {
         val player = context.source.playerOrException
         val species = StringArgumentType.getString(context, "species")
         val result = try {
-            WonderTradeService.adminAddSpecies(player, species, shiny)
+            WonderTradeService.adminAddSpecies(player, species, shiny, regionalForm)
         } catch (exception: IllegalArgumentException) {
-            context.source.sendFailure(WonderTradeService.info("&c${exception.message} Prueba con Tab para ver las formas disponibles."))
+            context.source.sendFailure(WonderTradeService.info("&c${exception.message}"))
             return 1
         }
         if (result == null) {
-            context.source.sendFailure(WonderTradeService.info("&cNo se pudo crear &f$species&c. Usa el nombre de la especie en inglés y sin espacios, por ejemplo &fpikachu&c, &fgreattusk &co una forma como &fvulpix-alola&c."))
+            context.source.sendFailure(WonderTradeService.info(
+                "&cNo se pudo crear &f$species&c. Usa el nombre base en inglés y una opción regional, por ejemplo &fvulpix alolan&c o &fvulpix form=alola&c."
+            ))
         } else {
-            context.source.sendSuccess({ WonderTradeService.info("&aSe ha añadido &f${result.name} &7(nivel aleatorio: ${result.level}${if (shiny) ", shiny" else ""}) &aal pool.") }, true)
+            val options = buildList {
+                regionalForm?.let(::add)
+                if (shiny) add("shiny")
+            }.joinToString(", ").ifEmpty { "normal" }
+            context.source.sendSuccess({
+                WonderTradeService.info("&aSe ha añadido &f${result.name} &7(nivel aleatorio: ${result.level}; $options) &aal pool.")
+            }, true)
         }
         return 1
     }
@@ -343,7 +399,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.7.2"
+        const val MOD_VERSION = "0.7.5"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }
