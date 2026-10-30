@@ -201,15 +201,13 @@ object WonderTradeService {
 
     private var speciesCache: List<String>? = null
 
-    /** Especies y formas para el autocompletado de /wt admin addspecies (por ejemplo "vulpix" y "vulpix-alolan"). */
+    /** Especies y formas para el autocompletado; usa los identificadores de forma de Cobblemon. */
     fun speciesNames(): List<String> = speciesCache ?: PokemonSpecies.species.flatMap { species ->
         val base = species.resourceIdentifier.path
         listOf(base) + species.forms
-            .map { it.name.lowercase() }
-            .filter { it != "normal" }
-            .distinct()
-            .map { "$base-$it" }
-    }.sorted().also { speciesCache = it }
+            .filter { !it.name.equals("normal", ignoreCase = true) }
+            .map { "$base-${it.formOnlyShowdownId().lowercase()}" }
+    }.distinct().sorted().also { speciesCache = it }
 
     fun adminLevel(): Int = ConfigManager.int("admin.permissionLevel", 2).coerceIn(0, 4)
 
@@ -243,35 +241,60 @@ object WonderTradeService {
         return pokemon.getDisplayName().string
     }
 
+    data class AddedSpeciesResult(val name: String, val level: Int)
+
     /**
-     * Crea un Pokémon de una especie concreta y lo añade al pool. Devuelve su nombre o null si la especie no existe.
-     * Admite formas regionales con un guion: "vulpix-alola", "meowth-galar", "growlithe-hisui", "wooper-paldea".
+     * Crea una especie (o una forma regional) y la añade al pool con un nivel aleatorio.
+     * Ejemplos: "pikachu", "vulpix-alola", "meowth-galar", "growlithe-hisui", "wooper-paldea".
      * Lanza IllegalArgumentException si la especie existe pero no tiene esa forma.
      */
-    fun adminAddSpecies(player: ServerPlayer, speciesInput: String, level: Int, shiny: Boolean): String? {
+    fun adminAddSpecies(player: ServerPlayer, speciesInput: String, shiny: Boolean): AddedSpeciesResult? {
         val cleaned = speciesInput.lowercase().substringAfter(':')
         val speciesName = cleaned.substringBefore('-')
-        val formTag = if ('-' in cleaned) cleaned.substringAfter('-') else null
+        val formTag = cleaned.substringAfter('-', "").takeIf { it.isNotEmpty() }
+        val low = ConfigManager.int("fallback.minimumLevel", 1).coerceIn(1, 100)
+        val high = ConfigManager.int("fallback.maximumLevel", 100).coerceIn(low, 100)
+        val randomLevel = Random.nextInt(low, high + 1)
+
+        val species = PokemonSpecies.species.firstOrNull {
+            it.resourceIdentifier.path.equals(speciesName, ignoreCase = true)
+        } ?: return null
+
+        // En Cobblemon el identificador usado por PokemonProperties es formOnlyShowdownId(),
+        // que no siempre coincide literalmente con FormData.name (p. ej. alola/alolan).
+        val selectedForm = if (formTag != null) {
+            val requested = formTag.lowercase().filter(Char::isLetterOrDigit)
+            species.forms.firstOrNull { form ->
+                val formName = form.name.lowercase().filter { it.isLetterOrDigit() }
+                val showdownId = form.formOnlyShowdownId().lowercase().filter { it.isLetterOrDigit() }
+                requested == formName || requested == showdownId ||
+                    formName.startsWith(requested) || requested.startsWith(formName) ||
+                    showdownId.startsWith(requested) || requested.startsWith(showdownId)
+            } ?: throw IllegalArgumentException("${species.resourceIdentifier.path} no tiene la forma '$formTag'.")
+        } else null
 
         val pokemon = runCatching {
             PokemonProperties().apply {
-                this.species = speciesName
-                this.level = level.coerceIn(1, 100)
+                this.species = species.resourceIdentifier.toString()
+                this.form = selectedForm?.formOnlyShowdownId()
+                this.level = randomLevel
                 this.shiny = shiny
             }.create(player)
         }.getOrNull() ?: return null
-        if (!pokemon.species.resourceIdentifier.path.equals(speciesName, ignoreCase = true)) return null
 
-        if (formTag != null) {
-            val form = pokemon.species.forms.firstOrNull {
-                val name = it.name.lowercase()
-                name == formTag || name.startsWith(formTag)
-            } ?: throw IllegalArgumentException("${pokemon.species.resourceIdentifier.path} no tiene la forma '$formTag'.")
-            pokemon.form = form
+        // No permitir que una forma inválida termine silenciosamente como la forma base.
+        if (pokemon.species.resourceIdentifier != species.resourceIdentifier) return null
+        if (selectedForm != null && !pokemon.form.name.equals(selectedForm.name, ignoreCase = true)) {
+            WonderTradePlus.LOGGER.warn(
+                "Cobblemon no aplicó la forma {} a {} al ejecutar addspecies.",
+                selectedForm.name, species.resourceIdentifier
+            )
+            return null
         }
+
         addAdminEntry(pokemon, player.server.registryAccess())
         trimAndSave()
-        return pokemon.getDisplayName().string
+        return AddedSpeciesResult(pokemon.getDisplayName().string, pokemon.level)
     }
 
     data class FillResult(val added: Int, val special: Int, val chancePercent: Double)
@@ -385,41 +408,34 @@ object WonderTradeService {
             donation.level = donation.level.coerceIn(minimum, maximum)
         }
 
-        // Bonus personal: cada especial ofrecido sube la probabilidad de recibir uno especial en un intercambio posterior.
+        // Wonder Trade: la rareza, especie, nivel y estado shiny del Pokémon ofrecido
+        // no limitan el Pokémon recibido. Cada especial ofrecido aumenta el bonus personal.
         val bonusEnabled = ConfigManager.bool("bonus.enabled", true)
         val offeredRare = WonderTradeRules.isRare(offered)
         val bonusBefore = if (bonusEnabled) playerData.bonus(player.uuid) else 0.0
         val effectiveChance = bonusBefore + eventExtraChance()
         val forceSpecial = !offeredRare && effectiveChance > 0.0 && Random.nextDouble() * 100.0 < effectiveChance
 
-        var chosenEntry: PoolEntry? = null
-        var forcedIncoming: Pokemon? = null
-        if (forceSpecial) {
-            chosenEntry = choosePoolEntry(offered, true, player)
-            if (chosenEntry == null) forcedIncoming = generateSpecialFallback(player, offered)
-        }
-        if (chosenEntry == null && forcedIncoming == null) chosenEntry = choosePoolEntry(offered, false, player)
+        // Si se activa el bonus, se prioriza un especial que ya exista en el pool.
+        // Si no hay especiales disponibles, se entrega cualquier entrada válida del pool.
+        // Nunca se inventan Pokémon ni se exige compatibilidad con el Pokémon ofrecido.
+        var chosenEntry: PoolEntry? = if (forceSpecial) choosePoolEntry(forceSpecial = true, player = player) else null
+        if (chosenEntry == null) chosenEntry = choosePoolEntry(forceSpecial = false, player = player)
 
-        var fromPool = false
-        val incoming: Pokemon = (forcedIncoming ?: if (chosenEntry != null) {
-            val loaded = try {
-                Pokemon.loadFromJSON(registryAccess, chosenEntry.pokemonJson.deepCopy())
-            } catch (exception: Exception) {
-                WonderTradePlus.LOGGER.error("No se pudo recuperar un Pokémon del pool ({}).", chosenEntry.id, exception)
-                null
-            }
-            if (loaded != null) {
-                fromPool = true
-                loaded
-            } else {
-                generateFallback(player, offered)
-            }
-        } else {
-            generateFallback(player, offered)
-        }) ?: run {
-            send(player, if (ConfigManager.bool("pool.randomFallback", true)) "generationFailed" else "noCandidate")
+        val selectedEntry = chosenEntry ?: run {
+            send(player, "noCandidate")
             return
         }
+        val incoming = try {
+            Pokemon.loadFromJSON(registryAccess, selectedEntry.pokemonJson.deepCopy())
+        } catch (exception: Exception) {
+            WonderTradePlus.LOGGER.error("No se pudo recuperar un Pokémon del pool ({}).", selectedEntry.id, exception)
+            null
+        } ?: run {
+            send(player, "generationFailed")
+            return
+        }
+        val fromPool = true
 
         if (incoming.uuid == offered.uuid) {
             send(player, "generationFailed")
@@ -433,7 +449,7 @@ object WonderTradeService {
                 throw IllegalStateException("No se pudo insertar el Pokémon recibido en el equipo")
             }
 
-            if (chosenEntry != null) pool.remove(chosenEntry.id)
+            pool.remove(selectedEntry.id)
             if (ConfigManager.bool("pool.enabled", true) && ConfigManager.bool("pool.acceptDonations", true)) {
                 pool.add(PoolEntry.fromPokemon(donation, registryAccess, player.gameProfile.name, now, player.uuid.toString()))
                 pool.trim(
@@ -481,10 +497,10 @@ object WonderTradeService {
         }
     }
 
-    private fun choosePoolEntry(offered: Pokemon, forceSpecial: Boolean, player: ServerPlayer): PoolEntry? {
+    private fun choosePoolEntry(forceSpecial: Boolean, player: ServerPlayer): PoolEntry? {
         if (!ConfigManager.bool("pool.enabled", true)) return null
-        val all = pool.all().filter { entry ->
-            // Anti-abuso: no recibir lo que uno mismo aportó y esperar un tiempo antes de poder recibir lo recién aportado.
+        val candidates = pool.all().filter { entry ->
+            // Protección antiabuso: no se pueden recibir las propias aportaciones ni las recién añadidas.
             if (ConfigManager.bool("antiAbuse.excludeOwnDonations", true) &&
                 (entry.donorUuid == player.uuid.toString() || entry.donorName.equals(player.gameProfile.name, ignoreCase = true))
             ) return@filter false
@@ -494,80 +510,19 @@ object WonderTradeService {
             if (!ConfigManager.bool("general.allowSpecialPokemon", true) && entry.special) return@filter false
             if (!ConfigManager.bool("general.allowAlphaPokemon", true) && entry.alpha) return@filter false
             if (!WonderTradeRules.isSpeciesAllowed(entry.species)) return@filter false
-            if (ConfigManager.bool("trade.avoidSameSpecies", false) && entry.species.equals(offered.species.resourceIdentifier.toString(), true)) return@filter false
+            // Solo se aplica este filtro cuando el bonus ha activado un intento de especial.
             if (forceSpecial && !WonderTradeRules.isRareEntry(entry)) return@filter false
-            if (!forceSpecial && ConfigManager.bool("trade.matchSpecialTier", true) && entry.special != WonderTradeRules.isSpecial(offered)) return@filter false
-            if (ConfigManager.bool("trade.matchLevel", false)) {
-                val diff = ConfigManager.int("trade.levelDifference", 10).coerceAtLeast(0)
-                if (kotlin.math.abs(entry.level - offered.level) > diff) return@filter false
-            }
             true
         }
-        if (all.isEmpty()) return null
-        if (forceSpecial) return all.randomOrNull()
-        val shinyMode = ConfigManager.string("trade.shinyMode", "MATCH_IF_AVAILABLE").uppercase()
-        val shinyFiltered = when (shinyMode) {
-            "REQUIRE_MATCH" -> all.filter { it.shiny == offered.shiny }
-            "DISALLOW_SHINY" -> all.filter { !it.shiny }
-            "MATCH_IF_AVAILABLE" -> {
-                val matching = all.filter { it.shiny == offered.shiny }
-                if (matching.isNotEmpty()) matching else all
-            }
-            else -> all
-        }
-        return (shinyFiltered.ifEmpty { if (shinyMode == "REQUIRE_MATCH") emptyList() else all }).randomOrNull()
-    }
-
-    private fun generateFallback(player: ServerPlayer, offered: Pokemon): Pokemon? {
-        if (!ConfigManager.bool("pool.randomFallback", true)) return null
-        val low = ConfigManager.int("fallback.minimumLevel", 1).coerceIn(1, 100)
-        val high = ConfigManager.int("fallback.maximumLevel", 100).coerceIn(low, 100)
-        val attempts = ConfigManager.int("fallback.speciesGenerationAttempts", 128).coerceIn(1, 1000)
-        val shinyMode = ConfigManager.string("trade.shinyMode", "MATCH_IF_AVAILABLE").uppercase()
-        val shinyBehavior = ConfigManager.string("fallback.shinyBehavior", "MATCH_INPUT").uppercase()
-        val targetShiny: Boolean? = when (shinyBehavior) {
-            "MATCH_INPUT" -> when (shinyMode) {
-                "IGNORE" -> null
-                "DISALLOW_SHINY" -> false
-                else -> offered.shiny
-            }
-            "ALWAYS" -> true
-            "NEVER" -> false
-            "SERVER_RATE" -> null
-            else -> offered.shiny
-        }
-
-        repeat(attempts) {
-            try {
-                val generated = PokemonProperties().apply {
-                    this.species = "random"
-                    this.level = Random.nextInt(low, high + 1)
-                    this.shiny = targetShiny
-                }.create(player)
-                if (!ConfigManager.bool("general.allowShinyPokemon", true) && generated.shiny) return@repeat
-                if (!ConfigManager.bool("general.allowSpecialPokemon", true) && WonderTradeRules.isSpecial(generated)) return@repeat
-                if (!ConfigManager.bool("general.allowAlphaPokemon", true) && generated.isAlpha) return@repeat
-                if (ConfigManager.bool("trade.matchSpecialTier", true) && WonderTradeRules.isSpecial(generated) != WonderTradeRules.isSpecial(offered)) return@repeat
-                if (ConfigManager.bool("trade.avoidSameSpecies", false) && generated.species.resourceIdentifier == offered.species.resourceIdentifier) return@repeat
-                if (shinyMode == "REQUIRE_MATCH" && generated.shiny != offered.shiny) return@repeat
-                if (shinyMode == "DISALLOW_SHINY" && generated.shiny) return@repeat
-                if (!WonderTradeRules.isSpeciesAllowed(generated.species.resourceIdentifier.toString())) return@repeat
-                return generated
-            } catch (exception: Exception) {
-                WonderTradePlus.LOGGER.debug("Falló un intento de generación aleatoria.", exception)
-            }
-        }
-        return null
+        return candidates.randomOrNull()
     }
 
     // ------------------------------------------------------------ bonus por rareza
 
-    /** Porcentaje que suma ofrecer este Pokémon, según `bonus.shiny`, `bonus.legendary`, etc. */
+    /** Cada Pokémon especial ofrecido suma una única vez al bonus personal (0,5 puntos porcentuales por defecto). */
     fun bonusGain(pokemon: Pokemon): Double {
-        val keys = WonderTradeRules.rarityKeys(pokemon)
-        if (keys.isEmpty()) return 0.0
-        val values = keys.map { ConfigManager.double("bonus.$it", 10.0).coerceAtLeast(0.0) }
-        val base = if (ConfigManager.string("bonus.combineMode", "HIGHEST").equals("SUM", ignoreCase = true)) values.sum() else values.max()
+        if (!WonderTradeRules.isRare(pokemon)) return 0.0
+        val base = ConfigManager.double("bonus.specialTradeGain", 0.5).coerceAtLeast(0.0)
         return base * eventBonusMultiplier()
     }
 
@@ -653,31 +608,20 @@ object WonderTradeService {
 
     // ------------------------------------------------------------ mantenimiento y copias
 
-    /** Borra entradas caducadas y rellena el pool con Pokémon generados hasta el mínimo. Devuelve (caducadas, generadas). */
+    /** El mantenimiento solo elimina entradas caducadas; no crea Pokémon automáticamente. */
+    @Suppress("UNUSED_PARAMETER")
     fun maintainPool(server: MinecraftServer): Pair<Int, Int> {
-        var expired = 0
         val days = ConfigManager.int("maintenance.expireAfterDays", 14)
-        if (days > 0) {
+        val expired = if (days > 0) {
             val limit = System.currentTimeMillis() - days * 86_400_000L
-            expired = pool.removeWhere { it.addedAt > 0L && it.addedAt < limit }
-            if (expired > 0) pool.save()
+            pool.removeWhere { it.addedAt > 0L && it.addedAt < limit }
+        } else 0
+        if (expired > 0) {
+            pool.save()
+            WonderTradePlus.LOGGER.info("Mantenimiento del pool: {} entradas caducadas eliminadas; {} Pokémon permanecen.", expired, pool.size)
         }
-        var generated = 0
-        if (ConfigManager.bool("maintenance.autoRefill", true)) {
-            val need = ConfigManager.int("maintenance.minimumEntries", 100) - pool.size
-            val player = server.playerList.players.firstOrNull()
-            if (need > 0 && player != null) {
-                val batch = need.coerceAtMost(ConfigManager.int("maintenance.refillBatchSize", 50).coerceAtLeast(1))
-                generated = adminFill(
-                    player, batch, ConfigManager.double("maintenance.refillSpecialChance", 1.0),
-                    ConfigManager.int("fallback.minimumLevel", 1), ConfigManager.int("fallback.maximumLevel", 100)
-                ).added
-            }
-        }
-        if (expired > 0 || generated > 0) {
-            WonderTradePlus.LOGGER.info("Mantenimiento del pool: {} caducados, {} generados, {} en total.", expired, generated, pool.size)
-        }
-        return expired to generated
+        // El segundo valor se conserva por compatibilidad con el comando de mantenimiento.
+        return expired to 0
     }
 
     /** Copia pool.json, player-data.json, history.json y event.json a backups/<fecha>. Devuelve el nombre de la carpeta. */
@@ -828,39 +772,6 @@ object WonderTradeService {
             }
         }
         return colour(lines.joinToString("\n"))
-    }
-
-    /** Genera un Pokémon especial (shiny o de especie especial) para el bonus del jugador. */
-    private fun generateSpecialFallback(player: ServerPlayer, offered: Pokemon): Pokemon? {
-        if (!ConfigManager.bool("pool.randomFallback", true)) return null
-        val allowShiny = ConfigManager.bool("general.allowShinyPokemon", true)
-        val allowSpecial = ConfigManager.bool("general.allowSpecialPokemon", true)
-        val allowAlpha = ConfigManager.bool("general.allowAlphaPokemon", true)
-        if (!allowShiny && !allowSpecial) return null
-        val low = ConfigManager.int("fallback.minimumLevel", 1).coerceIn(1, 100)
-        val high = ConfigManager.int("fallback.maximumLevel", 100).coerceIn(low, 100)
-        val attempts = ConfigManager.int("fallback.speciesGenerationAttempts", 128).coerceIn(1, 1000)
-        val shinyOne = allowShiny && (!allowSpecial || Random.nextInt(3) == 0)
-
-        repeat(attempts) {
-            try {
-                val generated = PokemonProperties().apply {
-                    this.species = "random"
-                    this.level = Random.nextInt(low, high + 1)
-                    this.shiny = if (shinyOne) true else null
-                }.create(player)
-                if (!allowAlpha && generated.isAlpha) return@repeat
-                if (!allowSpecial && WonderTradeRules.isSpecialSpecies(generated)) return@repeat
-                if (!allowShiny && generated.shiny) return@repeat
-                if (!shinyOne && !WonderTradeRules.isSpecialSpecies(generated)) return@repeat
-                if (ConfigManager.bool("trade.avoidSameSpecies", false) && generated.species.resourceIdentifier == offered.species.resourceIdentifier) return@repeat
-                if (!WonderTradeRules.isSpeciesAllowed(generated.species.resourceIdentifier.toString())) return@repeat
-                return generated
-            } catch (exception: Exception) {
-                WonderTradePlus.LOGGER.debug("Falló un intento de generación especial.", exception)
-            }
-        }
-        return null
     }
 
     private fun percentText(value: Double): String =

@@ -141,7 +141,7 @@ object WonderTradeGui {
 
         menu.button(22, named(Items.ENDER_CHEST, "&bAbrir PC", "&7Elige un Pokémon de tus cajas.")) { openPc(it, 0) }
         if (canViewPool(player)) {
-            menu.button(24, named(Items.CHEST, "&6Ver pool", "&7Pokémon aportados por los jugadores.")) { openPool(it, 0, false) }
+            menu.button(17, named(Items.CHEST, "&6Ver pool", "&7Pokémon aportados por los jugadores.")) { openPool(it, 0, false) }
         }
         menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
@@ -218,12 +218,7 @@ object WonderTradeGui {
             if (option == filter) "&e▶ ${option.label} &f${counts[option]}"
             else "&8   ${option.label.drop(2)} ${counts[option]}"
         }
-        menu.button(52, named(Items.HOPPER, "&fFiltro: ${filter.label}",
-            "&7Total: &f${all.size}",
-            "&dEspeciales: &f$special",
-            "&7Normales: &f${all.size - special}",
-            "&8(shiny, legendarios, míticos,",
-            "&8Ultraentes y Paradoja)",
+        menu.button(52, named(Items.HOPPER, "&fCambiar filtro de pool",
             *options.toTypedArray(),
             "&eClic para cambiar")) {
             renderPool(menu, it, 0, admin, filter.next())

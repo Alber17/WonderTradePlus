@@ -20,18 +20,17 @@ La configuración inicial se copia en `config/wondertradeplus/config.json`. Edit
 - `cooldownMinutes`: espera entre intercambios, en **minutos**. Por defecto `720` (12 horas). `0` desactiva el cooldown. Ejemplos: `60` = 1 h, `360` = 6 h, `1440` = 24 h. Los operadores (`adminBypassPermissionLevel`) lo ignoran.
 - `dailyLimit`: número máximo de intercambios por día. `0` significa ilimitado.
 - `adminBypassPermissionLevel`: nivel de operador que ignora cooldown y límite diario; rango `0–4`.
-- `matchSpecialTier`: intenta emparejar Pokémon especiales con especiales y normales con normales.
+- `matchSpecialTier`: opción heredada; ya no se usa. Wonder Trade puede entregar cualquier especie de la pool, sin emparejar la rareza del Pokémon ofrecido.
 - `specialLabels`: etiquetas adicionales que cuentan como categoría especial, además de legendarios, míticos y Ultraentes detectados por Cobblemon.
-- `avoidSameSpecies`: evita devolver la misma especie que se ofreció.
-- `matchLevel`: activa el rango de nivel respecto al Pokémon ofrecido.
-- `levelDifference`: diferencia de nivel máxima cuando `matchLevel` está activo.
-- `shinyMode`: `MATCH_IF_AVAILABLE` prioriza el mismo estado shiny; `REQUIRE_MATCH` exige el mismo estado; `IGNORE` no lo tiene en cuenta; `DISALLOW_SHINY` evita entregar Pokémon shiny.
+- `avoidSameSpecies`: opción heredada; ya no se usa. La especie ofrecida no limita la selección.
+- `matchLevel` y `levelDifference`: opciones heredadas; ya no se usan. El nivel ofrecido no limita la selección.
+- `shinyMode`: opción heredada; ya no se usa para emparejar. El Pokémon recibido se selecciona al azar entre las entradas válidas de la pool; `general.allowShinyPokemon` sigue controlando si se permiten shiny.
 
 ## `pool`
 
 - `enabled`: usa el pool compartido de Pokémon aportados por jugadores.
 - `acceptDonations`: guarda en el pool una copia del Pokémon que se ha ofrecido tras completar el intercambio.
-- `randomFallback`: genera un Pokémon nuevo cuando no hay ninguna entrada compatible.
+- `randomFallback`: opción heredada que se ignora; ningún intercambio genera Pokémon fuera del pool.
 - `maximumEntries`: máximo de entradas guardadas.
 - `trimOldestFirst`: elimina entradas antiguas al superar el máximo si está activo.
 - `clampDonatedLevel`: ajusta el nivel de la copia donada al pool.
@@ -39,23 +38,23 @@ La configuración inicial se copia en `config/wondertradeplus/config.json`. Edit
 
 ## `fallback`
 
-- `minimumLevel`, `maximumLevel`: rango de nivel de Pokémon generados por el sistema de respaldo.
-- `speciesGenerationAttempts`: intentos máximos para encontrar una especie que respete los filtros.
-- `shinyBehavior`: `MATCH_INPUT`, `SERVER_RATE`, `NEVER` o `ALWAYS`.
+- `minimumLevel`, `maximumLevel`: rango de nivel aleatorio para `/wt admin addspecies` y `/wt admin fill`.
+- `speciesGenerationAttempts`: intentos máximos para que `/wt admin fill` genere una especie válida.
+- `shinyBehavior`: opción heredada que ya no afecta a los intercambios.
 
 ## `antiAbuse`
 
 - `excludeOwnDonations`: un jugador no puede recibir Pokémon que él mismo aportó al pool. Por defecto `true`.
 - `donationHoldMinutes`: minutos que un Pokémon recién aportado por un jugador no puede ser recibido por nadie. Por defecto `10`; `0` lo desactiva. No afecta a lo creado por comandos de admin ni a entradas antiguas.
 
-Si ninguna entrada del pool es válida para un jugador, se genera un Pokémon aleatorio (si `pool.randomFallback` está activado).
+Si ninguna entrada del pool es válida para un jugador, el intercambio se cancela y no se genera ni entrega ningún Pokémon externo al pool.
 
 ## `maintenance`
 
-Mantenimiento automático del pool, cada `intervalMinutes` minutos (y a la primera vez, un minuto después de arrancar).
+Mantenimiento automático del pool, cada `intervalMinutes` minutos. Solo elimina las entradas caducadas; no genera Pokémon automáticamente.
 
 - `expireAfterDays`: borra las entradas más antiguas que estos días. `0` lo desactiva. Por defecto `14`.
-- `autoRefill`: si el pool tiene menos de `minimumEntries`, genera Pokémon aleatorios hasta llegar. Necesita al menos un jugador conectado. Por defecto `true`.
+- `autoRefill`: opción heredada que se ignora. El mantenimiento ya no rellena el pool automáticamente; para añadir Pokémon generados de forma explícita, usa `/wt admin fill`.
 - `minimumEntries`: tamaño mínimo del pool. Por defecto `100`.
 - `refillBatchSize`: máximo de Pokémon generados por pasada, para no cargar el servidor. Por defecto `50`.
 - `refillSpecialChance`: probabilidad (%) de que cada Pokémon generado sea especial. Por defecto `1.0`.
@@ -92,10 +91,10 @@ Sistema de probabilidad acumulada **por jugador** para recibir un Pokémon espec
 
 - `enabled`: activa o desactiva el sistema.
 - `maximum`: límite del porcentaje acumulado (`0–100`). Por defecto `60`.
-- `shiny`, `legendary`, `mythical`, `ultraBeast`, `paradox`, `other`: porcentaje que suma ofrecer un Pokémon de cada tipo. `other` cubre las etiquetas personalizadas de `trade.specialLabels`. Por defecto todos valen `10`. Ejemplo: `"shiny": 15, "paradox": 5` hace que un shiny valga el triple que una Paradoja.
-- `combineMode`: qué pasa cuando un Pokémon cumple varios tipos a la vez (por ejemplo, un legendario shiny). `HIGHEST` suma solo el valor más alto; `SUM` los suma todos (con valores de 10, un legendario shiny daría 20, el doble).
+- `specialTradeGain`: porcentaje que suma cada Pokémon especial ofrecido. Por defecto `0.5` puntos porcentuales por intercambio, independientemente de si es shiny, legendario, mítico, Ultraente o Paradoja. Se suma una sola vez aunque el Pokémon pertenezca a varias categorías.
+- `shiny`, `legendary`, `mythical`, `ultraBeast`, `paradox`, `other` y `combineMode`: opciones heredadas que se conservan en archivos antiguos por compatibilidad, pero ya no intervienen en el cálculo.
 
-Funcionamiento: cuando el jugador ofrece un Pokémon **normal**, se tira un dado con su porcentaje acumulado; si sale, recibe un especial (del pool si hay, y si no se genera uno). Si recibe un especial ofreciendo uno normal, su porcentaje vuelve a 0. Ofrecer un especial nunca resetea el porcentaje, solo lo sube. El jugador puede consultarlo con `/wt chance` y los admins con `/wt chance <jugador>`. Los mensajes (`bonusIncreased`, `bonusReset`, `bonusInfo`) son editables.
+Funcionamiento: cuando el jugador ofrece un Pokémon **normal**, se tira un dado con su porcentaje acumulado; si sale, se intenta entregar un especial existente en la pool. Si no hay ninguno disponible, recibe cualquier Pokémon válido de la pool y conserva el bonus. Si recibe un especial, su porcentaje vuelve a 0. Ofrecer un especial nunca resetea el porcentaje, solo lo aumenta. El jugador puede consultarlo con `/wt chance` y los admins con `/wt chance <jugador>`. Los mensajes (`bonusIncreased`, `bonusReset`, `bonusInfo`) son editables.
 
 ## `event`
 
@@ -122,7 +121,7 @@ Se consulta con `/wt admin history`.
 ## `gui`
 
 - `enabled`: `/wt` sin argumentos abre el menú. Si es `false`, muestra la ayuda.
-- `poolViewPermissionLevel`: nivel de operador necesario para `/wt pool view` y el botón "Ver pool". `0` = todos los jugadores, `2` = solo operadores, `4` = solo owner.
+- `poolViewPermissionLevel`: nivel de operador necesario para `/wt pool` y el botón "Ver pool". `0` = todos los jugadores, `2` = solo operadores, `4` = solo owner.
 - `showDonorNames`: muestra quién aportó cada Pokémon en la vista del pool.
 
 ## `broadcast`
@@ -141,6 +140,6 @@ Cada intercambio genera un solo anuncio. Prioridad: Ultraente > Paradoja pasado/
 
 Todas las cadenas son editables. Los colores usan `&` como prefijo, por ejemplo `&a` para verde. Las plantillas admiten `{sent}`, `{received}`, `{seconds}`, `{time}`, `{limit}`, `{min}`, `{max}`, `{size}`, `{player}` y `{pokemon}` según el mensaje.
 
-## Importante sobre shiny
+## Selección de Pokémon
 
-Las reglas del pool y las reglas de generación aleatoria son diferentes. Si quieres que entregar un shiny garantice otro shiny incluso cuando el pool esté vacío, usa `trade.shinyMode: "REQUIRE_MATCH"` y `fallback.shinyBehavior: "MATCH_INPUT"`. Eso puede hacer que el intercambio no se complete si no se encuentra un resultado compatible tras el número de intentos configurado; no se retirará el Pokémon ofrecido en ese caso.
+La selección sigue el funcionamiento aleatorio de Wonder Trade: no busca una especie, rareza, nivel ni estado shiny compatible con el Pokémon ofrecido. Escoge cualquier entrada válida del pool. Si se activa el bonus especial, intenta escoger una entrada especial existente; si no hay ninguna disponible, escoge cualquier entrada válida y conserva el bonus acumulado. Las protecciones antiabuso y las opciones `general.allow*` y listas de especies siguen aplicándose.

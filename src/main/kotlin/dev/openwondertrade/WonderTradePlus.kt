@@ -132,26 +132,14 @@ class WonderTradePlus : ModInitializer {
                 1
             })
             .then(literal("pool").executes { context ->
-                context.source.sendSuccess({ WonderTradeService.poolSummaryComponent() }, false)
-                1
-            }.then(literal("view")
-                .requires { it.hasPermission(ConfigManager.int("gui.poolViewPermissionLevel", 0).coerceIn(0, 4)) }
-                .executes { context ->
-                    WonderTradeGui.openPool(context.source.playerOrException, 0)
-                    1
+                val player = context.source.player
+                if (player == null) {
+                    context.source.sendFailure(WonderTradeService.info("&cEste comando solo puede usarse dentro del juego."))
+                } else {
+                    WonderTradeGui.openPool(player, 0)
                 }
-                .then(literal("all").executes { context ->
-                    WonderTradeGui.openPool(context.source.playerOrException, 0, false, PoolFilter.ALL)
-                    1
-                })
-                .then(literal("special").executes { context ->
-                    WonderTradeGui.openPool(context.source.playerOrException, 0, false, PoolFilter.SPECIAL)
-                    1
-                })
-                .then(literal("normal").executes { context ->
-                    WonderTradeGui.openPool(context.source.playerOrException, 0, false, PoolFilter.NORMAL)
-                    1
-                })))
+                1
+            })
             .then(literal("reload").requires { it.hasPermission(2) }.executes { context ->
                 WonderTradeService.reload()
                 context.source.sendSuccess({ WonderTradeService.configuredMessage("reload", "&aConfiguración y pool recargados.") }, true)
@@ -180,9 +168,8 @@ class WonderTradePlus : ModInitializer {
         }))
         .then(literal("addspecies").then(argument("species", StringArgumentType.word())
             .suggests { _, builder -> SharedSuggestionProvider.suggest(WonderTradeService.speciesNames(), builder) }
-            .then(argument("level", IntegerArgumentType.integer(1, 100))
-                .executes { context -> addSpecies(context, false) }
-                .then(literal("shiny").executes { context -> addSpecies(context, true) }))))
+            .executes { context -> addSpecies(context, false) }
+            .then(literal("shiny").executes { context -> addSpecies(context, true) })))
         .then(literal("fill").then(argument("amount", IntegerArgumentType.integer(1, 500))
             .executes { context ->
                 fill(context, null, ConfigManager.int("fallback.minimumLevel", 1), ConfigManager.int("fallback.maximumLevel", 100))
@@ -301,17 +288,16 @@ class WonderTradePlus : ModInitializer {
     private fun addSpecies(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>, shiny: Boolean): Int {
         val player = context.source.playerOrException
         val species = StringArgumentType.getString(context, "species")
-        val level = IntegerArgumentType.getInteger(context, "level")
-        val name = try {
-            WonderTradeService.adminAddSpecies(player, species, level, shiny)
+        val result = try {
+            WonderTradeService.adminAddSpecies(player, species, shiny)
         } catch (exception: IllegalArgumentException) {
             context.source.sendFailure(WonderTradeService.info("&c${exception.message} Prueba con Tab para ver las formas disponibles."))
             return 1
         }
-        if (name == null) {
+        if (result == null) {
             context.source.sendFailure(WonderTradeService.info("&cNo se pudo crear &f$species&c. Usa el nombre de la especie en inglés y sin espacios, por ejemplo &fpikachu&c, &fgreattusk &co una forma como &fvulpix-alola&c."))
         } else {
-            context.source.sendSuccess({ WonderTradeService.info("&aSe ha añadido &f$name &7(nivel $level${if (shiny) ", shiny" else ""}) &aal pool.") }, true)
+            context.source.sendSuccess({ WonderTradeService.info("&aSe ha añadido &f${result.name} &7(nivel aleatorio: ${result.level}${if (shiny) ", shiny" else ""}) &aal pool.") }, true)
         }
         return 1
     }

@@ -7,3 +7,11 @@
 - Los comandos `/wt admin ...`, el historial, el cooldown de 12 h y el autocompletado (v0.3.0) están pendientes de probar en juego.
 - Los anuncios de legendarios, Ultraentes y Paradoja pasado/futuro (v0.2.1) están pendientes de probar en juego.
 - No es una versión NeoForge/Arclight. El JAR es solo Fabric.
+
+## Cambios de esta revisión
+
+- Los intercambios solo seleccionan entradas existentes en `pool.json`; no se generan Pokémon de respaldo durante un intercambio.
+- El mantenimiento ya no rellena el pool automáticamente. `/wt admin fill` sigue siendo una acción manual para añadir entradas.
+- El filtro del menú muestra cada categoría una sola vez y ya no incluye la explicación entre paréntesis.
+- `/wt admin addspecies <especie> [shiny]` crea la especie o forma solicitada con nivel aleatorio según `fallback.minimumLevel` y `fallback.maximumLevel`.
+- La compilación Gradle de esta revisión queda pendiente de validación en GitHub Actions; este entorno no dispone de Gradle ni acceso de red para descargarlo.

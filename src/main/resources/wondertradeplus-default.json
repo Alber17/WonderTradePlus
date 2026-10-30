@@ -18,17 +18,12 @@
     "cooldownMinutes": 720,
     "dailyLimit": 0,
     "adminBypassPermissionLevel": 2,
-    "matchSpecialTier": true,
-    "specialLabels": ["legendary", "mythical", "ultra_beast", "paradox"],
-    "avoidSameSpecies": false,
-    "matchLevel": false,
-    "levelDifference": 10,
-    "shinyMode": "MATCH_IF_AVAILABLE"
+    "specialLabels": ["legendary", "mythical", "ultra_beast", "paradox"]
   },
   "pool": {
     "enabled": true,
     "acceptDonations": true,
-    "randomFallback": true,
+    "randomFallback": false,
     "maximumEntries": 5000,
     "trimOldestFirst": true,
     "clampDonatedLevel": false,
@@ -47,7 +42,7 @@
   },
   "maintenance": {
     "expireAfterDays": 14,
-    "autoRefill": true,
+    "autoRefill": false,
     "minimumEntries": 100,
     "intervalMinutes": 30,
     "refillBatchSize": 50,
@@ -72,13 +67,7 @@
   "bonus": {
     "enabled": true,
     "maximum": 60.0,
-    "combineMode": "HIGHEST",
-    "shiny": 10.0,
-    "legendary": 10.0,
-    "mythical": 10.0,
-    "ultraBeast": 10.0,
-    "paradox": 10.0,
-    "other": 10.0
+    "specialTradeGain": 0.5
   },
   "event": {
     "defaultDurationMinutes": 60,
@@ -129,8 +118,8 @@
     "speciesBlocked": "&cEsa especie no está permitida en Wonder Trade.",
     "cooldown": "&cDebes esperar {time} para volver a intercambiar.",
     "dailyLimit": "&cYa has alcanzado el límite diario de Wonder Trade ({limit}).",
-    "noCandidate": "&cNo hay ningún Pokémon compatible en el pool y la generación aleatoria está desactivada.",
-    "generationFailed": "&cNo se ha podido generar un Pokémon que cumpla las reglas. No se ha intercambiado nada.",
+    "noCandidate": "&cNo hay ningún Pokémon disponible en la pool para este intercambio. No se ha realizado el intercambio.",
+    "generationFailed": "&cNo se ha podido recuperar el Pokémon elegido de la pool. No se ha intercambiado nada.",
     "success": "&aIntercambio completado: &f{sent} &7→ &b{received}&a.",
     "poolInfo": "&7Pool de Wonder Trade: &e{size} &7Pokémon.",
     "reload": "&aConfiguración y pool recargados.",
