@@ -139,6 +139,21 @@ class PlayerDataStore(private val file: Path) {
         playerNode(uuid, create = true)!!.addProperty("specialBonus", value)
     }
 
+    /** Preferencias de sonido individuales; por defecto todos los sonidos están activados. */
+    fun soundEnabled(uuid: UUID, key: String): Boolean {
+        val data = playerNode(uuid, create = false) ?: return true
+        val preferences = data.getAsJsonObject("soundPreferences") ?: return true
+        return preferences.get(key)?.let { runCatching { it.asBoolean }.getOrDefault(true) } ?: true
+    }
+
+    fun setSoundEnabled(uuid: UUID, key: String, enabled: Boolean) {
+        val data = playerNode(uuid, create = true)!!
+        val preferences = data.getAsJsonObject("soundPreferences") ?: JsonObject().also {
+            data.add("soundPreferences", it)
+        }
+        preferences.addProperty(key, enabled)
+    }
+
     fun setName(uuid: UUID, name: String) {
         playerNode(uuid, create = true)!!.addProperty("name", name)
     }

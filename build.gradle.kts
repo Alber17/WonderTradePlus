@@ -10,6 +10,7 @@ base {
 }
 
 repositories {
+    maven("https://maven.fabricmc.net/")
     mavenCentral()
     maven("https://maven.impactdev.net/repository/development/")
     maven("https://artefacts.cobblemon.com/releases")
@@ -22,6 +23,14 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_api_version")}")
     modImplementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin_version")}")
     modImplementation("com.cobblemon:fabric:${property("cobblemon_version")}")
+    compileOnly("net.fabricmc:sponge-mixin:0.15.4+mixin.0.8.7")
+    annotationProcessor("net.fabricmc:sponge-mixin:0.15.4+mixin.0.8.7")
+}
+
+loom {
+    mixin {
+        defaultRefmapName.set("wondertradeplus-refmap.json")
+    }
 }
 
 java {

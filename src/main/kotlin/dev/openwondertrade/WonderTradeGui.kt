@@ -27,8 +27,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 /**
- * Menú de cofre (solo servidor): los jugadores no necesitan ningún mod extra.
- * Los iconos de Pokémon usan el ítem de Cobblemon, que ya tienen instalado en el cliente.
+ * Menú de cofre controlado por el servidor.
+ * La interfaz se ejecuta íntegramente desde el servidor; los jugadores no instalan este mod.
  */
 class GuiMenu(
     type: MenuType<*>,
@@ -158,24 +158,67 @@ object WonderTradeGui {
         open(player, title, 6) { renderHistory(it, player, filter, page) }
     }
 
-    /**
-     * Todas las pantallas usan el mismo contenedor de 6 filas. Al navegar entre menús
-     * reutilizamos el contenedor abierto en vez de enviar otro paquete OpenScreen.
-     * Minecraft centra el cursor al abrir una pantalla nueva; mantener el mismo menú
-     * evita ese salto cada vez que se pulsa un botón.
-     */
-    private fun open(player: ServerPlayer, title: String, rows: Int, openSound: String = "menuOpen", build: (GuiMenu) -> Unit) {
-        val current = player.containerMenu as? GuiMenu
-        if (current != null) {
-            build(current)
-            current.broadcastChanges()
-        } else {
-            player.openMenu(SimpleMenuProvider({ id, inventory, _ ->
-                val menu = GuiMenu(MenuType.GENERIC_9x6, id, inventory, SimpleContainer(54), 6)
-                build(menu)
-                menu
-            }, lit("&5Wonder Trade")))
+    fun openSounds(player: ServerPlayer) {
+        open(player, "&5Wonder Trade &8- &fSonidos", 3) { menu -> renderSounds(menu, player) }
+    }
+
+    private fun renderSounds(menu: GuiMenu, player: ServerPlayer) {
+        menu.wipe()
+        fill(menu, 27)
+        menu.put(4, named(
+            Items.NOTE_BLOCK,
+            "&dPreferencias de sonido",
+            "&7Configura qué sonidos escuchas tú.",
+            "&8Tus cambios se guardan automáticamente."
+        ))
+
+        data class SoundOption(val key: String, val slot: Int, val item: Item, val title: String, val description: String)
+        val options = listOf(
+            SoundOption("menuOpen", 10, Items.CHEST, "&fApertura de menús", "&7Sonido al abrir los menús y cofres."),
+            SoundOption("pcOpen", 11, Items.ENDER_CHEST, "&fApertura del PC", "&7Sonido del cofre de Ender al abrir el PC."),
+            SoundOption("buttonClick", 12, Items.STONE_BUTTON, "&fClic de botones", "&7Sonido al pulsar botones de los menús."),
+            SoundOption("pageTurn", 14, Items.WRITABLE_BOOK, "&fCambio de página", "&7Sonido al cambiar de página."),
+            SoundOption("specialReceived", 15, Items.EXPERIENCE_BOTTLE, "&fPokémon especial", "&7Sonido al recibir un legendario, mítico, Ultraente o Paradoja."),
+            SoundOption("specialShinyReceived", 16, Items.TOTEM_OF_UNDYING, "&fEspecial shiny", "&7Sonido de tótem al recibir un especial shiny.")
+        )
+        for (option in options) {
+            val enabled = WonderTradeService.soundPreference(player, option.key)
+            val status = if (enabled) "&aACTIVADO" else "&cDESACTIVADO"
+            menu.button(option.slot, named(
+                option.item,
+                option.title,
+                option.description,
+                "",
+                "&7Estado: $status",
+                "&eClic para cambiar"
+            )) { p ->
+                val nowEnabled = WonderTradeService.toggleSoundPreference(p, option.key)
+                renderSounds(menu, p)
+                if (nowEnabled) playSound(p, option.key)
+            }
         }
+
+        val allEnabled = WonderTradeService.soundPreference(player, "all")
+        menu.button(22, named(
+            if (allEnabled) Items.LIME_DYE else Items.RED_DYE,
+            if (allEnabled) "&aTodos los sonidos activados" else "&cTodos los sonidos silenciados",
+            "&7Activa o desactiva todos los sonidos",
+            "&eClic para cambiar"
+        )) { p ->
+            val nowEnabled = WonderTradeService.toggleSoundPreference(p, "all")
+            renderSounds(menu, p)
+            if (nowEnabled) playSound(p, "menuOpen")
+        }
+        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+    }
+
+    private fun open(player: ServerPlayer, title: String, rows: Int, openSound: String = "menuOpen", build: (GuiMenu) -> Unit) {
+        val type = if (rows == 3) MenuType.GENERIC_9x3 else MenuType.GENERIC_9x6
+        player.openMenu(SimpleMenuProvider({ id, inventory, _ ->
+            val menu = GuiMenu(type, id, inventory, SimpleContainer(rows * 9), rows)
+            build(menu)
+            menu
+        }, lit(title)))
         playSound(player, openSound)
     }
 
@@ -183,7 +226,7 @@ object WonderTradeGui {
 
     private fun renderMain(menu: GuiMenu, player: ServerPlayer, donationMode: Boolean) {
         menu.wipe()
-        fill(menu, 54)
+        fill(menu, 27)
         val bookLore = mutableListOf(
             ConfigManager.string(
                 if (donationMode) "messages.donationBookDescription" else "messages.menuBookDescription",
@@ -323,68 +366,36 @@ object WonderTradeGui {
         if (entries.isEmpty()) menu.put(22, named(Items.BARRIER, "&cNo hay Pokémon con este filtro"))
 
         val special = all.count { WonderTradeRules.isRareEntry(it) }
-        val normal = all.size - special
-        val counts = mapOf(PoolFilter.ALL to all.size, PoolFilter.SPECIAL to special, PoolFilter.NORMAL to normal)
-
-        // Barra inferior uniforme: cada control tiene su propio espacio y una función clara.
-        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver", "&7Regresar al menú anterior")) {
+        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver")) {
             if (admin) openAdmin(it) else openMain(it)
-        }
-        menu.put(46, named(
-            Items.BOOK,
-            "&bResumen de la pool",
-            "&7Total: &f${all.size}",
-            "&dEspeciales: &f$special",
-            "&7Normales: &f$normal"
-        ))
-        if (page > 0) {
-            menu.button(47, named(Items.ARROW, "&ePágina anterior"), "pageTurn") {
-                renderPool(menu, it, page - 1, admin, filter, deleteMode, sort)
-            }
-        }
-        val filterLore = PoolFilter.values().map { option ->
-            val marker = if (option == filter) "&a▶" else "&7•"
-            "$marker ${option.label} &f${counts[option]}"
-        }
-        menu.button(48, named(
-            Items.LIME_STAINED_GLASS_PANE,
-            "&aFiltro: ${filter.label}",
-            *filterLore.toTypedArray(),
-            "&eClic para cambiar"
-        )) {
-            renderPool(menu, it, 0, admin, filter.next(), deleteMode, sort)
-        }
-        menu.button(49, named(
-            Items.LIGHT_BLUE_STAINED_GLASS_PANE,
-            "&bOrden: ${if (sort == PoolSort.NEWEST) "más recientes" else "más antiguos"}",
-            "&7${sort.label}",
-            "&eClic para invertir el orden"
-        )) {
-            renderPool(menu, it, 0, admin, filter, deleteMode, sort.next())
-        }
-        menu.put(50, named(
-            Items.PAPER,
-            "&fPágina ${page + 1} / $pages",
-            "&7${entries.size} Pokémon con este filtro"
-        ))
-        if (page < pages - 1) {
-            menu.button(51, named(Items.ARROW, "&ePágina siguiente"), "pageTurn") {
-                renderPool(menu, it, page + 1, admin, filter, deleteMode, sort)
-            }
         }
         if (admin) {
             val deleteButton = if (deleteMode) {
-                named(Items.RED_STAINED_GLASS_PANE, "&cEliminar: ACTIVADO", "&7Haz clic en los Pokémon para quitarlos.", "&eClic para desactivar")
+                named(Items.TNT, "&cEliminar Pokémon: ACTIVADO", "&7Haz clic en los Pokémon que quieras quitar.", "&eClic para desactivar")
             } else {
-                named(Items.RED_STAINED_GLASS_PANE, "&cEliminar Pokémon", "&7Activa el modo y pulsa un Pokémon.")
+                named(Items.SHEARS, "&cEliminar Pokémon", "&7Activa el modo de eliminación.", "&7Después haz clic en los Pokémon que quieras quitar.")
             }
-            menu.button(52, deleteButton) { p ->
+            menu.button(46, deleteButton) { p ->
                 if (p.hasPermissions(WonderTradeService.adminLevel())) {
                     renderPool(menu, p, page, true, filter, !deleteMode, sort)
                 }
             }
-        } else {
-            menu.put(52, named(Items.GRAY_STAINED_GLASS_PANE, "&8Vista de solo lectura"))
+        }
+        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior"), "pageTurn") { renderPool(menu, it, page - 1, admin, filter, deleteMode, sort) }
+        menu.put(49, named(Items.PAPER, "&fPágina ${page + 1}/$pages", "&7${entries.size} Pokémon con este filtro"))
+        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente"), "pageTurn") { renderPool(menu, it, page + 1, admin, filter, deleteMode, sort) }
+        val counts = mapOf(PoolFilter.ALL to all.size, PoolFilter.SPECIAL to special, PoolFilter.NORMAL to all.size - special)
+        val options = PoolFilter.values().map { option ->
+            if (option == filter) "&e▶ ${option.label} &f${counts[option]}"
+            else "&8   ${option.label.drop(2)} ${counts[option]}"
+        }
+        menu.button(51, named(Items.CLOCK, "&fOrdenar pool", sort.label, "&7Ordena por fecha de incorporación.", "&eClic para cambiar")) {
+            renderPool(menu, it, 0, admin, filter, deleteMode, sort.next())
+        }
+        menu.button(52, named(Items.HOPPER, "&fCambiar filtro de pool",
+            *options.toTypedArray(),
+            "&eClic para cambiar")) {
+            renderPool(menu, it, 0, admin, filter.next(), deleteMode, sort)
         }
         menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
@@ -394,8 +405,8 @@ object WonderTradeGui {
             WonderTradeService.send(player, "adminOnly")
             return
         }
-        open(player, ConfigManager.string("messages.adminMenuTitle", "&5Wonder Trade &8- &cAdministración"), 6) { menu ->
-            fill(menu, 54)
+        open(player, ConfigManager.string("messages.adminMenuTitle", "&5Wonder Trade &8- &cAdministración"), 3) { menu ->
+            fill(menu, 27)
             menu.button(10, named(Items.CHEST, ConfigManager.string("messages.adminMenuPool", "&6Gestionar pool"))) {
                 openPool(it, 0, true)
             }
@@ -426,8 +437,8 @@ object WonderTradeGui {
     }
 
     private fun openClearPoolConfirm(player: ServerPlayer) {
-        open(player, "&cConfirmar vaciado de pool", 6) { menu ->
-            fill(menu, 54)
+        open(player, "&cConfirmar vaciado de pool", 3) { menu ->
+            fill(menu, 27)
             menu.button(11, named(Items.TNT, ConfigManager.string("messages.adminMenuClearConfirm", "&cConfirmar vaciado"))) {
                 WonderTradeService.clearPool()
                 WonderTradeService.send(it, "poolCleared")
@@ -456,6 +467,7 @@ object WonderTradeGui {
     internal fun playSound(player: ServerPlayer, key: String) {
         runCatching {
             if (!ConfigManager.bool("sounds.enabled", true) || !ConfigManager.bool("sounds.$key", true)) return
+            if (!WonderTradeService.playerSoundsEnabled(player, key)) return
             val soundPath = when (key) {
                 "menuOpen" -> "block.chest.open"
                 "pcOpen" -> "block.ender_chest.open"
@@ -523,9 +535,9 @@ object WonderTradeGui {
         open(
             player,
             if (donationMode) "&5Wonder Trade &8- &fConfirmar donación" else "&5Wonder Trade &8- &fConfirmar",
-            6
+            3
         ) { menu ->
-            fill(menu, 54)
+            fill(menu, 27)
             menu.put(13, pokemonStack(pokemon, false))
             menu.button(11, named(
                 Items.LIME_CONCRETE,

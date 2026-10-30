@@ -1,6 +1,6 @@
 # WonderTrade Plus
 
-Wonder Trade abierto y configurable para **Cobblemon**. Se distribuye como **mod de servidor Fabric** (no es un plugin Bukkit/Paper). Los jugadores no necesitan instalar nada extra: la interfaz es un menú de cofre del propio servidor.
+Wonder Trade abierto y configurable para **Cobblemon**. Se distribuye como **mod Fabric exclusivamente de servidor** (no es un plugin Bukkit/Paper). La interfaz es un menú de cofre controlado por el servidor; los jugadores no necesitan instalar WonderTradePlus en sus clientes.
 
 ## Características
 
@@ -36,7 +36,7 @@ No es compatible con NeoForge, Arclight, Mohist ni servidores Bukkit/Paper.
 3. Arranca el servidor una vez para generar `config/wondertradeplus/config.json`, `pool.json` y `player-data.json`.
 4. Edita `config/wondertradeplus/config.json` y ejecuta `/wt reload` (o reinicia).
 
-En un servidor dedicado, el mod va **solo en el servidor**. En un mundo individual, ponlo en la carpeta `mods` de tu instancia, porque Minecraft usa un servidor integrado.
+Instala WonderTradePlus únicamente en la carpeta `mods/` del servidor. Los jugadores no necesitan instalar este mod ni ningún componente adicional de WonderTradePlus.
 
 ## Comandos
 
@@ -54,7 +54,6 @@ Los comandos de jugador son públicos salvo que se indique otra cosa. Los nivele
 | `/wt chance <jugador> set <valor>` o `reset` | `admin.permissionLevel` | Fija su bonus (0–100) o lo pone a 0. |
 | `/wt stats [jugador]` | Todos | Muestra intercambios, donaciones directas, especiales recibidos/aportados y bonus. |
 | `/wt top [trades\|received\|donated]` | Todos | Ranking de intercambios, especiales recibidos o especiales aportados. |
-| `/wt event` | Todos | Muestra si hay un evento activo y cuánto le queda. |
 | `/wt cancel` | Todos | Cancela el intercambio pendiente. |
 | `/wt pool` | `gui.poolViewPermissionLevel` (por defecto 0) | Abre la pool en un menú paginado de solo lectura, con filtro de categoría y orden por hora añadida ascendente/descendente. |
 | `/wt help` | Todos | Muestra los comandos públicos; añade los comandos de administración solo si el jugador tiene `admin.permissionLevel`. |
@@ -74,8 +73,6 @@ Todos requieren `admin.permissionLevel` (nivel OP 2 por defecto, configurable en
 | `/wt admin remove` | `admin.permissionLevel` | Abre la pool en modo administrador con eliminación activada. |
 | `/wt admin resetstats <jugador o all>` | `admin.permissionLevel` | Reinicia contadores y rankings de un jugador o de todos. Conserva bonus, cooldowns y límites diarios. |
 | `/wt admin removeplayer <jugador>` | `admin.permissionLevel` | Elimina de la pool todos los Pokémon aportados por ese jugador. |
-| `/wt admin event start [minutos]` | `admin.permissionLevel` | Inicia un evento temporal (duración predeterminada configurable). |
-| `/wt admin event stop` | `admin.permissionLevel` | Termina el evento activo. |
 | `/wt admin backup` | `admin.permissionLevel` | Crea una copia de seguridad manual. |
 | `/wt admin maintenance` | `admin.permissionLevel` | Ejecuta el mantenimiento y elimina entradas caducadas; no genera Pokémon. |
 | `/wt admin discord test` | `admin.permissionLevel` | Envía un mensaje de prueba al webhook de Discord. |
@@ -118,7 +115,7 @@ Al ofrecer un Pokémon **normal**, el incremento normal se suma primero y el por
 
 ## Avisos a Discord
 
-Con un webhook de Discord, el mod puede publicar en un canal cuando alguien **aporta o recibe un Pokémon especial** (shiny, legendario, mítico, Ultraente o Paradoja) y cuando empieza o termina un evento. Se configura en la sección `discord`:
+Con un webhook de Discord, el mod puede publicar en un canal cuando alguien **aporta o recibe un Pokémon especial** (shiny, legendario, mítico, Ultraente o Paradoja). Se configura en la sección `discord`:
 
 1. En Discord: *Ajustes del canal → Integraciones → Webhooks → Nuevo webhook → Copiar URL*.
 2. Pega la URL en `discord.webhookUrl` y pon `discord.enabled` en `true`.
@@ -126,17 +123,13 @@ Con un webhook de Discord, el mod puede publicar en un canal cuando alguien **ap
 
 La URL del webhook es secreta; no la subas a GitHub.
 
-## Eventos temporales
-
-Un admin puede lanzar un evento con `/wt admin event start [minutos]`. Mientras dura, el cooldown se reduce, cada especial ofrecido suma más al bonus y todos tienen un porcentaje extra de recibir un especial. Se anuncia a todos al empezar y al terminar, y los jugadores lo consultan con `/wt event`. Todo se ajusta en la sección `event`.
-
 ## Estadísticas y ranking
 
 El mod guarda por jugador cuántos intercambios lleva y cuántos especiales ha recibido y aportado (desde que se instaló esta versión). `/wt stats [jugador]` lo muestra y `/wt top` enseña el ranking.
 
 ## Anuncios
 
-Cuando alguien aporta un Pokémon al pool, se anuncia en el chat según su categoría. Solo se envía un anuncio por intercambio, con esta prioridad:
+Cuando alguien aporta un Pokémon al pool, se anuncia en el chat según su categoría. Además, cuando un jugador recibe un shiny, legendario, mítico, Ultraente o Paradoja, se envía un anuncio global indicando quién lo ha conseguido. Los anuncios de recepción tienen ajustes independientes en `broadcast.receivedShiny`, `receivedLegendary`, `receivedMythical`, `receivedUltraBeast` y `receivedParadox`. Para las aportaciones, solo se envía un anuncio por intercambio, con esta prioridad:
 
 Ultraente > Paradoja (pasado / futuro) > legendario o especial > shiny > normal
 
@@ -159,7 +152,6 @@ Opciones principales:
 - `fallback.minimumLevel` / `fallback.maximumLevel`: rango aleatorio para `/wt admin addspecies` y `/wt admin fill`.
 - `bonus.enabled`, `bonus.maximum`, `bonus.normalTradeGain`, `bonus.specialTradeGain` y `bonus.specialShinyExtraGain`: activan el sistema, fijan el límite y configuran los incrementos: normal (+0,1 puntos porcentuales), especial (+0,5) y el extra por especial shiny (+0,2 adicionales cuando es legendario, mítico, Ultraente o Paradoja) por defecto.
 - `admin.regionalForms`: permite activar o desactivar individualmente las opciones `alolan`, `galarian`, `hisuian` y `paldean` de `/wt admin addspecies`. El jugador escribe la opción regional igual que en `/pokegive`; el mod localiza y asigna la forma registrada en Cobblemon sin exigir `form=...`. `fallback.minimumLevel` y `fallback.maximumLevel` configuran el nivel aleatorio.
-- `event.*`: efectos del evento temporal.
 - `antiAbuse.*`, `maintenance.*`, `backup.*`: protección, mantenimiento del pool y copias.
 - `discord.*`: avisos a Discord.
 - `history.enabled` / `history.maxEntries`: registro de intercambios.
@@ -178,7 +170,6 @@ El modo shiny es una regla importante: revísalo antes de abrir el servidor. Ver
 - `pool.json`: Pokémon almacenados y sus índices de búsqueda.
 - `player-data.json`: último intercambio, contador diario, bonus y marcas de tiempo de las donaciones semanales de cada jugador.
 - `history.json`: historial de intercambios.
-- `event.json`: evento temporal activo.
 - `backups/`: copias automáticas de los archivos anteriores.
 - `config.json`: reglas del servidor.
 
@@ -199,3 +190,9 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 ## Contribuir
 
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
+
+
+### Preferencias de sonido (0.8.3)
+- `/wt sonidos` o `/wt sounds` abre un menú individual para activar/desactivar cada sonido.
+- Las preferencias se guardan por UUID en `player-data.json`; no requiere instalar el mod en el cliente.
+- Se pueden silenciar todos los sonidos con un único interruptor.

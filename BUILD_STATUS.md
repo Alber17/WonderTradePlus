@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.7.9**.
+- Versión actual: **0.8.4**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -85,3 +85,33 @@
 - Todos los menús usan ahora el mismo contenedor de 6 filas y un título común. Al cambiar de pantalla desde un botón se reutiliza el menú existente, evitando enviar un nuevo paquete de apertura que hacía que Minecraft recentrara el cursor.
 - La navegación entre equipo, PC, pool, historial, administración y confirmaciones se actualiza en el mismo contenedor.
 - No se ha ejecutado Gradle; debe validarse con GitHub Actions.
+
+
+## 0.8.1 — cambios preparados
+
+- Restaurado el diseño del menú `/wt pool` de 0.7.9, conservando los cambios funcionales previos.
+- La prueba inicial de conservación del cursor requería código cliente; esa implementación se ha retirado en 0.8.2 para mantener el mod exclusivamente en el servidor.
+- `/wt help` ahora presenta cada comando en una línea y filtra las líneas de pool y administración por permisos.
+- Añadidos anuncios globales al recibir shiny, legendario, mítico, Ultraente o Paradoja; los anuncios tienen interruptores independientes en `broadcast.received*`.
+- Retirado el modo evento: comandos, persistencia, multiplicadores, mensajes y opciones de configuración.
+- No se ha ejecutado Gradle en este entorno; requiere validación en GitHub Actions.
+
+
+## 0.8.2 — distribución solo servidor
+
+- Eliminado el mixin de cliente que intentaba conservar la posición del cursor.
+- Eliminado el archivo de configuración de mixins y su registro en `fabric.mod.json`.
+- Marcado el mod con `environment: "server"` para que Fabric no intente cargarlo en los clientes.
+- README actualizado: WonderTradePlus se instala únicamente en el servidor.
+- No se modifica el diseño ni la lógica de los menús, comandos, intercambios o anuncios.
+
+
+## 0.8.3
+- Añadido menú individual `/wt sonidos` y alias `/wt sounds`, con preferencias persistentes por jugador.
+- Los interruptores globales de `sounds` siguen pudiendo desactivar sonidos para todo el servidor.
+
+
+## 0.8.4
+- Eliminado por completo el filtro que quitaba símbolos de estrellas y destellos de los mensajes. Los mensajes y prefijos personalizados vuelven a mostrarse exactamente como estén configurados.
+- Se mantiene el menú individual de sonidos de la versión 0.8.3.
+- No se ha ejecutado Gradle; requiere validación en GitHub Actions.

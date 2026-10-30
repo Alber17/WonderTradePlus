@@ -4,11 +4,15 @@
   "version": "${version}",
   "name": "WonderTrade Plus",
   "description": "Wonder Trade configurable y persistente para Cobblemon.",
-  "authors": ["OpenWonderTrade contributors"],
+  "authors": [
+    "OpenWonderTrade contributors"
+  ],
   "license": "MIT",
-  "environment": "*",
+  "environment": "server",
   "entrypoints": {
-    "main": ["dev.openwondertrade.WonderTradePlus"]
+    "main": [
+      "dev.openwondertrade.WonderTradePlus"
+    ]
   },
   "depends": {
     "fabricloader": ">=0.16.5",

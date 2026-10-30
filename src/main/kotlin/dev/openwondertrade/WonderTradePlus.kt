@@ -17,8 +17,7 @@ import org.slf4j.LoggerFactory
 class WonderTradePlus : ModInitializer {
     override fun onInitialize() {
         LOGGER.info("Registrando WonderTrade Plus...")
-        // Delay disk/config initialization until a logical server exists. This keeps the
-        // mod harmless in a client-only session while still supporting integrated servers.
+        // La inicialización y todas las funciones se ejecutan en el servidor.
         ServerLifecycleEvents.SERVER_STARTED.register { WonderTradeService.initialize() }
         ServerTickEvents.END_SERVER_TICK.register { server -> WonderTradeService.tick(server) }
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
@@ -42,6 +41,15 @@ class WonderTradePlus : ModInitializer {
             // PERMISO: público; muestra la ayuda.
             .then(literal("help").executes { context ->
                 context.source.sendSuccess({ WonderTradeService.helpComponent(context.source.player) }, false)
+                1
+            })
+            // Preferencias individuales de sonido; no requiere permisos ni instalación en el cliente.
+            .then(literal("sonidos").executes { context ->
+                WonderTradeGui.openSounds(context.source.playerOrException)
+                1
+            })
+            .then(literal("sounds").executes { context ->
+                WonderTradeGui.openSounds(context.source.playerOrException)
                 1
             })
             // PERMISO: público; cualquier jugador puede donar si las donaciones están habilitadas y hay espacio.
@@ -108,11 +116,6 @@ class WonderTradePlus : ModInitializer {
                         }))
                     // PERMISO: admin.permissionLevel, heredado del argumento "player".
                     .then(literal("reset").executes { context -> setChance(context, 0.0) })))
-            // PERMISO: público; consulta el estado del evento.
-            .then(literal("event").executes { context ->
-                context.source.sendSuccess({ WonderTradeService.eventStatusComponent() }, false)
-                1
-            })
             // PERMISO: público; estadísticas propias y públicas visibles sin OP.
             .then(literal("stats")
                 .executes { context ->
@@ -251,23 +254,6 @@ class WonderTradePlus : ModInitializer {
                 }
                 1
             }))
-        // PERMISO: admin.permissionLevel (heredado de /wt admin).
-        .then(literal("event")
-            // PERMISO: admin.permissionLevel, heredado de /wt admin.
-            .then(literal("start")
-                .executes { context -> startEvent(context, WonderTradeService.defaultEventMinutes()) }
-                .then(argument("minutes", IntegerArgumentType.integer(1, 10080)).executes { context ->
-                    startEvent(context, IntegerArgumentType.getInteger(context, "minutes"))
-                }))
-            // PERMISO: admin.permissionLevel, heredado de /wt admin.
-            .then(literal("stop").executes { context ->
-                if (WonderTradeService.stopEvent(context.source.server)) {
-                    context.source.sendSuccess({ WonderTradeService.info("&aEvento terminado.") }, true)
-                } else {
-                    context.source.sendFailure(WonderTradeService.info("&cNo hay ningún evento activo."))
-                }
-                1
-            }))
         // PERMISO: admin.permissionLevel.
         .then(literal("backup").executes { context ->
             val name = WonderTradeService.backupNow()
@@ -343,11 +329,6 @@ class WonderTradePlus : ModInitializer {
         return 1
     }
 
-    private fun startEvent(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>, minutes: Int): Int {
-        WonderTradeService.startEvent(context.source.server, minutes)
-        context.source.sendSuccess({ WonderTradeService.info("&aEvento iniciado durante &f$minutes &aminutos.") }, true)
-        return 1
-    }
 
     /**
      * Registra las opciones regionales con la misma sintaxis de atributos que /pokegive:
@@ -433,7 +414,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.8.0"
+        const val MOD_VERSION = "0.8.4"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

@@ -82,7 +82,7 @@ El mantenimiento manual con `/wt admin maintenance` solo elimina entradas caduca
 
 ## `backup`
 
-Copias automáticas de `pool.json`, `player-data.json`, `history.json` y `event.json` en `config/wondertradeplus/backups/<fecha>/`.
+Copias automáticas de `pool.json`, `player-data.json` y `history.json` en `config/wondertradeplus/backups/<fecha>/`.
 
 - `intervalHours`: cada cuántas horas. `0` desactiva las automáticas. Por defecto `6`.
 - `keep`: cuántas copias se conservan; las más antiguas se borran. Por defecto `10`.
@@ -98,8 +98,7 @@ Avisos a un canal de Discord mediante un **webhook** (no hace falta ningún bot)
 - `username`: nombre con el que aparecen los mensajes.
 - `notifyDonations`: avisa cuando alguien aporta un Pokémon especial al pool.
 - `notifyReceived`: avisa cuando alguien recibe un Pokémon especial.
-- `notifyEvents`: avisa al empezar y terminar un evento.
-- `donationMessage`, `receivedMessage`, `eventStartMessage`, `eventEndMessage`: textos. Admiten Markdown de Discord (`**negrita**`) y `{player}`, `{pokemon}`, `{level}`, `{category}`; los de evento admiten `{time}`, `{cooldown}`, `{bonus}` y `{extra}`.
+- `donationMessage`, `receivedMessage`: textos. Admiten Markdown de Discord (`**negrita**`) y `{player}`, `{pokemon}`, `{level}`, `{category}`.
 
 "Especial" aquí es shiny, legendario, mítico, Ultraente o Paradoja. Los mensajes se envían sin bloquear el servidor y no pueden mencionar a nadie (`@everyone` queda desactivado). Prueba la conexión con `/wt admin discord test`.
 
@@ -114,20 +113,9 @@ Sistema de probabilidad acumulada **por jugador** para recibir un Pokémon espec
 - `specialShinyExtraGain`: puntos porcentuales adicionales cuando el Pokémon ofrecido es **shiny y además** es legendario, mítico, Ultraente o Paradoja. Por defecto `0.2`; por tanto, un especial shiny suma `0.5 + 0.2 = 0.7` puntos porcentuales. Un shiny de especie normal conserva el incremento base `specialTradeGain` (+0,5% por defecto), pero no recibe este extra.
 - `shiny`, `legendary`, `mythical`, `ultraBeast`, `paradox`, `other` y `combineMode`: opciones heredadas que se conservan en archivos antiguos por compatibilidad, pero ya no intervienen en el cálculo.
 
-El libro que aparece al abrir `/wt` muestra estos valores: normal, shiny sin categoría especial, Pokémon legendario/mítico/Ultraente/Paradoja y el total para especial shiny. La línea shiny sin categoría especial usa el mismo `specialTradeGain` que el resto de Pokémon considerados especiales. Todos los incrementos se expresan en puntos porcentuales (`0.1` = +0,1%, no 10%). Durante un evento activo, se aplica `event.bonusGainMultiplier` tanto al incremento base como al extra shiny.
+El libro que aparece al abrir `/wt` muestra estos valores: normal, shiny sin categoría especial, Pokémon legendario/mítico/Ultraente/Paradoja y el total para especial shiny. La línea shiny sin categoría especial usa el mismo `specialTradeGain` que el resto de Pokémon considerados especiales. Todos los incrementos se expresan en puntos porcentuales (`0.1` = +0,1%, no 10%). No hay modo evento ni multiplicadores temporales: se aplican siempre los valores configurados.
 
 Funcionamiento: cuando el jugador ofrece un Pokémon **normal**, primero se suma `normalTradeGain` y después se tira un dado con el porcentaje acumulado actualizado para ese mismo intercambio; si sale, se intenta entregar un especial existente en la pool. Si no hay ninguno disponible, recibe cualquier Pokémon válido de la pool y conserva el bonus acumulado. Al recibir un especial, el porcentaje vuelve a 0. Ofrecer un Pokémon especial suma `specialTradeGain` y, si además es shiny y pertenece a las categorías legendario, mítico, Ultraente o Paradoja, suma también `specialShinyExtraGain`; ese incremento se aplica al siguiente intercambio normal. El jugador puede consultarlo con `/wt chance` y los admins con `/wt chance <jugador>`. El mensaje de intercambio incluye en una sola línea el Pokémon recibido y el estado actualizado del bonus; se personaliza con `messages.success`, `successBonusIncreased`, `successBonusReset` y `successBonusUnchanged`. Los mensajes (`bonusIncreased`, `bonusNormalIncreased`, `bonusReset`, `bonusInfo`) son editables; `bonusInfo` admite `{specialShinyExtraGain}`. Si un `bonusInfo` personalizado de una configuración anterior no incluye ese marcador, se muestra adicionalmente `bonusShinyExtraInfo`, que también es editable.
-
-## `event`
-
-Valores del evento temporal (`/wt admin event start [minutos]`). Mientras está activo:
-
-- `cooldownMultiplier`: multiplica el cooldown de intercambio (`0.5` = la mitad, `0` = sin cooldown). Por defecto `0.5`.
-- `bonusGainMultiplier`: multiplica los incrementos `normalTradeGain`, `specialTradeGain` y `specialShinyExtraGain` mientras el evento está activo. Por defecto `2.0`.
-- `extraSpecialChance`: porcentaje extra (suma plana) de recibir un especial al ofrecer un Pokémon normal. Por defecto `5.0`.
-- `defaultDurationMinutes`: duración si no se indican minutos. Por defecto `60`.
-
-Los mensajes `eventStart`, `eventEnd`, `eventStatus` y `eventNone` son editables y admiten `{time}`, `{cooldown}`, `{bonus}` y `{extra}`. El evento sobrevive a reinicios (se guarda en `event.json`).
 
 ## `history`
 
@@ -138,7 +126,9 @@ Se consulta con `/wt admin history`.
 
 ## `admin`
 
-Todos los subcomandos `/wt admin ...`, además de `/wt reload`, `/wt clearpool` y las consultas/modificaciones de bonus a otros jugadores mediante `/wt chance <jugador>`, requieren el nivel configurado aquí. Los comandos `/wt`, `/wt donar`, `/wt stats`, `/wt top`, `/wt event`, `/wt cancel` y `/wt chance` propio son públicos. `/wt pool` usa `gui.poolViewPermissionLevel`.
+El modo evento temporal se ha retirado y ya no hay subcomandos de evento.
+
+Todos los subcomandos `/wt admin ...`, además de `/wt reload`, `/wt clearpool` y las consultas/modificaciones de bonus a otros jugadores mediante `/wt chance <jugador>`, requieren el nivel configurado aquí. Los comandos `/wt`, `/wt donar`, `/wt stats`, `/wt top`, `/wt cancel` y `/wt chance` propio son públicos. `/wt pool` usa `gui.poolViewPermissionLevel`.
 
 - `permissionLevel`: nivel de operador (`0–4`) necesario para los comandos `/wt admin ...`. Por defecto `2`.
 - `regionalForms.alolan`, `regionalForms.galarian`, `regionalForms.hisuian`, `regionalForms.paldean`: activa o desactiva cada opción de forma regional para `/wt admin addspecies`. Todas están activadas por defecto. Se aceptan únicamente los atributos de comando `alolan`, `galarian`, `hisuian` y `paldean`, igual que `/pokegive`. Ejemplos: `/wt admin addspecies vulpix alolan`, `/wt admin addspecies vulpix alolan shiny` y `/wt admin addspecies meowth shiny galarian`. No se debe usar `form=alola`. El mod comprueba que la forma exista para esa especie y que Cobblemon la haya aplicado antes de guardarla en el pool.
@@ -172,3 +162,7 @@ Todas las cadenas son editables. Los colores usan `&` como prefijo, por ejemplo 
 ## Selección de Pokémon
 
 La selección sigue el funcionamiento aleatorio de Wonder Trade: no busca una especie, rareza, nivel ni estado shiny compatible con el Pokémon ofrecido. Escoge cualquier entrada válida del pool. Si se activa el bonus especial, intenta escoger una entrada especial existente; si no hay ninguna disponible, escoge cualquier entrada válida y conserva el bonus acumulado. Las protecciones antiabuso y las opciones `general.allow*` y listas de especies siguen aplicándose.
+
+
+## Preferencias de sonido de cada jugador
+Cada jugador puede usar `/wt sonidos` (o `/wt sounds`) para configurar los sonidos que escucha. Las preferencias se guardan en `player-data.json` y son independientes de los interruptores globales `sounds.*` de `config.json`.
