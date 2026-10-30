@@ -201,12 +201,16 @@ object WonderTradeService {
 
     private var speciesCache: List<String>? = null
 
-    /** Especies y formas para el autocompletado; usa los identificadores de forma de Cobblemon. */
+    /** Especies y formas para el autocompletado; acepta el nombre de la forma y su ID de Showdown. */
     fun speciesNames(): List<String> = speciesCache ?: PokemonSpecies.species.flatMap { species ->
         val base = species.resourceIdentifier.path
         listOf(base) + species.forms
             .filter { !it.name.equals("normal", ignoreCase = true) }
-            .map { "$base-${it.formOnlyShowdownId().lowercase()}" }
+            .flatMap { form ->
+                listOf(form.name, form.formOnlyShowdownId())
+                    .filter { it.isNotBlank() }
+                    .map { "$base-${it.lowercase().replace(' ', '-') }" }
+            }
     }.distinct().sorted().also { speciesCache = it }
 
     fun adminLevel(): Int = ConfigManager.int("admin.permissionLevel", 2).coerceIn(0, 4)
@@ -249,47 +253,61 @@ object WonderTradeService {
      * Lanza IllegalArgumentException si la especie existe pero no tiene esa forma.
      */
     fun adminAddSpecies(player: ServerPlayer, speciesInput: String, shiny: Boolean): AddedSpeciesResult? {
-        val cleaned = speciesInput.lowercase().substringAfter(':')
-        val speciesName = cleaned.substringBefore('-')
-        val formTag = cleaned.substringAfter('-', "").takeIf { it.isNotEmpty() }
+        val cleaned = speciesInput.substringAfter(':').trim().lowercase()
+        if (cleaned.isBlank()) return null
+
+        // Busca la especie por el prefijo más largo. Así también funcionan especies cuyo ID
+        // ya contiene guiones (por ejemplo jangmo-o) antes del sufijo de la forma.
+        val species = PokemonSpecies.species
+            .filter { candidate ->
+                val base = candidate.resourceIdentifier.path.lowercase()
+                cleaned == base || cleaned.startsWith("$base-")
+            }
+            .maxByOrNull { it.resourceIdentifier.path.length }
+            ?: return null
+
+        val baseName = species.resourceIdentifier.path.lowercase()
+        val formTag = cleaned.removePrefix(baseName).removePrefix("-").takeIf { it.isNotBlank() }
+        val selectedForm = if (formTag != null) {
+            val requested = formTag.filter(Char::isLetterOrDigit)
+            species.forms.firstOrNull { form ->
+                val aliases = listOf(form.name, form.formOnlyShowdownId())
+                    .filter { it.isNotBlank() }
+                    .map { it.lowercase().filter(Char::isLetterOrDigit) }
+                requested in aliases
+            } ?: throw IllegalArgumentException(
+                "${species.resourceIdentifier.path} no tiene la forma '$formTag'. Formas disponibles: " +
+                    species.forms.joinToString(", ") { it.formOnlyShowdownId() }
+            )
+        } else null
+
         val low = ConfigManager.int("fallback.minimumLevel", 1).coerceIn(1, 100)
         val high = ConfigManager.int("fallback.maximumLevel", 100).coerceIn(low, 100)
         val randomLevel = Random.nextInt(low, high + 1)
 
-        val species = PokemonSpecies.species.firstOrNull {
-            it.resourceIdentifier.path.equals(speciesName, ignoreCase = true)
-        } ?: return null
-
-        // En Cobblemon el identificador usado por PokemonProperties es formOnlyShowdownId(),
-        // que no siempre coincide literalmente con FormData.name (p. ej. alola/alolan).
-        val selectedForm = if (formTag != null) {
-            val requested = formTag.lowercase().filter(Char::isLetterOrDigit)
-            species.forms.firstOrNull { form ->
-                val formName = form.name.lowercase().filter { it.isLetterOrDigit() }
-                val showdownId = form.formOnlyShowdownId().lowercase().filter { it.isLetterOrDigit() }
-                requested == formName || requested == showdownId ||
-                    formName.startsWith(requested) || requested.startsWith(formName) ||
-                    showdownId.startsWith(requested) || requested.startsWith(showdownId)
-            } ?: throw IllegalArgumentException("${species.resourceIdentifier.path} no tiene la forma '$formTag'.")
-        } else null
-
+        // No se pasa la forma a PokemonProperties.create(): create() llama a initialize(),
+        // que puede volver a establecer la forma estándar. Se aplica la FormData registrada
+        // directamente después de crear e inicializar el Pokémon.
         val pokemon = runCatching {
             PokemonProperties().apply {
                 this.species = species.resourceIdentifier.toString()
-                this.form = selectedForm?.formOnlyShowdownId()
                 this.level = randomLevel
                 this.shiny = shiny
             }.create(player)
         }.getOrNull() ?: return null
 
-        // No permitir que una forma inválida termine silenciosamente como la forma base.
         if (pokemon.species.resourceIdentifier != species.resourceIdentifier) return null
-        if (selectedForm != null && !pokemon.form.name.equals(selectedForm.name, ignoreCase = true)) {
-            WonderTradePlus.LOGGER.warn(
-                "Cobblemon no aplicó la forma {} a {} al ejecutar addspecies.",
-                selectedForm.name, species.resourceIdentifier
-            )
-            return null
+        if (selectedForm != null) {
+            pokemon.form = selectedForm
+            // Regenera los movimientos con el learnset de la forma regional elegida.
+            pokemon.initializeMovesetFromDefault()
+            if (pokemon.form != selectedForm) {
+                WonderTradePlus.LOGGER.warn(
+                    "Cobblemon no mantuvo la forma {} de {} al ejecutar addspecies.",
+                    selectedForm.name, species.resourceIdentifier
+                )
+                return null
+            }
         }
 
         addAdminEntry(pokemon, player.server.registryAccess())
@@ -737,6 +755,24 @@ object WonderTradeService {
         if (online != null) return online.uuid to online.gameProfile.name
         val uuid = playerData.findByName(name) ?: return null
         return uuid to name
+    }
+
+    /** Reinicia los contadores que se muestran en /wt stats y alimentan /wt top. */
+    fun adminResetStats(server: MinecraftServer, name: String): String? {
+        val online = server.playerList.getPlayerByName(name)
+        val uuid = online?.uuid ?: playerData.findByName(name) ?: return null
+        val shownName = online?.gameProfile?.name ?: name
+        playerData.setName(uuid, shownName)
+        playerData.resetStats(uuid)
+        playerData.save()
+        return shownName
+    }
+
+    /** Reinicia todos los contadores de estadísticas y rankings, sin tocar bonus ni límites. */
+    fun adminResetAllStats(): Int {
+        val affected = playerData.resetAllStats()
+        playerData.save()
+        return affected
     }
 
     fun statsComponent(uuid: UUID, name: String): Component {

@@ -136,7 +136,7 @@ class WonderTradePlus : ModInitializer {
                 if (player == null) {
                     context.source.sendFailure(WonderTradeService.info("&cEste comando solo puede usarse dentro del juego."))
                 } else {
-                    WonderTradeGui.openPool(player, 0)
+                    WonderTradeGui.openPool(player, 0, player.hasPermissions(WonderTradeService.adminLevel()))
                 }
                 1
             })
@@ -193,9 +193,35 @@ class WonderTradePlus : ModInitializer {
                         )
                     })))))
         .then(literal("remove").executes { context ->
-            WonderTradeGui.openPool(context.source.playerOrException, 0, true)
+            WonderTradeGui.openPool(context.source.playerOrException, 0, true, deleteMode = true)
             1
         })
+        .then(literal("resetstats").then(argument("player", StringArgumentType.word())
+            .suggests { context, builder ->
+                SharedSuggestionProvider.suggest(
+                    listOf("all") + (context.source.onlinePlayerNames + WonderTradeService.knownPlayerNames()).distinct(),
+                    builder
+                )
+            }
+            .executes { context ->
+                val target = StringArgumentType.getString(context, "player")
+                if (target.equals("all", ignoreCase = true)) {
+                    val affected = WonderTradeService.adminResetAllStats()
+                    context.source.sendSuccess({
+                        WonderTradeService.info("&aEstadísticas y rankings reiniciados para &f$affected &ajugadores. Se conservan bonus, cooldowns y límites diarios.")
+                    }, true)
+                } else {
+                    val resetName = WonderTradeService.adminResetStats(context.source.server, target)
+                    if (resetName == null) {
+                        context.source.sendFailure(WonderTradeService.info("&cNo hay datos guardados de &f$target&c. El jugador debe conectarse o haber usado Wonder Trade.") )
+                    } else {
+                        context.source.sendSuccess({
+                            WonderTradeService.info("&aEstadísticas y posición en los tops de &f$resetName &areiniciadas. Se conserva su bonus y sus límites.")
+                        }, true)
+                    }
+                }
+                1
+            }))
         .then(literal("event")
             .then(literal("start")
                 .executes { context -> startEvent(context, WonderTradeService.defaultEventMinutes()) }
@@ -317,7 +343,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.7.1"
+        const val MOD_VERSION = "0.7.2"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

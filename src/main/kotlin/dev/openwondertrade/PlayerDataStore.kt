@@ -61,6 +61,31 @@ class PlayerDataStore(private val file: Path) {
 
     fun stat(uuid: UUID, key: String): Int = playerNode(uuid, create = false)?.get(key)?.asInt ?: 0
 
+    /** Reinicia los contadores visibles en /wt stats y usados por /wt top para un jugador. */
+    fun resetStats(uuid: UUID): Boolean {
+        val data = playerNode(uuid, create = false) ?: return false
+        resetStatCounters(data)
+        return true
+    }
+
+    /** Reinicia esos contadores para todos los jugadores guardados. Devuelve cuántos perfiles hay. */
+    fun resetAllStats(): Int {
+        val players = root.getAsJsonObject("players") ?: return 0
+        var affected = 0
+        for ((_, node) in players.entrySet()) {
+            val data = node as? JsonObject ?: continue
+            resetStatCounters(data)
+            affected++
+        }
+        return affected
+    }
+
+    private fun resetStatCounters(data: JsonObject) {
+        data.addProperty("trades", 0)
+        data.addProperty("specialsReceived", 0)
+        data.addProperty("specialsDonated", 0)
+    }
+
     /** Ranking descendente (uuid, nombre, valor) por un contador; ignora a quienes tienen 0. */
     fun ranking(key: String): List<Triple<UUID, String, Int>> {
         val players = root.getAsJsonObject("players") ?: return emptyList()

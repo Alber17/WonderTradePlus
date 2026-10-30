@@ -91,14 +91,20 @@ object WonderTradeGui {
     fun canViewPool(player: ServerPlayer): Boolean =
         player.hasPermissions(ConfigManager.int("gui.poolViewPermissionLevel", 0).coerceIn(0, 4))
 
-    fun openPool(player: ServerPlayer, page: Int = 0, admin: Boolean = false, filter: PoolFilter = PoolFilter.ALL) {
+    fun openPool(
+        player: ServerPlayer,
+        page: Int = 0,
+        admin: Boolean = false,
+        filter: PoolFilter = PoolFilter.ALL,
+        deleteMode: Boolean = false
+    ) {
         val allowed = if (admin) player.hasPermissions(WonderTradeService.adminLevel()) else canViewPool(player)
         if (!allowed) {
             WonderTradeService.send(player, "adminOnly")
             return
         }
         val title = if (admin) "&5Wonder Trade &8- &fPool &c(admin)" else "&5Wonder Trade &8- &fPool"
-        open(player, title, 6) { renderPool(it, player, page, admin, filter) }
+        open(player, title, 6) { renderPool(it, player, page, admin, filter, deleteMode) }
     }
 
     fun openHistory(player: ServerPlayer, filter: String? = null, page: Int = 0) {
@@ -140,8 +146,10 @@ object WonderTradeGui {
         }
 
         menu.button(22, named(Items.ENDER_CHEST, "&bAbrir PC", "&7Elige un Pokémon de tus cajas.")) { openPc(it, 0) }
-        if (canViewPool(player)) {
-            menu.button(17, named(Items.CHEST, "&6Ver pool", "&7Pokémon aportados por los jugadores.")) { openPool(it, 0, false) }
+        if (canViewPool(player) || player.hasPermissions(WonderTradeService.adminLevel())) {
+            menu.button(17, named(Items.CHEST, "&6Ver pool", "&7Pokémon aportados por los jugadores.")) {
+                openPool(it, 0, it.hasPermissions(WonderTradeService.adminLevel()))
+            }
         }
         menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
@@ -176,7 +184,14 @@ object WonderTradeGui {
         menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
-    private fun renderPool(menu: GuiMenu, player: ServerPlayer, requestedPage: Int, admin: Boolean, filter: PoolFilter) {
+    private fun renderPool(
+        menu: GuiMenu,
+        player: ServerPlayer,
+        requestedPage: Int,
+        admin: Boolean,
+        filter: PoolFilter,
+        deleteMode: Boolean
+    ) {
         menu.wipe()
         fill(menu, 54)
         val all = WonderTradeService.poolEntries()
@@ -192,14 +207,15 @@ object WonderTradeGui {
             if (showDonors) extra += "&7Aportado por: &f${entry.donorName}"
             extra += "&7Fecha: &f${format.format(Date(entry.addedAt))}"
             val pokemon = runCatching { Pokemon.loadFromJSON(registryAccess, entry.pokemonJson.deepCopy()) }.getOrNull()
-            if (admin) extra += "&c✖ Clic para eliminar del pool"
+            if (admin && deleteMode) extra += "&c✖ Clic para eliminar del pool"
+            else if (admin) extra += "&7Activa «Eliminar Pokémon» para poder borrarlo."
             val stack = if (pokemon != null) pokemonStack(pokemon, false, extra)
             else named(Items.BARRIER, "&c${entry.species}", "&7No se pudo cargar este Pokémon.")
-            if (admin) {
+            if (admin && deleteMode) {
                 menu.button(i, stack) { p ->
                     if (p.hasPermissions(WonderTradeService.adminLevel())) {
                         WonderTradeService.removeFromPool(entry.id)
-                        renderPool(menu, p, page, true, filter)
+                        renderPool(menu, p, page, true, filter, true)
                     }
                 }
             } else {
@@ -210,9 +226,21 @@ object WonderTradeGui {
 
         val special = all.count { WonderTradeRules.isRareEntry(it) }
         menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver")) { openMain(it) }
-        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior")) { renderPool(menu, it, page - 1, admin, filter) }
+        if (admin) {
+            val deleteButton = if (deleteMode) {
+                named(Items.TNT, "&cEliminar Pokémon: ACTIVADO", "&7Haz clic en los Pokémon que quieras quitar.", "&eClic para desactivar")
+            } else {
+                named(Items.SHEARS, "&cEliminar Pokémon", "&7Activa el modo de eliminación.", "&7Después haz clic en los Pokémon que quieras quitar.")
+            }
+            menu.button(46, deleteButton) { p ->
+                if (p.hasPermissions(WonderTradeService.adminLevel())) {
+                    renderPool(menu, p, page, true, filter, !deleteMode)
+                }
+            }
+        }
+        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior")) { renderPool(menu, it, page - 1, admin, filter, deleteMode) }
         menu.put(49, named(Items.PAPER, "&fPágina ${page + 1}/$pages", "&7${entries.size} Pokémon con este filtro"))
-        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente")) { renderPool(menu, it, page + 1, admin, filter) }
+        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente")) { renderPool(menu, it, page + 1, admin, filter, deleteMode) }
         val counts = mapOf(PoolFilter.ALL to all.size, PoolFilter.SPECIAL to special, PoolFilter.NORMAL to all.size - special)
         val options = PoolFilter.values().map { option ->
             if (option == filter) "&e▶ ${option.label} &f${counts[option]}"
@@ -221,7 +249,7 @@ object WonderTradeGui {
         menu.button(52, named(Items.HOPPER, "&fCambiar filtro de pool",
             *options.toTypedArray(),
             "&eClic para cambiar")) {
-            renderPool(menu, it, 0, admin, filter.next())
+            renderPool(menu, it, 0, admin, filter.next(), deleteMode)
         }
         menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
@@ -324,7 +352,7 @@ object WonderTradeGui {
         WonderTradeRules.formLabel(pokemon)?.let { lines += "&7Forma: &f$it" }
         val labels = mutableListOf<String>()
         WonderTradeRules.categoryLabel(pokemon)?.let { labels += it }
-        if (pokemon.shiny) labels += "&e✨ Shiny"
+        if (pokemon.shiny) labels += "&eShiny"
         if (labels.isNotEmpty()) lines += "&7Categoría: " + labels.joinToString(" &7· ")
         if (pokemon.isAlpha) lines += "&cAlfa"
         lines += extra

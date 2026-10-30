@@ -63,7 +63,8 @@ Requieren el nivel de operador de `admin.permissionLevel` (por defecto 2).
 | `/wt admin add <slot>` | Añade al pool una **copia** del Pokémon de tu equipo en ese slot. Tú conservas el tuyo. |
 | `/wt admin addspecies <especie> [shiny]` | Crea un Pokémon de esa especie con nivel aleatorio (rango `fallback.minimumLevel`–`fallback.maximumLevel`) y lo añade al pool. Ej.: `/wt admin addspecies pikachu` o `/wt admin addspecies vulpix-alola shiny`. La especie y las formas se autocompletan con Tab. **Formas regionales:** `vulpix-alola`, `meowth-galar`, `growlithe-hisui`, `wooper-paldea`. |
 | `/wt admin fill <cantidad> [probabilidad%] [nivelMin nivelMax]` | Genera hasta 500 Pokémon aleatorios para el pool. **Cada Pokémon tiene una probabilidad baja de ser especial** (shiny, legendario, mítico, Ultraente o Paradoja); el resto son siempre normales. Sin indicar nada, la probabilidad se calcula sola según la cantidad: `0,25% + 0,005% por Pokémon`, con máximo 2% (200 Pokémon ≈ 1,25% cada uno, unos 2-3 especiales de media; puede salir ninguno). Con `probabilidad%` la fijas tú: `/wt admin fill 200 5` usa un 5%, `/wt admin fill 200 0` no genera ninguno especial. Para fijar niveles hay que poner también la probabilidad: `/wt admin fill 50 0 10 30`. Respeta las listas de especies y los permisos de shiny/especial/alfa.
-| `/wt admin remove` | Abre el pool en modo administrador: **un clic en un Pokémon lo elimina**. |
+| `/wt admin remove` | Abre el pool en modo administrador con el modo de eliminación activado. También puedes activarlo desde el botón situado junto a «Volver». |
+| `/wt admin resetstats <jugador\|all>` | Reinicia los contadores de `/wt stats` y los rankings de `/wt top` para un jugador o para todos. Conserva bonus, cooldowns y límites diarios. |
 | `/wt admin removeplayer <jugador>` | Elimina del pool todo lo que aportó ese jugador (usa `Servidor` para lo creado con los comandos admin). |
 | `/wt admin event start [minutos]` | Inicia un evento temporal (por defecto `event.defaultDurationMinutes`): menos cooldown, más bonus y probabilidad extra de especial. Lo anuncia a todos. |
 | `/wt admin event stop` | Termina el evento antes de tiempo. |
@@ -87,7 +88,7 @@ Requieren el nivel de operador de `admin.permissionLevel` (por defecto 2).
 2. Se abre una pantalla de confirmación (si `general.requireConfirmation` está activado).
 3. Al confirmar, recibes otro Pokémon. Si ofreciste uno del equipo, el nuevo llega al equipo; si era del PC, llega al PC.
 
-Cada Pokémon muestra su nivel, **tipos**, forma (Alolan, Galarian…), categoría real (Legendario, Mítico, Ultraente, Paradoja), la etiqueta ✨ Shiny y si es alfa.
+Cada Pokémon muestra su nivel, **tipos**, forma (Alolan, Galarian…), categoría real (Legendario, Mítico, Ultraente, Paradoja), la etiqueta Shiny y si es alfa.
 
 Los Pokémon que no se pueden ofrecer (debilitados, fuera del rango de nivel, cooldown activo, etc.) se marcan en rojo y el motivo aparece en el chat al pulsarlos.
 

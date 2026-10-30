@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.7.1**.
+- Versión actual: **0.7.2**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -15,3 +15,9 @@
 - El filtro del menú muestra cada categoría una sola vez y ya no incluye la explicación entre paréntesis.
 - `/wt admin addspecies <especie> [shiny]` crea la especie o forma solicitada con nivel aleatorio según `fallback.minimumLevel` y `fallback.maximumLevel`.
 - La compilación Gradle de esta revisión queda pendiente de validación en GitHub Actions; este entorno no dispone de Gradle ni acceso de red para descargarlo.
+
+- `/wt admin resetstats <jugador|all>` reinicia los contadores de `/wt stats` y las clasificaciones de `/wt top` sin modificar bonus, cooldowns o límites diarios.
+- `addspecies` ahora aplica las formas regionales después de inicializar el Pokémon, para evitar que Cobblemon lo devuelva a la forma estándar.
+- La categoría Shiny ya no lleva emoji.
+- La vista de pool para administradores incluye un botón junto a «Volver» para activar/desactivar el modo de eliminación; el clic sobre Pokémon solo borra cuando ese modo está activo.
+- No se ha ejecutado Gradle ni ninguna compilación en esta revisión, tal como se solicitó.
