@@ -218,56 +218,16 @@ object WonderTradeGui {
             if (option == filter) "&e▶ ${option.label} &f${counts[option]}"
             else "&8   ${option.label.drop(2)} ${counts[option]}"
         }
-        menu.button(52, named(Items.HOPPER, "&fFiltro", *options.toTypedArray(), "&eClic para cambiar")) {
-            renderPool(menu, it, 0, admin, filter.next())
-        }
-        menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
-    }
-
-    private fun renderPool(menu: GuiMenu, player: ServerPlayer, requestedPage: Int, admin: Boolean, filter: PoolFilter) {
-        menu.wipe()
-        fill(menu, 54)
-        val all = WonderTradeService.poolEntries()
-        val entries = all.filter { filter.matches(it) }.sortedByDescending { it.addedAt }
-        val pages = maxOf(1, (entries.size + POOL_PER_PAGE - 1) / POOL_PER_PAGE)
-        val page = requestedPage.coerceIn(0, pages - 1)
-        val registryAccess = player.server.registryAccess()
-        val showDonors = ConfigManager.bool("gui.showDonorNames", true)
-        val format = SimpleDateFormat("dd/MM/yyyy HH:mm")
-
-        entries.drop(page * POOL_PER_PAGE).take(POOL_PER_PAGE).forEachIndexed { i, entry ->
-            val extra = mutableListOf<String>()
-            if (showDonors) extra += "&7Aportado por: &f${entry.donorName}"
-            extra += "&7Fecha: &f${format.format(Date(entry.addedAt))}"
-            val pokemon = runCatching { Pokemon.loadFromJSON(registryAccess, entry.pokemonJson.deepCopy()) }.getOrNull()
-            if (admin) extra += "&c✖ Clic para eliminar del pool"
-            val stack = if (pokemon != null) pokemonStack(pokemon, false, extra)
-            else named(Items.BARRIER, "&c${entry.species}", "&7No se pudo cargar este Pokémon.")
-            if (admin) {
-                menu.button(i, stack) { p ->
-                    if (p.hasPermissions(WonderTradeService.adminLevel())) {
-                        WonderTradeService.removeFromPool(entry.id)
-                        renderPool(menu, p, page, true, filter)
-                    }
-                }
-            } else {
-                menu.put(i, stack)
-            }
-        }
-        if (entries.isEmpty()) menu.put(22, named(Items.BARRIER, "&cNo hay Pokémon con este filtro"))
-
-        val special = all.count { WonderTradeRules.isRareEntry(it) }
-        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver")) { openMain(it) }
-        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior")) { renderPool(menu, it, page - 1, admin, filter) }
-        menu.put(49, named(Items.PAPER, "&fPágina ${page + 1}/$pages", "&7${entries.size} Pokémon con este filtro"))
-        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente")) { renderPool(menu, it, page + 1, admin, filter) }
         menu.button(52, named(Items.HOPPER, "&fFiltro: ${filter.label}",
             "&7Total: &f${all.size}",
             "&dEspeciales: &f$special",
             "&7Normales: &f${all.size - special}",
             "&8(shiny, legendarios, míticos,",
             "&8Ultraentes y Paradoja)",
-            "&eClic para cambiar")) { renderPool(menu, it, 0, admin, filter.next()) }
+            *options.toTypedArray(),
+            "&eClic para cambiar")) {
+            renderPool(menu, it, 0, admin, filter.next())
+        }
         menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
