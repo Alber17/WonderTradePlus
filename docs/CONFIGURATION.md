@@ -43,6 +43,71 @@ La configuración inicial se copia en `config/wondertradeplus/config.json`. Edit
 - `speciesGenerationAttempts`: intentos máximos para encontrar una especie que respete los filtros.
 - `shinyBehavior`: `MATCH_INPUT`, `SERVER_RATE`, `NEVER` o `ALWAYS`.
 
+## `antiAbuse`
+
+- `excludeOwnDonations`: un jugador no puede recibir Pokémon que él mismo aportó al pool. Por defecto `true`.
+- `donationHoldMinutes`: minutos que un Pokémon recién aportado por un jugador no puede ser recibido por nadie. Por defecto `10`; `0` lo desactiva. No afecta a lo creado por comandos de admin ni a entradas antiguas.
+
+Si ninguna entrada del pool es válida para un jugador, se genera un Pokémon aleatorio (si `pool.randomFallback` está activado).
+
+## `maintenance`
+
+Mantenimiento automático del pool, cada `intervalMinutes` minutos (y a la primera vez, un minuto después de arrancar).
+
+- `expireAfterDays`: borra las entradas más antiguas que estos días. `0` lo desactiva. Por defecto `14`.
+- `autoRefill`: si el pool tiene menos de `minimumEntries`, genera Pokémon aleatorios hasta llegar. Necesita al menos un jugador conectado. Por defecto `true`.
+- `minimumEntries`: tamaño mínimo del pool. Por defecto `100`.
+- `refillBatchSize`: máximo de Pokémon generados por pasada, para no cargar el servidor. Por defecto `50`.
+- `refillSpecialChance`: probabilidad (%) de que cada Pokémon generado sea especial. Por defecto `1.0`.
+- `intervalMinutes`: cada cuánto se ejecuta. Por defecto `30`.
+
+Los Pokémon generados salen con el donante `Servidor`. Se puede lanzar a mano con `/wt admin maintenance`.
+
+## `backup`
+
+Copias automáticas de `pool.json`, `player-data.json`, `history.json` y `event.json` en `config/wondertradeplus/backups/<fecha>/`.
+
+- `intervalHours`: cada cuántas horas. `0` desactiva las automáticas. Por defecto `6`.
+- `keep`: cuántas copias se conservan; las más antiguas se borran. Por defecto `10`.
+
+También se crea una copia justo antes de vaciar el pool, y se puede hacer a mano con `/wt admin backup`.
+
+## `discord`
+
+Avisos a un canal de Discord mediante un **webhook** (no hace falta ningún bot).
+
+- `enabled`: activa los avisos. Por defecto `false`.
+- `webhookUrl`: URL del webhook. **Es secreta**: quien la tenga puede escribir en ese canal, así que no la compartas ni la subas a GitHub.
+- `username`: nombre con el que aparecen los mensajes.
+- `notifyDonations`: avisa cuando alguien aporta un Pokémon especial al pool.
+- `notifyReceived`: avisa cuando alguien recibe un Pokémon especial.
+- `notifyEvents`: avisa al empezar y terminar un evento.
+- `donationMessage`, `receivedMessage`, `eventStartMessage`, `eventEndMessage`: textos. Admiten Markdown de Discord (`**negrita**`) y `{player}`, `{pokemon}`, `{level}`, `{category}`; los de evento admiten `{time}`, `{cooldown}`, `{bonus}` y `{extra}`.
+
+"Especial" aquí es shiny, legendario, mítico, Ultraente o Paradoja. Los mensajes se envían sin bloquear el servidor y no pueden mencionar a nadie (`@everyone` queda desactivado). Prueba la conexión con `/wt admin discord test`.
+
+## `bonus`
+
+Sistema de probabilidad acumulada **por jugador** para recibir un Pokémon especial.
+
+- `enabled`: activa o desactiva el sistema.
+- `maximum`: límite del porcentaje acumulado (`0–100`). Por defecto `60`.
+- `shiny`, `legendary`, `mythical`, `ultraBeast`, `paradox`, `other`: porcentaje que suma ofrecer un Pokémon de cada tipo. `other` cubre las etiquetas personalizadas de `trade.specialLabels`. Por defecto todos valen `10`. Ejemplo: `"shiny": 15, "paradox": 5` hace que un shiny valga el triple que una Paradoja.
+- `combineMode`: qué pasa cuando un Pokémon cumple varios tipos a la vez (por ejemplo, un legendario shiny). `HIGHEST` suma solo el valor más alto; `SUM` los suma todos (con valores de 10, un legendario shiny daría 20, el doble).
+
+Funcionamiento: cuando el jugador ofrece un Pokémon **normal**, se tira un dado con su porcentaje acumulado; si sale, recibe un especial (del pool si hay, y si no se genera uno). Si recibe un especial ofreciendo uno normal, su porcentaje vuelve a 0. Ofrecer un especial nunca resetea el porcentaje, solo lo sube. El jugador puede consultarlo con `/wt chance` y los admins con `/wt chance <jugador>`. Los mensajes (`bonusIncreased`, `bonusReset`, `bonusInfo`) son editables.
+
+## `event`
+
+Valores del evento temporal (`/wt admin event start [minutos]`). Mientras está activo:
+
+- `cooldownMultiplier`: multiplica el cooldown de intercambio (`0.5` = la mitad, `0` = sin cooldown). Por defecto `0.5`.
+- `bonusGainMultiplier`: multiplica lo que suma cada especial ofrecido al bonus. Por defecto `2.0`.
+- `extraSpecialChance`: porcentaje extra (suma plana) de recibir un especial al ofrecer un Pokémon normal. Por defecto `5.0`.
+- `defaultDurationMinutes`: duración si no se indican minutos. Por defecto `60`.
+
+Los mensajes `eventStart`, `eventEnd`, `eventStatus` y `eventNone` son editables y admiten `{time}`, `{cooldown}`, `{bonus}` y `{extra}`. El evento sobrevive a reinicios (se guarda en `event.json`).
+
 ## `history`
 
 - `enabled`: guarda un registro de cada intercambio en `history.json`.

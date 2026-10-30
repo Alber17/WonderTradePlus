@@ -43,9 +43,14 @@ En un servidor dedicado, el mod va **solo en el servidor**. En un mundo individu
 | `/wt <slot>` | Elige el Pokémon de ese slot (1–6) y pide confirmación. |
 | `/wt confirm` | Confirma el intercambio pendiente. |
 | `/wt <slot> confirm` | **Intercambia ese slot al instante**, sin pedir confirmación aparte. |
+| `/wt chance` | Muestra tu probabilidad acumulada de recibir un Pokémon especial. |
+| `/wt chance <jugador>` | **Solo admins.** Muestra la probabilidad acumulada de otro jugador (conectado, o que ya haya hecho algún intercambio). Se autocompleta con Tab. |
+| `/wt stats [jugador]` | Muestra intercambios, especiales recibidos y aportados, y probabilidad acumulada de un jugador (el tuyo si no pones nombre). |
+| `/wt top [trades\|received\|donated]` | Ranking de los 10 mejores: intercambios (por defecto), especiales recibidos o especiales aportados. Si no estás en el top te dice tu posición. |
+| `/wt event` | Muestra si hay un evento activo y cuánto le queda. |
 | `/wt cancel` | Cancela el intercambio pendiente. |
 | `/wt pool` | Muestra cuántos Pokémon hay en el pool. |
-| `/wt pool view` | Abre el pool completo en un menú paginado (solo lectura). Nivel de permiso configurable con `gui.poolViewPermissionLevel`. |
+| `/wt pool view [all\|special\|normal]` | Abre el pool completo en un menú paginado (solo lectura). Se puede filtrar por **especiales** (shiny, legendarios, míticos, Ultraentes y Paradoja) o **normales**, y dentro del menú hay un botón para cambiar de filtro. Nivel de permiso configurable con `gui.poolViewPermissionLevel`. |
 | `/wt help` | Muestra la ayuda. |
 | `/wt reload` | Recarga configuración y archivos. Operador nivel 2. |
 | `/wt clearpool` | Vacía el pool. Operador nivel 2. |
@@ -57,10 +62,16 @@ Requieren el nivel de operador de `admin.permissionLevel` (por defecto 2).
 | Comando | Función |
 |---|---|
 | `/wt admin add <slot>` | Añade al pool una **copia** del Pokémon de tu equipo en ese slot. Tú conservas el tuyo. |
-| `/wt admin addspecies <especie> <nivel> [shiny]` | Crea un Pokémon de esa especie y nivel y lo añade al pool. Ej.: `/wt admin addspecies pikachu 25 shiny`. La especie se autocompleta con Tab. |
-| `/wt admin fill <cantidad> [nivelMin nivelMax]` | Genera hasta 500 Pokémon aleatorios para el pool. Respeta las listas de especies y los permisos de shiny/especial/alfa. Sin niveles usa `fallback.minimumLevel` y `fallback.maximumLevel`. |
+| `/wt admin addspecies <especie> <nivel> [shiny]` | Crea un Pokémon de esa especie y nivel y lo añade al pool. Ej.: `/wt admin addspecies pikachu 25 shiny`. La especie se autocompleta con Tab. **Formas regionales:** añade un guion y la forma: `vulpix-alola`, `meowth-galar`, `growlithe-hisui`, `wooper-paldea` (también vale `vulpix-alolan`). |
+| `/wt admin fill <cantidad> [probabilidad%] [nivelMin nivelMax]` | Genera hasta 500 Pokémon aleatorios para el pool. **Cada Pokémon tiene una probabilidad baja de ser especial** (shiny, legendario, mítico, Ultraente o Paradoja); el resto son siempre normales. Sin indicar nada, la probabilidad se calcula sola según la cantidad: `0,25% + 0,005% por Pokémon`, con máximo 2% (200 Pokémon ≈ 1,25% cada uno, unos 2-3 especiales de media; puede salir ninguno). Con `probabilidad%` la fijas tú: `/wt admin fill 200 5` usa un 5%, `/wt admin fill 200 0` no genera ninguno especial. Para fijar niveles hay que poner también la probabilidad: `/wt admin fill 50 0 10 30`. Respeta las listas de especies y los permisos de shiny/especial/alfa.
 | `/wt admin remove` | Abre el pool en modo administrador: **un clic en un Pokémon lo elimina**. |
 | `/wt admin removeplayer <jugador>` | Elimina del pool todo lo que aportó ese jugador (usa `Servidor` para lo creado con los comandos admin). |
+| `/wt admin event start [minutos]` | Inicia un evento temporal (por defecto `event.defaultDurationMinutes`): menos cooldown, más bonus y probabilidad extra de especial. Lo anuncia a todos. |
+| `/wt admin event stop` | Termina el evento antes de tiempo. |
+| `/wt chance <jugador> set <valor>` / `reset` | **Solo admins.** Fija el porcentaje acumulado de un jugador (0–100) o lo pone a 0. Útil para compensar errores o dar premios. |
+| `/wt admin backup` | Crea una copia de seguridad del pool y los datos ahora mismo. |
+| `/wt admin maintenance` | Ejecuta ya el mantenimiento del pool (borrar caducados y rellenar). |
+| `/wt admin discord test` | Envía un mensaje de prueba al webhook de Discord. |
 | `/wt admin history [jugador]` | Abre el **historial de intercambios** en un menú paginado: quién dio qué y qué recibió, con el icono del Pokémon recibido, origen (pool o azar) y fecha. Con un nombre filtra por ese jugador. |
 | `/wt admin clear` | Vacía el pool. |
 
@@ -77,7 +88,44 @@ Requieren el nivel de operador de `admin.permissionLevel` (por defecto 2).
 2. Se abre una pantalla de confirmación (si `general.requireConfirmation` está activado).
 3. Al confirmar, recibes otro Pokémon. Si ofreciste uno del equipo, el nuevo llega al equipo; si era del PC, llega al PC.
 
+Cada Pokémon muestra su nivel, **tipos**, forma (Alolan, Galarian…), categoría real (Legendario, Mítico, Ultraente, Paradoja), la etiqueta ✨ Shiny y si es alfa.
+
 Los Pokémon que no se pueden ofrecer (debilitados, fuera del rango de nivel, cooldown activo, etc.) se marcan en rojo y el motivo aparece en el chat al pulsarlos.
+
+## Probabilidad acumulada de especiales
+
+Cada jugador tiene un porcentaje propio que **sube cada vez que ofrece un Pokémon especial** (shiny, legendario, mítico, Ultraente o Paradoja), hasta un máximo (60% por defecto). Cuánto suma cada tipo es configurable: por defecto todos suman +10%, pero puedes hacer que un shiny valga más que una Paradoja, o que un legendario shiny sume los dos valores (`bonus.combineMode: SUM`).
+
+Cuando ese jugador ofrece después un Pokémon **normal**, se tira un dado con ese porcentaje: si sale, recibe un especial (del pool si hay alguno compatible y, si no, uno generado). Al recibirlo, su porcentaje vuelve a 0. Ofrecer un especial solo sube el porcentaje, nunca lo resetea. Se consulta con `/wt chance` (los admins pueden ver el de otro jugador con `/wt chance <jugador>`) y se configura en la sección `bonus`.
+
+## Protección contra abusos
+
+- Un jugador **no puede recibir sus propias aportaciones** (`antiAbuse.excludeOwnDonations`).
+- Un Pokémon recién aportado **no se puede recibir hasta pasados unos minutos** (`antiAbuse.donationHoldMinutes`, 10 por defecto), para que dos cuentas no se lo pasen al instante.
+
+## Mantenimiento del pool y copias de seguridad
+
+- Las entradas del pool **caducan** a los `maintenance.expireAfterDays` días (14 por defecto) y se borran solas.
+- Si el pool baja de `maintenance.minimumEntries` (100 por defecto), se **rellena automáticamente** con Pokémon aleatorios, con una probabilidad baja de especiales. Necesita algún jugador conectado.
+- Cada `backup.intervalHours` horas (6 por defecto) se guarda una copia de los archivos de datos en `config/wondertradeplus/backups/`, conservando las últimas `backup.keep`. Se hace otra copia antes de vaciar el pool.
+
+## Avisos a Discord
+
+Con un webhook de Discord, el mod puede publicar en un canal cuando alguien **aporta o recibe un Pokémon especial** (shiny, legendario, mítico, Ultraente o Paradoja) y cuando empieza o termina un evento. Se configura en la sección `discord`:
+
+1. En Discord: *Ajustes del canal → Integraciones → Webhooks → Nuevo webhook → Copiar URL*.
+2. Pega la URL en `discord.webhookUrl` y pon `discord.enabled` en `true`.
+3. Ejecuta `/wt reload` y prueba con `/wt admin discord test`.
+
+La URL del webhook es secreta; no la subas a GitHub.
+
+## Eventos temporales
+
+Un admin puede lanzar un evento con `/wt admin event start [minutos]`. Mientras dura, el cooldown se reduce, cada especial ofrecido suma más al bonus y todos tienen un porcentaje extra de recibir un especial. Se anuncia a todos al empezar y al terminar, y los jugadores lo consultan con `/wt event`. Todo se ajusta en la sección `event`.
+
+## Estadísticas y ranking
+
+El mod guarda por jugador cuántos intercambios lleva y cuántos especiales ha recibido y aportado (desde que se instaló esta versión). `/wt stats [jugador]` lo muestra y `/wt top` enseña el ranking.
 
 ## Anuncios
 
@@ -103,6 +151,10 @@ Opciones principales:
 - `general.speciesBlacklist`, `general.useSpeciesWhitelist`, `general.speciesWhitelist`: listas de especies.
 - `pool.enabled`, `pool.randomFallback`, `pool.maximumEntries`: comportamiento del pool.
 - `fallback.shinyBehavior`: `MATCH_INPUT`, `SERVER_RATE`, `NEVER` o `ALWAYS`.
+- `bonus.*`: probabilidad acumulada de especiales por jugador y cuánto suma cada rareza.
+- `event.*`: efectos del evento temporal.
+- `antiAbuse.*`, `maintenance.*`, `backup.*`: protección, mantenimiento del pool y copias.
+- `discord.*`: avisos a Discord.
 - `history.enabled` / `history.maxEntries`: registro de intercambios.
 - `admin.permissionLevel`: nivel de operador para los comandos `/wt admin`.
 - `gui.enabled`: si es `false`, `/wt` muestra la ayuda en lugar del menú.
@@ -117,6 +169,8 @@ El modo shiny es una regla importante: revísalo antes de abrir el servidor. Ver
 - `pool.json`: Pokémon almacenados y sus índices de búsqueda.
 - `player-data.json`: último intercambio y contador diario de cada jugador.
 - `history.json`: historial de intercambios.
+- `event.json`: evento temporal activo.
+- `backups/`: copias automáticas de los archivos anteriores.
 - `config.json`: reglas del servidor.
 
 Prueba los cambios de configuración en una copia del servidor antes de producción. Si el guardado falla durante un intercambio, se revierte, pero una caída brusca del proceso entre escrituras independientes de Cobblemon y de WonderTrade Plus no puede garantizar atomicidad absoluta.

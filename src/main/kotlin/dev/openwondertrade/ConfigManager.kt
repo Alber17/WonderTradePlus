@@ -55,6 +55,10 @@ object ConfigManager {
         runCatching { it.asInt }.getOrDefault(fallback)
     } ?: fallback
 
+    fun double(path: String, fallback: Double = 0.0): Double = element(path)?.let {
+        runCatching { it.asDouble }.getOrDefault(fallback)
+    } ?: fallback
+
     fun long(path: String, fallback: Long = 0L): Long = element(path)?.let {
         runCatching { it.asLong }.getOrDefault(fallback)
     } ?: fallback

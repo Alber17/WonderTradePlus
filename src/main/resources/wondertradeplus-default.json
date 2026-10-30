@@ -41,6 +41,51 @@
     "speciesGenerationAttempts": 128,
     "shinyBehavior": "MATCH_INPUT"
   },
+  "antiAbuse": {
+    "excludeOwnDonations": true,
+    "donationHoldMinutes": 10
+  },
+  "maintenance": {
+    "expireAfterDays": 14,
+    "autoRefill": true,
+    "minimumEntries": 100,
+    "intervalMinutes": 30,
+    "refillBatchSize": 50,
+    "refillSpecialChance": 1.0
+  },
+  "backup": {
+    "intervalHours": 6,
+    "keep": 10
+  },
+  "discord": {
+    "enabled": false,
+    "webhookUrl": "",
+    "username": "WonderTrade",
+    "notifyDonations": true,
+    "notifyReceived": true,
+    "notifyEvents": true,
+    "donationMessage": "✨ **{player}** ha aportado **{pokemon}** (Nv. {level}, {category}) al pool de Wonder Trade.",
+    "receivedMessage": "🎉 **{player}** ha recibido **{pokemon}** (Nv. {level}, {category}) en un Wonder Trade.",
+    "eventStartMessage": "✦ **¡Evento de Wonder Trade!** Durante {time}: cooldown ×{cooldown}, bonus ×{bonus} y +{extra}% de probabilidad de especial.",
+    "eventEndMessage": "El evento de Wonder Trade ha terminado."
+  },
+  "bonus": {
+    "enabled": true,
+    "maximum": 60.0,
+    "combineMode": "HIGHEST",
+    "shiny": 10.0,
+    "legendary": 10.0,
+    "mythical": 10.0,
+    "ultraBeast": 10.0,
+    "paradox": 10.0,
+    "other": 10.0
+  },
+  "event": {
+    "defaultDurationMinutes": 60,
+    "cooldownMultiplier": 0.5,
+    "bonusGainMultiplier": 2.0,
+    "extraSpecialChance": 5.0
+  },
   "history": {
     "enabled": true,
     "maxEntries": 1000
@@ -96,6 +141,13 @@
     "broadcastNormal": "&7{player} ha añadido un Pokémon al pool de Wonder Trade.",
     "broadcastSpecial": "&6\u2605 {player} ha a\u00f1adido un Pok\u00e9mon legendario al pool de Wonder Trade: &f{pokemon}&6!",
     "broadcastShinySpecial": "&d\u2728&6\u2605 {player} ha a\u00f1adido un Pok\u00e9mon LEGENDARIO SHINY al pool de Wonder Trade: &f{pokemon}&d!",
+    "eventStart": "&d✦ ¡EVENTO WONDER TRADE! &7Durante &f{time}&7: cooldown &f×{cooldown}&7, bonus de especiales &f×{bonus}&7 y &f+{extra}%&7 de probabilidad de recibir un especial.",
+    "eventEnd": "&7El evento de Wonder Trade ha terminado.",
+    "eventStatus": "&d✦ Evento activo: &7quedan &f{time}&7. Cooldown &f×{cooldown}&7, bonus &f×{bonus}&7, &f+{extra}%&7 de probabilidad de especial.",
+    "eventNone": "&7No hay ningún evento activo.",
+    "bonusIncreased": "&d✨ Tu aportación especial sube tu probabilidad de recibir un Pokémon especial en tus próximos intercambios: &f{percent}%&d.",
+    "bonusReset": "&6¡Te ha tocado un Pokémon especial! Tu probabilidad vuelve a &f{percent}%&6.",
+    "bonusInfo": "&7Tu probabilidad actual de recibir un Pokémon especial: &d{percent}%&7. Sube al ofrecer uno shiny, legendario, mítico, Ultraente o Paradoja.",
     "broadcastUltraBeast": "&3\u25c6 {player} ha a\u00f1adido un Ultraente al pool de Wonder Trade: &f{pokemon}&3!",
     "broadcastShinyUltraBeast": "&d\u2728&3\u25c6 {player} ha a\u00f1adido un ULTRAENTE SHINY al pool de Wonder Trade: &f{pokemon}&d!",
     "broadcastPastParadox": "&c\u231b {player} ha a\u00f1adido un Pok\u00e9mon del pasado al pool de Wonder Trade: &f{pokemon}&c!",

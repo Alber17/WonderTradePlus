@@ -47,13 +47,59 @@ class PlayerDataStore(private val file: Path) {
         return TradeCheck(cooldownLeft, dailyLimit > 0 && used >= dailyLimit)
     }
 
-    fun recordTrade(uuid: UUID, now: Long) {
+    fun recordTrade(uuid: UUID, now: Long, offeredSpecial: Boolean = false, receivedSpecial: Boolean = false) {
         val data = playerNode(uuid, create = true)!!
         val today = LocalDate.now().toString()
         val oldCount = if (data.get("dailyDate")?.asString == today) data.get("dailyCount")?.asInt ?: 0 else 0
         data.addProperty("lastTradeAt", now)
         data.addProperty("dailyDate", today)
         data.addProperty("dailyCount", oldCount + 1)
+        data.addProperty("trades", (data.get("trades")?.asInt ?: 0) + 1)
+        if (offeredSpecial) data.addProperty("specialsDonated", (data.get("specialsDonated")?.asInt ?: 0) + 1)
+        if (receivedSpecial) data.addProperty("specialsReceived", (data.get("specialsReceived")?.asInt ?: 0) + 1)
+    }
+
+    fun stat(uuid: UUID, key: String): Int = playerNode(uuid, create = false)?.get(key)?.asInt ?: 0
+
+    /** Ranking descendente (uuid, nombre, valor) por un contador; ignora a quienes tienen 0. */
+    fun ranking(key: String): List<Triple<UUID, String, Int>> {
+        val players = root.getAsJsonObject("players") ?: return emptyList()
+        val result = mutableListOf<Triple<UUID, String, Int>>()
+        for ((id, node) in players.entrySet()) {
+            val obj = node as? JsonObject ?: continue
+            val value = obj.get(key)?.asInt ?: 0
+            if (value <= 0) continue
+            val uuid = runCatching { UUID.fromString(id) }.getOrNull() ?: continue
+            result.add(Triple(uuid, obj.get("name")?.asString ?: id.take(8), value))
+        }
+        return result.sortedByDescending { it.third }
+    }
+
+    /** Porcentaje acumulado (0–100) de que el próximo intercambio dé un Pokémon especial. */
+    fun bonus(uuid: UUID): Double = playerNode(uuid, create = false)?.get("specialBonus")?.asDouble ?: 0.0
+
+    fun setBonus(uuid: UUID, value: Double) {
+        playerNode(uuid, create = true)!!.addProperty("specialBonus", value)
+    }
+
+    fun setName(uuid: UUID, name: String) {
+        playerNode(uuid, create = true)!!.addProperty("name", name)
+    }
+
+    /** Busca el UUID de un jugador por el último nombre guardado en un intercambio. */
+    fun findByName(name: String): UUID? {
+        val players = root.getAsJsonObject("players") ?: return null
+        for ((key, value) in players.entrySet()) {
+            if (value.isJsonObject && value.asJsonObject.get("name")?.asString.equals(name, ignoreCase = true)) {
+                return runCatching { UUID.fromString(key) }.getOrNull()
+            }
+        }
+        return null
+    }
+
+    fun names(): List<String> {
+        val players = root.getAsJsonObject("players") ?: return emptyList()
+        return players.entrySet().mapNotNull { (it.value as? JsonObject)?.get("name")?.asString }
     }
 
     fun save() {

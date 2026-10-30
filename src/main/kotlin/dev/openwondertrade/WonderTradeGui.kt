@@ -64,6 +64,20 @@ class GuiMenu(
     override fun canDragTo(slot: Slot): Boolean = false
 }
 
+enum class PoolFilter(val label: String) {
+    ALL("&eTodos"),
+    SPECIAL("&dEspeciales"),
+    NORMAL("&7Normales");
+
+    fun next(): PoolFilter = values()[(ordinal + 1) % values().size]
+
+    fun matches(entry: PoolEntry): Boolean = when (this) {
+        ALL -> true
+        SPECIAL -> WonderTradeRules.isRareEntry(entry)
+        NORMAL -> !WonderTradeRules.isRareEntry(entry)
+    }
+}
+
 object WonderTradeGui {
     private const val PC_BOX_SLOTS = 30
     private const val POOL_PER_PAGE = 45
@@ -77,14 +91,14 @@ object WonderTradeGui {
     fun canViewPool(player: ServerPlayer): Boolean =
         player.hasPermissions(ConfigManager.int("gui.poolViewPermissionLevel", 0).coerceIn(0, 4))
 
-    fun openPool(player: ServerPlayer, page: Int = 0, admin: Boolean = false) {
+    fun openPool(player: ServerPlayer, page: Int = 0, admin: Boolean = false, filter: PoolFilter = PoolFilter.ALL) {
         val allowed = if (admin) player.hasPermissions(WonderTradeService.adminLevel()) else canViewPool(player)
         if (!allowed) {
             WonderTradeService.send(player, "adminOnly")
             return
         }
         val title = if (admin) "&5Wonder Trade &8- &fPool &c(admin)" else "&5Wonder Trade &8- &fPool"
-        open(player, title, 6) { renderPool(it, player, page, admin) }
+        open(player, title, 6) { renderPool(it, player, page, admin, filter) }
     }
 
     fun openHistory(player: ServerPlayer, filter: String? = null, page: Int = 0) {
@@ -162,10 +176,11 @@ object WonderTradeGui {
         menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
-    private fun renderPool(menu: GuiMenu, player: ServerPlayer, requestedPage: Int, admin: Boolean) {
+    private fun renderPool(menu: GuiMenu, player: ServerPlayer, requestedPage: Int, admin: Boolean, filter: PoolFilter) {
         menu.wipe()
         fill(menu, 54)
-        val entries = WonderTradeService.poolEntries().sortedByDescending { it.addedAt }
+        val all = WonderTradeService.poolEntries()
+        val entries = all.filter { filter.matches(it) }.sortedByDescending { it.addedAt }
         val pages = maxOf(1, (entries.size + POOL_PER_PAGE - 1) / POOL_PER_PAGE)
         val page = requestedPage.coerceIn(0, pages - 1)
         val registryAccess = player.server.registryAccess()
@@ -184,18 +199,27 @@ object WonderTradeGui {
                 menu.button(i, stack) { p ->
                     if (p.hasPermissions(WonderTradeService.adminLevel())) {
                         WonderTradeService.removeFromPool(entry.id)
-                        renderPool(menu, p, page, true)
+                        renderPool(menu, p, page, true, filter)
                     }
                 }
             } else {
                 menu.put(i, stack)
             }
         }
+        if (entries.isEmpty()) menu.put(22, named(Items.BARRIER, "&cNo hay Pokémon con este filtro"))
 
+        val special = all.count { WonderTradeRules.isRareEntry(it) }
         menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver")) { openMain(it) }
-        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior")) { renderPool(menu, it, page - 1, admin) }
-        menu.put(49, named(Items.PAPER, "&fPágina ${page + 1}/$pages", "&7${entries.size} Pokémon en el pool"))
-        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente")) { renderPool(menu, it, page + 1, admin) }
+        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior")) { renderPool(menu, it, page - 1, admin, filter) }
+        menu.put(49, named(Items.PAPER, "&fPágina ${page + 1}/$pages", "&7${entries.size} Pokémon con este filtro"))
+        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente")) { renderPool(menu, it, page + 1, admin, filter) }
+        menu.button(52, named(Items.HOPPER, "&fFiltro: ${filter.label}",
+            "&7Total: &f${all.size}",
+            "&dEspeciales: &f$special",
+            "&7Normales: &f${all.size - special}",
+            "&8(shiny, legendarios, míticos,",
+            "&8Ultraentes y Paradoja)",
+            "&eClic para cambiar")) { renderPool(menu, it, 0, admin, filter.next()) }
         menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
@@ -221,14 +245,15 @@ object WonderTradeGui {
 
     private fun historyStack(player: ServerPlayer, entry: HistoryEntry, dateFormat: SimpleDateFormat): ItemStack {
         // El icono es el Pokémon que RECIBIÓ el jugador; se recrea a partir del resumen guardado.
-        val icon = runCatching {
-            val pokemon = com.cobblemon.mod.common.api.pokemon.PokemonProperties().apply {
+        val pokemon = runCatching {
+            com.cobblemon.mod.common.api.pokemon.PokemonProperties().apply {
                 this.species = entry.receivedSpecies
                 this.level = entry.receivedLevel.coerceIn(1, 100)
                 this.shiny = entry.receivedShiny
             }.create(player)
-            PokemonItem.from(pokemon)
-        }.getOrElse { ItemStack(Items.PAPER) }
+        }.getOrNull()
+        val icon = pokemon?.let { runCatching { PokemonItem.from(it) }.getOrNull() } ?: ItemStack(Items.PAPER)
+        val receivedTypes = pokemon?.let { WonderTradeRules.typesLabel(it) }
 
         val star = "&e✨"
         icon.set(DataComponents.CUSTOM_NAME, lit("&b${entry.player}"))
@@ -236,6 +261,7 @@ object WonderTradeGui {
             "&8────────────────",
             "&c▼ Dio: &f${entry.sentName} &7Nv.${entry.sentLevel}" + if (entry.sentShiny) " $star" else "",
             "&a▲ Recibió: &f${entry.receivedName} &7Nv.${entry.receivedLevel}" + if (entry.receivedShiny) " $star" else "",
+            "&7Tipo: " + (receivedTypes ?: "&8desconocido"),
             "&8────────────────",
             "&7Origen: &f" + if (entry.fromPool) "pool de jugadores" else "generado al azar",
             "&7Fecha: &f${dateFormat.format(Date(entry.time))}"
@@ -291,8 +317,12 @@ object WonderTradeGui {
         stack.set(DataComponents.CUSTOM_NAME, lit((if (pokemon.shiny) "&e✨ " else "&f") + name))
 
         val lines = mutableListOf("&7Nivel: &f${pokemon.level}")
-        if (pokemon.shiny) lines += "&eShiny"
-        if (WonderTradeRules.isSpecial(pokemon)) lines += "&dEspecial"
+        WonderTradeRules.typesLabel(pokemon)?.let { lines += "&7Tipo: $it" }
+        WonderTradeRules.formLabel(pokemon)?.let { lines += "&7Forma: &f$it" }
+        val labels = mutableListOf<String>()
+        WonderTradeRules.categoryLabel(pokemon)?.let { labels += it }
+        if (pokemon.shiny) labels += "&e✨ Shiny"
+        if (labels.isNotEmpty()) lines += "&7Categoría: " + labels.joinToString(" &7· ")
         if (pokemon.isAlpha) lines += "&cAlfa"
         lines += extra
         if (showOfferHint) {

@@ -20,7 +20,8 @@ data class PoolEntry(
     val special: Boolean,
     val alpha: Boolean,
     val addedAt: Long,
-    val donorName: String
+    val donorName: String,
+    val donorUuid: String = ""
 ) {
     fun toJson(): JsonObject = JsonObject().apply {
         addProperty("id", id)
@@ -32,12 +33,13 @@ data class PoolEntry(
         addProperty("alpha", alpha)
         addProperty("addedAt", addedAt)
         addProperty("donorName", donorName)
+        addProperty("donorUuid", donorUuid)
     }
 
     fun deepCopyEntry() = copy(pokemonJson = pokemonJson.deepCopy())
 
     companion object {
-        fun fromPokemon(pokemon: Pokemon, registryAccess: RegistryAccess, donorName: String, timestamp: Long = System.currentTimeMillis()): PoolEntry {
+        fun fromPokemon(pokemon: Pokemon, registryAccess: RegistryAccess, donorName: String, timestamp: Long = System.currentTimeMillis(), donorUuid: String = ""): PoolEntry {
             return PoolEntry(
                 id = UUID.randomUUID().toString(),
                 pokemonJson = pokemon.saveToJSON(registryAccess, JsonObject()).deepCopy(),
@@ -47,7 +49,8 @@ data class PoolEntry(
                 special = WonderTradeRules.isSpecial(pokemon),
                 alpha = pokemon.isAlpha,
                 addedAt = timestamp,
-                donorName = donorName
+                donorName = donorName,
+                donorUuid = donorUuid
             )
         }
 
@@ -61,7 +64,8 @@ data class PoolEntry(
                 special = json.get("special")?.asBoolean ?: false,
                 alpha = json.get("alpha")?.asBoolean ?: false,
                 addedAt = json.get("addedAt")?.asLong ?: 0L,
-                donorName = json.get("donorName")?.asString ?: "unknown"
+                donorName = json.get("donorName")?.asString ?: "unknown",
+                donorUuid = json.get("donorUuid")?.asString ?: ""
             )
         }
     }
