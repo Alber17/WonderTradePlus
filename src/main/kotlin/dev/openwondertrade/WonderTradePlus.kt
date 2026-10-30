@@ -141,11 +141,10 @@ class WonderTradePlus : ModInitializer {
                         1
                     }))
             // PERMISO: público; el ranking es visible para todos.
-            .then(literal("top")
-                .executes { context -> showTop(context, "trades") }
-                .then(literal("trades").executes { context -> showTop(context, "trades") })
-                .then(literal("received").executes { context -> showTop(context, "received") })
-                .then(literal("donated").executes { context -> showTop(context, "donated") }))
+            .then(literal("top").executes { context ->
+                WonderTradeGui.openTop(context.source.playerOrException)
+                1
+            })
             // PERMISO: público; cancela el intercambio pendiente.
             .then(literal("cancel").executes { context ->
                 WonderTradeService.cancel(context.source.playerOrException)
@@ -414,7 +413,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.8.4"
+        const val MOD_VERSION = "0.8.7"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

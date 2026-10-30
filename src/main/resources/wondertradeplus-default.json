@@ -29,7 +29,7 @@
     "enabled": true,
     "acceptDonations": true,
     "randomFallback": false,
-    "maximumEntries": 5000,
+    "maximumEntries": 500,
     "trimOldestFirst": true,
     "clampDonatedLevel": false,
     "donatedMinimumLevel": 1,
@@ -81,6 +81,16 @@
       "galarian": true,
       "hisuian": true,
       "paldean": true
+    },
+    "fillMenu": {
+      "enabled": true,
+      "amounts": [
+        25,
+        50,
+        100,
+        250,
+        500
+      ]
     }
   },
   "gui": {
@@ -184,7 +194,7 @@
     "helpMenuCommand": "&e/wt &7Abrir el menú principal",
     "helpDonateCommand": "&e/wt donar &7Donar un Pokémon a la pool",
     "helpStatsCommand": "&e/wt stats [jugador] &7Consultar estadísticas",
-    "helpTopCommand": "&e/wt top [trades|received|donated] &7Ver rankings",
+    "helpTopCommand": "&e/wt top &7Abrir el menú de rankings",
     "helpChanceCommand": "&e/wt chance &7Consultar tu probabilidad de especial",
     "helpConfirmCommand": "&e/wt confirm &7Confirmar un intercambio pendiente",
     "helpCancelCommand": "&e/wt cancel &7Cancelar un intercambio pendiente",
@@ -192,11 +202,11 @@
     "helpAdminHeader": "&cComandos de administración:",
     "helpAdminPanelCommand": "&e/wt admin &7Abrir el panel de administración",
     "helpAdminReloadCommand": "&e/wt reload &7Recargar configuración y datos",
-    "helpAdminClearPoolCommand": "&e/wt clearpool &7Vaciar la pool",
+    "helpAdminClearPoolCommand": "&e/wt clearpool &7Alias para vaciar la pool",
     "helpAdminChanceCommand": "&e/wt chance <jugador> set <porcentaje> | reset &7Editar el bonus de un jugador",
     "helpAdminAddCommand": "&e/wt admin add <slot> &7Añadir una copia desde tu equipo",
     "helpAdminAddSpeciesCommand": "&e/wt admin addspecies <especie> [forma] [shiny] &7Añadir una especie",
-    "helpAdminFillCommand": "&e/wt admin fill ... &7Rellenar la pool",
+    "helpAdminFillCommand": "&e/wt admin fill <cantidad> [probabilidad] [nivelMin nivelMax] &7Rellenar la pool",
     "helpAdminRemoveCommand": "&e/wt admin remove &7Eliminar Pokémon de la pool",
     "helpAdminResetStatsCommand": "&e/wt admin resetstats <jugador|all> &7Reiniciar estadísticas",
     "helpAdminBackupCommand": "&e/wt admin backup &7Crear una copia de seguridad",

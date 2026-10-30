@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.8.4**.
+- Versión actual: **0.8.7**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -111,7 +111,24 @@
 - Los interruptores globales de `sounds` siguen pudiendo desactivar sonidos para todo el servidor.
 
 
-## 0.8.4
+## 0.8.5
 - Eliminado por completo el filtro que quitaba símbolos de estrellas y destellos de los mensajes. Los mensajes y prefijos personalizados vuelven a mostrarse exactamente como estén configurados.
 - Se mantiene el menú individual de sonidos de la versión 0.8.3.
+- No se ha ejecutado Gradle; requiere validación en GitHub Actions.
+
+
+## 0.8.6
+- Configuración de cantidades de relleno rápido mediante `admin.fillMenu.amounts`.
+- Interruptor `admin.fillMenu.enabled`.
+- Cantidades por defecto alineadas con `pool.maximumEntries=500`: 25, 50, 100, 250 y 500.
+- `pool.maximumEntries` pasa a 500 por defecto; al iniciar o recargar se recorta la pool si supera ese máximo. `adminFill` limita la generación al espacio libre restante.
+- Validación estática únicamente; Gradle no ejecutado.
+
+
+## 0.8.7
+- Corregido el máximo predeterminado de la pool a 500 Pokémon.
+- Cantidades del relleno rápido: 25, 50, 100, 250 y 500.
+- Migración automática de configuraciones 0.8.6 que conservaban el valor predeterminado erróneo de 5000 y las cantidades antiguas.
+- Al iniciar o recargar, la pool se ajusta al máximo configurado, eliminando primero las entradas más antiguas si `pool.trimOldestFirst` está activado.
+- Se mantiene la protección de `adminFill` para generar solo los Pokémon que caben.
 - No se ha ejecutado Gradle; requiere validación en GitHub Actions.

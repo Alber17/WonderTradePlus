@@ -166,3 +166,7 @@ La selección sigue el funcionamiento aleatorio de Wonder Trade: no busca una es
 
 ## Preferencias de sonido de cada jugador
 Cada jugador puede usar `/wt sonidos` (o `/wt sounds`) para configurar los sonidos que escucha. Las preferencias se guardan en `player-data.json` y son independientes de los interruptores globales `sounds.*` de `config.json`.
+
+## Menú de relleno rápido
+
+`admin.fillMenu.enabled` activa o desactiva el botón del menú de relleno del panel `/wt admin`. `admin.fillMenu.amounts` define las cantidades ofrecidas. Por defecto: `[25, 50, 100, 250, 500]`, adaptadas al máximo predeterminado de 500 entradas. El máximo de la pool se define en `pool.maximumEntries` (500 por defecto). Las configuraciones antiguas que conservaban el valor predeterminado erróneo de 5000 se migran automáticamente a 500. El menú admite hasta siete opciones y cada relleno se limita automáticamente al espacio disponible en la pool.

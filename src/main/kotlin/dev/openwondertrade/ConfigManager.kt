@@ -29,6 +29,24 @@ object ConfigManager {
         } else JsonObject()
 
         root = mergeMissing(defaults, loaded)
+
+        // Migration: 5000 was accidentally shipped as the pool default in 0.8.6.
+        // The intended maximum is 500, so update that legacy default in existing configs too.
+        root.getAsJsonObject("pool")?.let { poolConfig ->
+            if (poolConfig.get("maximumEntries")?.let { runCatching { it.asInt }.getOrNull() } == 5000) {
+                poolConfig.addProperty("maximumEntries", 500)
+            }
+        }
+        root.getAsJsonObject("admin")?.getAsJsonObject("fillMenu")?.let { fillMenu ->
+            val amounts = fillMenu.getAsJsonArray("amounts")
+            val previousDefaults = listOf(250, 500, 1000, 2500, 5000)
+            val configuredAmounts = amounts?.mapNotNull { runCatching { it.asInt }.getOrNull() }
+            if (configuredAmounts == previousDefaults) {
+                fillMenu.add("amounts", com.google.gson.JsonArray().also { array ->
+                    listOf(25, 50, 100, 250, 500).forEach { array.add(it) }
+                })
+            }
+        }
         save()
     }
 
@@ -69,6 +87,9 @@ object ConfigManager {
 
     fun strings(path: String): List<String> = element(path)?.takeIf { it.isJsonArray }?.asJsonArray
         ?.mapNotNull { runCatching { it.asString }.getOrNull() } ?: emptyList()
+
+    fun ints(path: String): List<Int> = element(path)?.takeIf { it.isJsonArray }?.asJsonArray
+        ?.mapNotNull { runCatching { it.asInt }.getOrNull() } ?: emptyList()
 
     private fun element(path: String): JsonElement? {
         var current: JsonElement = root

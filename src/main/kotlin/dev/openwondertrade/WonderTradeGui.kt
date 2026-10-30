@@ -400,6 +400,24 @@ object WonderTradeGui {
         menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
+    fun openTop(player: ServerPlayer) {
+        open(player, "&5Wonder Trade &8- &6Rankings", 3) { menu ->
+            fill(menu, 27)
+            menu.put(4, named(Items.BOOK, "&6Rankings de Wonder Trade", "&7Selecciona qué clasificación quieres consultar."))
+            menu.button(11, named(Items.GOLD_INGOT, "&6Top intercambios", "&7Jugadores con más intercambios realizados.", "&eClic para consultar")) { p ->
+                p.sendSystemMessage(WonderTradeService.topComponent("trades", p.uuid))
+            }
+            menu.button(13, named(Items.DIAMOND, "&bTop especiales recibidos", "&7Jugadores que más Pokémon especiales han recibido.", "&eClic para consultar")) { p ->
+                p.sendSystemMessage(WonderTradeService.topComponent("received", p.uuid))
+            }
+            menu.button(15, named(Items.EMERALD, "&aTop especiales aportados", "&7Jugadores que más Pokémon especiales han aportado.", "&eClic para consultar")) { p ->
+                p.sendSystemMessage(WonderTradeService.topComponent("donated", p.uuid))
+            }
+            menu.button(22, named(Items.ARROW, "&aVolver al menú principal")) { openMain(it) }
+            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        }
+    }
+
     fun openAdmin(player: ServerPlayer) {
         if (!player.hasPermissions(WonderTradeService.adminLevel())) {
             WonderTradeService.send(player, "adminOnly")
@@ -410,29 +428,134 @@ object WonderTradeGui {
             menu.button(10, named(Items.CHEST, ConfigManager.string("messages.adminMenuPool", "&6Gestionar pool"))) {
                 openPool(it, 0, true)
             }
-            menu.button(12, named(Items.WRITABLE_BOOK, ConfigManager.string("messages.adminMenuHistory", "&eHistorial"))) {
+            if (ConfigManager.bool("admin.fillMenu.enabled", true)) {
+                menu.button(12, named(Items.HOPPER, "&aRellenar pool", "&7Generar Pokémon automáticamente.", "&eAbrir opciones")) {
+                    openAdminFill(it)
+                }
+            }
+            menu.button(14, named(Items.WRITABLE_BOOK, ConfigManager.string("messages.adminMenuHistory", "&eHistorial"))) {
                 openHistory(it)
             }
-            menu.button(14, named(Items.COMPARATOR, ConfigManager.string("messages.adminMenuReload", "&bRecargar configuración"))) {
+            menu.button(19, named(Items.COMPARATOR, ConfigManager.string("messages.adminMenuReload", "&bRecargar configuración"))) {
                 WonderTradeService.reload()
                 WonderTradeService.send(it, "reload")
                 openAdmin(it)
             }
-            menu.button(16, named(Items.HOPPER, ConfigManager.string("messages.adminMenuMaintenance", "&aEjecutar mantenimiento"))) {
-                val (expired, generated) = WonderTradeService.maintainPool(it.server)
-                it.sendSystemMessage(WonderTradeService.info("&aMantenimiento: &f$expired &aPokémon caducados."))
+            menu.button(21, named(Items.HOPPER, ConfigManager.string("messages.adminMenuMaintenance", "&aEjecutar mantenimiento"))) {
+                val (expired, _) = WonderTradeService.maintainPool(it.server)
+                it.sendSystemMessage(WonderTradeService.info("&aMantenimiento: &f$expired &aPokémon caducados eliminados."))
                 openAdmin(it)
             }
-            menu.button(20, named(Items.PAPER, ConfigManager.string("messages.adminMenuBackup", "&dCrear copia de seguridad"))) {
+            menu.button(23, named(Items.PAPER, ConfigManager.string("messages.adminMenuBackup", "&dCrear copia de seguridad"))) {
                 val backup = WonderTradeService.backupNow()
                 if (backup == null) it.sendSystemMessage(WonderTradeService.info("&cNo se pudo crear la copia."))
                 else it.sendSystemMessage(WonderTradeService.info("&aCopia creada: &f$backup"))
                 openAdmin(it)
             }
-            menu.button(22, named(Items.TNT, ConfigManager.string("messages.adminMenuClear", "&cVaciar pool"))) {
+            menu.button(25, named(Items.ANVIL, "&eMás herramientas", "&7Eliminar aportaciones, reiniciar estadísticas", "&7y probar la conexión con Discord.")) {
+                openAdminTools(it)
+            }
+            menu.button(16, named(Items.TNT, ConfigManager.string("messages.adminMenuClear", "&cVaciar pool"))) {
                 openClearPoolConfirm(it)
             }
             menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        }
+    }
+
+    private fun openAdminFill(player: ServerPlayer) {
+        open(player, "&5Administración &8- &aRellenar pool", 3) { menu ->
+            fill(menu, 27)
+            menu.put(4, named(Items.HOPPER, "&aRellenar la pool", "&7Probabilidad automática configurada.", "&7Niveles: ${ConfigManager.int("fallback.minimumLevel", 1)}-${ConfigManager.int("fallback.maximumLevel", 100)}"))
+            val maximumPool = ConfigManager.int("pool.maximumEntries", 500).coerceAtLeast(1)
+            val remaining = WonderTradeService.poolRemainingCapacity()
+            val amounts = ConfigManager.ints("admin.fillMenu.amounts")
+                .filter { it > 0 && it <= maximumPool }
+                .distinct()
+                .sorted()
+                .take(7)
+            val slots = listOf(9, 10, 11, 12, 14, 15, 16)
+            if (amounts.isEmpty()) {
+                menu.put(13, named(Items.BARRIER, "&cNo hay cantidades configuradas", "&7Edita admin.fillMenu.amounts en config.json."))
+            } else {
+                amounts.forEachIndexed { index, amount ->
+                    val effectiveAmount = minOf(amount, remaining)
+                    val lore = if (remaining <= 0) {
+                        listOf("&cLa pool está completa.", "&7Máximo: $maximumPool Pokémon.")
+                    } else {
+                        listOf("&7Añadirá hasta &f$effectiveAmount &7Pokémon.", "&7Huecos disponibles: &f$remaining", "&eClic para rellenar")
+                    }
+                    menu.button(slots[index], named(Items.CHEST_MINECART, "&eAñadir $amount Pokémon", *lore.toTypedArray())) { p ->
+                        val minLevel = ConfigManager.int("fallback.minimumLevel", 1).coerceIn(1, 100)
+                        val maxLevel = ConfigManager.int("fallback.maximumLevel", 100).coerceIn(minLevel, 100)
+                        val availableNow = minOf(amount, WonderTradeService.poolRemainingCapacity())
+                        val result = WonderTradeService.adminFill(p, amount, null, minLevel, maxLevel)
+                        val chance = String.format("%.2f", result.chancePercent)
+                        p.sendSystemMessage(WonderTradeService.info("&aGenerados &f${result.added}/$availableNow &aPokémon; especiales: &d${result.special} &7(probabilidad: $chance%)."))
+                        openAdmin(p)
+                    }
+                }
+            }
+            menu.button(22, named(Items.ARROW, "&aVolver al panel admin")) { openAdmin(it) }
+            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        }
+    }
+
+    private fun openAdminTools(player: ServerPlayer) {
+        open(player, "&5Administración &8- &eHerramientas", 3) { menu ->
+            fill(menu, 27)
+            menu.button(10, named(Items.BARRIER, "&cEliminar Pokémon de la pool", "&7Selecciona las entradas que quieras borrar.")) {
+                openPool(it, 0, true, deleteMode = true)
+            }
+            menu.button(12, named(Items.PLAYER_HEAD, "&cEliminar aportaciones", "&7Borrar de la pool los Pokémon de un donante.")) {
+                openAdminDonors(it)
+            }
+            menu.button(14, named(Items.WRITABLE_BOOK, "&eReiniciar estadísticas", "&7Reinicia todos los rankings y estadísticas.", "&cNo se puede deshacer.")) {
+                openResetStatsConfirm(it)
+            }
+            menu.button(16, named(Items.NOTE_BLOCK, "&9Probar Discord", "&7Enviar un mensaje de prueba al webhook.")) { p ->
+                WonderTradeService.discordTest { ok, message ->
+                    p.server.execute {
+                        p.sendSystemMessage(WonderTradeService.info(if (ok) "&a$message" else "&c$message"))
+                    }
+                }
+                p.sendSystemMessage(WonderTradeService.info("&7Enviando mensaje de prueba a Discord…"))
+            }
+            menu.button(22, named(Items.ARROW, "&aVolver al panel admin")) { openAdmin(it) }
+            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        }
+    }
+
+    private fun openAdminDonors(player: ServerPlayer, page: Int = 0) {
+        val donors = WonderTradeService.poolDonors().sortedBy { it.lowercase() }
+        val pages = maxOf(1, (donors.size + 44) / 45)
+        val current = page.coerceIn(0, pages - 1)
+        open(player, "&5Administración &8- &cAportaciones", 6) { menu ->
+            fill(menu, 54)
+            if (donors.isEmpty()) {
+                menu.put(22, named(Items.PAPER, "&7No hay aportaciones", "&8No hay donantes registrados en la pool."))
+            }
+            donors.drop(current * 45).take(45).forEachIndexed { index, donor ->
+                menu.button(index, named(Items.PLAYER_HEAD, "&f$donor", "&7Eliminar todos sus Pokémon aportados.", "&cClic para eliminar")) { p ->
+                    val removed = WonderTradeService.removeDonorEntries(donor)
+                    p.sendSystemMessage(WonderTradeService.info("&aEliminados &f$removed &aPokémon aportados por &f$donor&a."))
+                    openAdminDonors(p, current)
+                }
+            }
+            if (current > 0) menu.button(45, named(Items.ARROW, "&ePágina anterior")) { openAdminDonors(it, current - 1) }
+            menu.button(49, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver a herramientas")) { openAdminTools(it) }
+            if (current < pages - 1) menu.button(53, named(Items.ARROW, "&ePágina siguiente")) { openAdminDonors(it, current + 1) }
+        }
+    }
+
+    private fun openResetStatsConfirm(player: ServerPlayer) {
+        open(player, "&cConfirmar reinicio de estadísticas", 3) { menu ->
+            fill(menu, 27)
+            menu.button(11, named(Items.TNT, "&cSí, reiniciar todo", "&7Se reiniciarán los tres rankings.")) { p ->
+                val affected = WonderTradeService.adminResetAllStats()
+                p.sendSystemMessage(WonderTradeService.info("&aEstadísticas reiniciadas para &f$affected &ajugadores."))
+                openAdminTools(p)
+            }
+            menu.button(15, named(Items.ARROW, "&aCancelar")) { openAdminTools(it) }
         }
     }
 

@@ -53,7 +53,7 @@ Los comandos de jugador son públicos salvo que se indique otra cosa. Los nivele
 | `/wt chance <jugador>` | `admin.permissionLevel` | Muestra la probabilidad acumulada de otro jugador. |
 | `/wt chance <jugador> set <valor>` o `reset` | `admin.permissionLevel` | Fija su bonus (0–100) o lo pone a 0. |
 | `/wt stats [jugador]` | Todos | Muestra intercambios, donaciones directas, especiales recibidos/aportados y bonus. |
-| `/wt top [trades\|received\|donated]` | Todos | Ranking de intercambios, especiales recibidos o especiales aportados. |
+| `/wt top` | Todos | Abre un menú para elegir entre los tres rankings. |
 | `/wt cancel` | Todos | Cancela el intercambio pendiente. |
 | `/wt pool` | `gui.poolViewPermissionLevel` (por defecto 0) | Abre la pool en un menú paginado de solo lectura, con filtro de categoría y orden por hora añadida ascendente/descendente. |
 | `/wt help` | Todos | Muestra los comandos públicos; añade los comandos de administración solo si el jugador tiene `admin.permissionLevel`. |
@@ -69,7 +69,7 @@ Todos requieren `admin.permissionLevel` (nivel OP 2 por defecto, configurable en
 |---|---|---|
 | `/wt admin add <slot>` | `admin.permissionLevel` | Añade a la pool una copia del Pokémon del equipo en ese slot. Tú conservas el original. |
 | `/wt admin addspecies <especie> [forma] [shiny]` | `admin.permissionLevel` | Crea un Pokémon con nivel aleatorio y lo añade a la pool. Usa la misma sintaxis visible que `/pokegive`: `alolan`, `galarian`, `hisuian`, `paldean` y `shiny`. El mod resuelve la `FormData` registrada para esa especie para evitar depender de alias internos. Ejemplos: `/wt admin addspecies vulpix alolan`, `/wt admin addspecies vulpix alolan shiny`, `/wt admin addspecies meowth shiny galarian`. No se usa `form=...`. |
-| `/wt admin fill <cantidad> [probabilidad%] [nivelMin nivelMax]` | `admin.permissionLevel` | Genera hasta 500 Pokémon para la pool. Sin probabilidad indicada, se calcula automáticamente; con `probabilidad%`, se usa ese valor. Ejemplos: `/wt admin fill 200 5` o `/wt admin fill 50 0 10 30`. |
+| `/wt admin fill <cantidad> [probabilidad%] [nivelMin nivelMax]` | `admin.permissionLevel` | Genera Pokémon para la pool sin superar su máximo configurado (500 por defecto). Sin probabilidad indicada, se calcula automáticamente; con `probabilidad%`, se usa ese valor. Ejemplos: `/wt admin fill 200 5` o `/wt admin fill 50 0 10 30`. |
 | `/wt admin remove` | `admin.permissionLevel` | Abre la pool en modo administrador con eliminación activada. |
 | `/wt admin resetstats <jugador o all>` | `admin.permissionLevel` | Reinicia contadores y rankings de un jugador o de todos. Conserva bonus, cooldowns y límites diarios. |
 | `/wt admin removeplayer <jugador>` | `admin.permissionLevel` | Elimina de la pool todos los Pokémon aportados por ese jugador. |
@@ -196,3 +196,21 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 - `/wt sonidos` o `/wt sounds` abre un menú individual para activar/desactivar cada sonido.
 - Las preferencias se guardan por UUID en `player-data.json`; no requiere instalar el mod en el cliente.
 - Se pueden silenciar todos los sonidos con un único interruptor.
+
+
+### 0.8.6
+- Cantidades del menú de relleno rápido configurables en `admin.fillMenu.amounts`.
+- Valores predeterminados ajustados al máximo de 500 entradas: 25, 50, 100, 250 y 500.
+- Los rellenos respetan el espacio disponible y nunca sobrepasan el máximo de la pool.
+
+### 0.8.5
+- `/wt top` abre un selector gráfico para consultar los tres rankings: intercambios, especiales recibidos y especiales aportados.
+- El panel `/wt admin` incorpora un submenú de relleno de pool con cantidades rápidas (16, 32, 64, 128 y 256), además de herramientas para eliminar aportaciones, reiniciar estadísticas y probar Discord.
+- `/wt help` reorganizado por utilidad y `/wt top` aparece sin argumentos.
+
+
+### 0.8.7
+- Corregido `pool.maximumEntries` a 500 por defecto.
+- Opciones del relleno rápido: 25, 50, 100, 250 y 500.
+- Las configuraciones antiguas que tenían el valor predeterminado erróneo de 5000 se actualizan automáticamente.
+- Al iniciar o recargar se recorta la pool si supera el máximo configurado, respetando `pool.trimOldestFirst`.

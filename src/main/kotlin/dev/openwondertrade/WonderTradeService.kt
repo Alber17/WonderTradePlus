@@ -30,6 +30,7 @@ object WonderTradeService {
         playerData = PlayerDataStore(directory.resolve("player-data.json"))
         history = HistoryStore(directory.resolve("history.json"))
         pool.load()
+        trimAndSave()
         playerData.load()
         history.load()
         WonderTradePlus.LOGGER.info("WonderTrade Plus {} preparado.", WonderTradePlus.MOD_VERSION)
@@ -38,6 +39,7 @@ object WonderTradeService {
     fun reload() {
         ConfigManager.load()
         pool.load()
+        trimAndSave()
         playerData.load()
         history.load()
         pending.clear()
@@ -94,40 +96,40 @@ object WonderTradeService {
     }
 
     fun helpComponent(player: ServerPlayer? = null): Component {
+        // Orden pensado para jugadores: abrir, intercambiar, confirmar/cancelar y después consultas.
         val lines = mutableListOf(
             ConfigManager.string("messages.help", "&d&lWonder Trade &7- Comandos disponibles:"),
-            ConfigManager.string("messages.helpSoundsCommand", "&e/wt sonidos &7Configurar tus sonidos"),
             ConfigManager.string("messages.helpMenuCommand", "&e/wt &7Abrir el menú principal"),
-            ConfigManager.string("messages.helpDonateCommand", "&e/wt donar &7Donar un Pokémon a la pool"),
-            ConfigManager.string("messages.helpStatsCommand", "&e/wt stats [jugador] &7Consultar estadísticas"),
-            ConfigManager.string("messages.helpTopCommand", "&e/wt top [trades|received|donated] &7Ver rankings"),
-            ConfigManager.string("messages.helpChanceCommand", "&e/wt chance &7Consultar tu probabilidad de especial"),
+            ConfigManager.string("messages.helpSlotCommand", "&e/wt <slot> &7Solicitar un intercambio (1-6)"),
+            ConfigManager.string("messages.helpSlotConfirmCommand", "&e/wt <slot> confirm &7Intercambiar ese slot directamente"),
             ConfigManager.string("messages.helpConfirmCommand", "&e/wt confirm &7Confirmar un intercambio pendiente"),
             ConfigManager.string("messages.helpCancelCommand", "&e/wt cancel &7Cancelar un intercambio pendiente"),
-            ConfigManager.string("messages.helpSlotCommand", "&e/wt <slot> &7Solicitar un intercambio con un Pokémon (1-6)"),
-            ConfigManager.string("messages.helpSlotConfirmCommand", "&e/wt <slot> confirm &7Intercambiar ese slot sin confirmación adicional"),
-            ConfigManager.string("messages.helpHelpCommand", "&e/wt help &7Mostrar esta ayuda")
+            ConfigManager.string("messages.helpDonateCommand", "&e/wt donar &7Donar un Pokémon a la pool"),
+            ConfigManager.string("messages.helpStatsCommand", "&e/wt stats [jugador] &7Consultar estadísticas"),
+            ConfigManager.string("messages.helpTopCommand", "&e/wt top &7Abrir el menú de rankings"),
+            ConfigManager.string("messages.helpChanceCommand", "&e/wt chance &7Consultar tu probabilidad de especial"),
+            ConfigManager.string("messages.helpSoundsCommand", "&e/wt sonidos &7Configurar tus sonidos")
         )
         if (player != null && (WonderTradeGui.canViewPool(player) || player.hasPermissions(adminLevel()))) {
             lines += ConfigManager.string("messages.helpPoolCommand", "&e/wt pool &7Ver la pool")
         }
+        lines += ConfigManager.string("messages.helpHelpCommand", "&e/wt help &7Mostrar esta ayuda")
         if (player?.hasPermissions(adminLevel()) == true) {
             lines += ConfigManager.string("messages.helpAdminHeader", "&cComandos de administración:")
             lines += ConfigManager.string("messages.helpAdminPanelCommand", "&e/wt admin &7Abrir el panel de administración")
-            lines += ConfigManager.string("messages.helpAdminReloadCommand", "&e/wt reload &7Recargar configuración y datos")
-            lines += ConfigManager.string("messages.helpAdminClearPoolCommand", "&e/wt clearpool &7Vaciar la pool")
-            lines += ConfigManager.string("messages.helpAdminClearCommand", "&e/wt admin clear &7Vaciar la pool desde administración")
-            lines += ConfigManager.string("messages.helpAdminChanceCommand", "&e/wt chance <jugador> set <porcentaje> | reset &7Editar el bonus de un jugador")
-            lines += ConfigManager.string("messages.helpAdminAddCommand", "&e/wt admin add <slot> &7Añadir una copia desde tu equipo")
+            lines += ConfigManager.string("messages.helpAdminFillCommand", "&e/wt admin fill <cantidad> [probabilidad] [nivelMin nivelMax] &7Rellenar la pool")
             lines += ConfigManager.string("messages.helpAdminAddSpeciesCommand", "&e/wt admin addspecies <especie> [forma] [shiny] &7Añadir una especie")
-            lines += ConfigManager.string("messages.helpAdminFillCommand", "&e/wt admin fill ... &7Rellenar la pool")
+            lines += ConfigManager.string("messages.helpAdminAddCommand", "&e/wt admin add <slot> &7Añadir una copia desde tu equipo")
             lines += ConfigManager.string("messages.helpAdminRemoveCommand", "&e/wt admin remove &7Eliminar Pokémon de la pool")
-            lines += ConfigManager.string("messages.helpAdminResetStatsCommand", "&e/wt admin resetstats <jugador|all> &7Reiniciar estadísticas")
-            lines += ConfigManager.string("messages.helpAdminBackupCommand", "&e/wt admin backup &7Crear una copia de seguridad")
-            lines += ConfigManager.string("messages.helpAdminMaintenanceCommand", "&e/wt admin maintenance &7Ejecutar mantenimiento")
-            lines += ConfigManager.string("messages.helpAdminHistoryCommand", "&e/wt admin history [jugador] &7Consultar historial")
             lines += ConfigManager.string("messages.helpAdminRemovePlayerCommand", "&e/wt admin removeplayer <jugador> &7Eliminar sus aportaciones")
+            lines += ConfigManager.string("messages.helpAdminHistoryCommand", "&e/wt admin history [jugador] &7Consultar historial")
+            lines += ConfigManager.string("messages.helpAdminResetStatsCommand", "&e/wt admin resetstats <jugador|all> &7Reiniciar estadísticas")
+            lines += ConfigManager.string("messages.helpAdminChanceCommand", "&e/wt chance <jugador> set <porcentaje> | reset &7Editar el bonus")
+            lines += ConfigManager.string("messages.helpAdminReloadCommand", "&e/wt reload &7Recargar configuración y datos")
+            lines += ConfigManager.string("messages.helpAdminMaintenanceCommand", "&e/wt admin maintenance &7Ejecutar mantenimiento")
+            lines += ConfigManager.string("messages.helpAdminBackupCommand", "&e/wt admin backup &7Crear una copia de seguridad")
             lines += ConfigManager.string("messages.helpAdminDiscordCommand", "&e/wt admin discord test &7Probar webhook de Discord")
+            lines += ConfigManager.string("messages.helpAdminClearCommand", "&e/wt admin clear &7Vaciar la pool")
         }
         return colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
     }
@@ -162,7 +164,9 @@ object WonderTradeService {
 
     fun poolSize(): Int = pool.size
 
-    fun isPoolFull(): Boolean = pool.size >= ConfigManager.int("pool.maximumEntries", 5000).coerceAtLeast(1)
+    fun isPoolFull(): Boolean = pool.size >= ConfigManager.int("pool.maximumEntries", 500).coerceAtLeast(1)
+
+    fun poolRemainingCapacity(): Int = (ConfigManager.int("pool.maximumEntries", 500).coerceAtLeast(1) - pool.size).coerceAtLeast(0)
 
     private fun playerDonationsEnabled(): Boolean =
         ConfigManager.bool("pool.playerDonationsEnabled", true) && ConfigManager.bool("pool.enabled", true)
@@ -176,7 +180,7 @@ object WonderTradeService {
         if (isPoolFull()) {
             send(player, "donationPoolFull", mapOf(
                 "size" to pool.size,
-                "maximum" to ConfigManager.int("pool.maximumEntries", 5000).coerceAtLeast(1)
+                "maximum" to ConfigManager.int("pool.maximumEntries", 500).coerceAtLeast(1)
             ))
             return false
         }
@@ -316,7 +320,7 @@ object WonderTradeService {
 
     private fun trimAndSave() {
         pool.trim(
-            ConfigManager.int("pool.maximumEntries", 5000).coerceAtLeast(1),
+            ConfigManager.int("pool.maximumEntries", 500).coerceAtLeast(1),
             ConfigManager.bool("pool.trimOldestFirst", true)
         )
         pool.save()
@@ -479,12 +483,13 @@ object WonderTradeService {
     fun adminFill(player: ServerPlayer, amount: Int, chancePercent: Double?, minimumLevel: Int, maximumLevel: Int): FillResult {
         val low = minimumLevel.coerceIn(1, 100)
         val high = maximumLevel.coerceIn(low, 100)
+        val targetAmount = minOf(amount.coerceAtLeast(0), poolRemainingCapacity())
         val attempts = ConfigManager.int("fallback.speciesGenerationAttempts", 128).coerceIn(1, 1000)
         val registryAccess = player.server.registryAccess()
         val allowShiny = ConfigManager.bool("general.allowShinyPokemon", true)
         val allowSpecial = ConfigManager.bool("general.allowSpecialPokemon", true)
         val allowAlpha = ConfigManager.bool("general.allowAlphaPokemon", true)
-        val chance = (chancePercent ?: autoSpecialChance(amount)).coerceIn(0.0, 100.0)
+        val chance = (chancePercent ?: autoSpecialChance(targetAmount)).coerceIn(0.0, 100.0)
 
         fun allowed(candidate: Pokemon): Boolean {
             if (!allowShiny && candidate.shiny) return false
@@ -495,7 +500,7 @@ object WonderTradeService {
 
         var added = 0
         var special = 0
-        repeat(amount) {
+        repeat(targetAmount) {
             var pokemon: Pokemon? = null
             var isSpecialOne = false
 
@@ -654,7 +659,7 @@ object WonderTradeService {
             if (ConfigManager.bool("pool.enabled", true) && ConfigManager.bool("pool.acceptDonations", true)) {
                 pool.add(PoolEntry.fromPokemon(donation, registryAccess, player.gameProfile.name, now, player.uuid.toString()))
                 pool.trim(
-                    ConfigManager.int("pool.maximumEntries", 5000).coerceAtLeast(1),
+                    ConfigManager.int("pool.maximumEntries", 500).coerceAtLeast(1),
                     ConfigManager.bool("pool.trimOldestFirst", true)
                 )
             }
