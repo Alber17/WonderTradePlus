@@ -38,6 +38,17 @@ class WonderTradePlus : ModInitializer {
                 }
                 1
             }
+            // PERMISO: admin.permissionLevel; activa o desactiva Wonder Trade sin quitar el mod.
+            .then(literal("on").requires { it.hasPermission(WonderTradeService.adminLevel()) }.executes { context ->
+                WonderTradeService.setEnabled(true)
+                context.source.sendSuccess({ WonderTradeService.info("&aWonder Trade activado.") }, true)
+                1
+            })
+            .then(literal("off").requires { it.hasPermission(WonderTradeService.adminLevel()) }.executes { context ->
+                WonderTradeService.setEnabled(false)
+                context.source.sendSuccess({ WonderTradeService.info("&cWonder Trade desactivado. Los jugadores no podrán intercambiar ni donar hasta usar &f/wt on&c.") }, true)
+                1
+            })
             // PERMISO: público; muestra la ayuda.
             .then(literal("help").executes { context ->
                 context.source.sendSuccess({ WonderTradeService.helpComponent(context.source.player) }, false)
@@ -424,7 +435,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.8.9"
+        const val MOD_VERSION = "0.9.0"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

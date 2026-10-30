@@ -65,6 +65,19 @@ object ConfigManager {
 
     fun save() = atomicWrite(configPath, root)
 
+    /** Cambia un valor booleano en memoria y lo guarda en config.json (crea los apartados que falten). */
+    fun setBool(path: String, value: Boolean) {
+        val segments = path.split('.')
+        var current = root
+        for (segment in segments.dropLast(1)) {
+            val next = current.get(segment)
+            current = if (next != null && next.isJsonObject) next.asJsonObject
+            else JsonObject().also { current.add(segment, it) }
+        }
+        current.addProperty(segments.last(), value)
+        save()
+    }
+
     fun bool(path: String, fallback: Boolean = false): Boolean = element(path)?.let {
         runCatching { it.asBoolean }.getOrDefault(fallback)
     } ?: fallback

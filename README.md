@@ -59,6 +59,7 @@ Los comandos de jugador son públicos salvo que se indique otra cosa. Los nivele
 | `/wt pool search <texto>` | `gui.poolViewPermissionLevel` (por defecto 0) | Abre la pool mostrando solo los Pokémon cuyo nombre (apodo) o especie coincidan con el texto, por ejemplo `/wt pool search tusk` o `great tusk`. Desde el menú, el botón **Buscar por nombre o especie** cierra el menú y deja en el chat un enlace clicable que rellena este comando. |
 | `/wt help` | Todos | Muestra los comandos públicos; añade los comandos de administración solo si el jugador tiene `admin.permissionLevel`. |
 | `/wt reload` | `admin.permissionLevel` | Recarga configuración y archivos. |
+| `/wt on` / `/wt off` | `admin.permissionLevel` | Activa o desactiva Wonder Trade sin quitar el mod. |
 | `/wt clearpool` | `admin.permissionLevel` | Vacía la pool. |
 | `/wt admin` | `admin.permissionLevel` | Abre el panel gráfico de administración. |
 
@@ -228,3 +229,7 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 - Pool (admin): «Eliminar Pokémon» aparece en rojo y negrita.
 - Rellenar pool: al elegir una cantidad se queda en el mismo menú (ya no vuelve al panel admin).
 - `/wt`: el reloj del siguiente Wonder Trade pasa a la esquina superior izquierda.
+
+### 0.9.0
+- Menú de confirmación: muestra la probabilidad real de recibir un especial (especiales disponibles en la pool, tu bonus y el resultado con este intercambio). Se puede quitar con `gui.showTradePreview: false`.
+- Nuevo `/wt on` y `/wt off` (solo admins): activa o desactiva Wonder Trade sin quitar el mod. El estado se guarda en `general.enabled` de `config.json`.

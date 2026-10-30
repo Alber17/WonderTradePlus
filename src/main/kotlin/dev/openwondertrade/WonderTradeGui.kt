@@ -117,19 +117,25 @@ object WonderTradeGui {
 
     // ---------------------------------------------------------------- apertura
 
-    fun openMain(player: ServerPlayer, donationMode: Boolean = false) = open(
-        player,
-        if (donationMode) "&5Wonder Trade &8- &fDonar" else "&5Wonder Trade &8- &fTu equipo",
-        3,
-        "menuOpen"
-    ) { renderMain(it, player, donationMode) }
+    fun openMain(player: ServerPlayer, donationMode: Boolean = false) {
+        if (!WonderTradeService.ensureEnabled(player)) return
+        open(
+            player,
+            if (donationMode) "&5Wonder Trade &8- &fDonar" else "&5Wonder Trade &8- &fTu equipo",
+            3,
+            "menuOpen"
+        ) { renderMain(it, player, donationMode) }
+    }
 
-    fun openPc(player: ServerPlayer, box: Int = 0, donationMode: Boolean = false) = open(
-        player,
-        if (donationMode) "&5Wonder Trade &8- &fDonar desde PC" else "&5Wonder Trade &8- &fTu PC",
-        6,
-        "pcOpen"
-    ) { renderPc(it, player, box, donationMode) }
+    fun openPc(player: ServerPlayer, box: Int = 0, donationMode: Boolean = false) {
+        if (!WonderTradeService.ensureEnabled(player)) return
+        open(
+            player,
+            if (donationMode) "&5Wonder Trade &8- &fDonar desde PC" else "&5Wonder Trade &8- &fTu PC",
+            6,
+            "pcOpen"
+        ) { renderPc(it, player, box, donationMode) }
+    }
 
     fun canViewPool(player: ServerPlayer): Boolean =
         player.hasPermissions(ConfigManager.int("gui.poolViewPermissionLevel", 0).coerceIn(0, 4))
@@ -144,6 +150,7 @@ object WonderTradeGui {
         query: String? = null
     ) {
         val allowed = if (admin) player.hasPermissions(WonderTradeService.adminLevel()) else canViewPool(player)
+        if (!admin && !WonderTradeService.ensureEnabled(player)) return
         if (!allowed) {
             WonderTradeService.send(player, "adminOnly")
             return
@@ -731,6 +738,14 @@ object WonderTradeGui {
         ) { menu ->
             fill(menu, 27)
             menu.put(13, pokemonStack(pokemon, false))
+            if (!donationMode && ConfigManager.bool("gui.showTradePreview", true)) {
+                val preview = WonderTradeService.tradePreviewLines(player, pokemon)
+                menu.put(22, named(
+                    Items.PAPER,
+                    ConfigManager.string("messages.previewTitle", "&dProbabilidades de este intercambio"),
+                    *preview.toTypedArray()
+                ))
+            }
             menu.button(11, named(
                 Items.LIME_CONCRETE,
                 if (donationMode) "&aConfirmar donación" else "&aConfirmar intercambio",

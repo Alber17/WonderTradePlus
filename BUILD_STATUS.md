@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.8.9**.
+- Versión actual: **0.9.0**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -142,4 +142,9 @@
 
 ## 0.8.9
 - /wt top sin botón Volver (ahora Cerrar), «Eliminar Pokémon» en rojo y negrita, rellenar pool sin volver al panel admin, reloj de /wt arriba a la izquierda.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.9.0
+- Vista previa de probabilidades en el menú de confirmación (gui.showTradePreview).
+- /wt on | off (general.enabled) para desactivar Wonder Trade sin quitar el mod.
 - Gradle no se ha ejecutado en el entorno de edición.

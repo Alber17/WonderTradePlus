@@ -45,7 +45,21 @@ object WonderTradeService {
         pending.clear()
     }
 
+    // ------------------------------------------------------------ interruptor global (/wt on | off)
+
+    fun isEnabled(): Boolean = ConfigManager.bool("general.enabled", true)
+
+    fun setEnabled(value: Boolean) = ConfigManager.setBool("general.enabled", value)
+
+    /** Devuelve false (y avisa al jugador) si Wonder Trade está desactivado por un administrador. */
+    fun ensureEnabled(player: ServerPlayer): Boolean {
+        if (isEnabled()) return true
+        send(player, "tradeDisabled")
+        return false
+    }
+
     fun request(player: ServerPlayer, slotNumber: Int) {
+        if (!ensureEnabled(player)) return
         val pokemon = getPartyPokemon(player, slotNumber) ?: run {
             send(player, "emptySlot")
             return
@@ -69,6 +83,7 @@ object WonderTradeService {
     }
 
     fun confirm(player: ServerPlayer) {
+        if (!ensureEnabled(player)) return
         val request = pending.remove(player.uuid)
         if (request == null) {
             send(player, "nothingToConfirm")
@@ -82,6 +97,7 @@ object WonderTradeService {
     }
 
     fun tradeNow(player: ServerPlayer, slotNumber: Int) {
+        if (!ensureEnabled(player)) return
         val pokemon = getPartyPokemon(player, slotNumber) ?: run {
             send(player, "emptySlot")
             return
@@ -126,6 +142,7 @@ object WonderTradeService {
             lines += ConfigManager.string("messages.helpAdminHistoryCommand", "&e/wt admin history [jugador] &7Consultar historial")
             lines += ConfigManager.string("messages.helpAdminResetStatsCommand", "&e/wt admin resetstats <jugador|all> &7Reiniciar estadísticas")
             lines += ConfigManager.string("messages.helpAdminChanceCommand", "&e/wt chance <jugador> set <porcentaje> | reset &7Editar el bonus")
+            lines += ConfigManager.string("messages.helpAdminToggleCommand", "&e/wt on | off &7Activar o desactivar Wonder Trade")
             lines += ConfigManager.string("messages.helpAdminReloadCommand", "&e/wt reload &7Recargar configuración y datos")
             lines += ConfigManager.string("messages.helpAdminMaintenanceCommand", "&e/wt admin maintenance &7Ejecutar mantenimiento")
             lines += ConfigManager.string("messages.helpAdminBackupCommand", "&e/wt admin backup &7Crear una copia de seguridad")
@@ -174,6 +191,7 @@ object WonderTradeService {
 
     /** Comprueba la disponibilidad al abrir el menú y de nuevo al confirmar una donación. */
     fun canOpenDonation(player: ServerPlayer): Boolean {
+        if (!ensureEnabled(player)) return false
         if (!playerDonationsEnabled()) {
             send(player, "donationDisabled")
             return false
@@ -251,6 +269,7 @@ object WonderTradeService {
 
     /** Dona el Pokémon seleccionado desde el equipo o PC; no entrega nada a cambio ni consume cooldown. */
     fun donateFromStore(player: ServerPlayer, fromPc: Boolean, pokemonId: UUID) {
+        if (!ensureEnabled(player)) return
         val store: PokemonStore<*> = if (fromPc) Cobblemon.storage.getPC(player) else Cobblemon.storage.getParty(player)
         val offered = store.firstOrNull { it.uuid == pokemonId }
         if (offered == null) {
@@ -263,6 +282,7 @@ object WonderTradeService {
 
     /** Comprueba reglas, cooldown y límite diario antes de abrir la confirmación de la GUI. */
     fun precheck(player: ServerPlayer, pokemon: Pokemon): Boolean {
+        if (!ensureEnabled(player)) return false
         WonderTradeRules.validateOffer(pokemon)?.let { key ->
             send(player, key, mapOf("min" to ConfigManager.int("general.minimumOfferedLevel", 1), "max" to ConfigManager.int("general.maximumOfferedLevel", 100)))
             return false
@@ -583,6 +603,7 @@ object WonderTradeService {
     }
 
     private fun performTrade(player: ServerPlayer, party: PokemonStore<*>, offered: Pokemon) {
+        if (!ensureEnabled(player)) return
         if (!ConfigManager.bool("general.allowInBattle", false) && Cobblemon.battleRegistry.getBattleByParticipatingPlayer(player) != null) {
             player.sendSystemMessage(colour("${ConfigManager.string("messages.prefix")} &cNo puedes intercambiar Pokémon durante un combate."))
             return
@@ -720,8 +741,15 @@ object WonderTradeService {
     }
 
     private fun choosePoolEntry(forceSpecial: Boolean, player: ServerPlayer): PoolEntry? {
-        if (!ConfigManager.bool("pool.enabled", true)) return null
-        val candidates = pool.all().filter { entry ->
+        val eligible = eligibleEntries(player)
+        val candidates = if (forceSpecial) eligible.filter { WonderTradeRules.isRareEntry(it) } else eligible
+        return candidates.randomOrNull()
+    }
+
+    /** Entradas de la pool que este jugador podría recibir ahora mismo. */
+    private fun eligibleEntries(player: ServerPlayer): List<PoolEntry> {
+        if (!ConfigManager.bool("pool.enabled", true)) return emptyList()
+        return pool.all().filter { entry ->
             // Protección antiabuso: no se pueden recibir las propias aportaciones ni las recién añadidas.
             if (ConfigManager.bool("antiAbuse.excludeOwnDonations", true) &&
                 (entry.donorUuid == player.uuid.toString() || entry.donorName.equals(player.gameProfile.name, ignoreCase = true))
@@ -732,11 +760,51 @@ object WonderTradeService {
             if (!ConfigManager.bool("general.allowSpecialPokemon", true) && entry.special) return@filter false
             if (!ConfigManager.bool("general.allowAlphaPokemon", true) && entry.alpha) return@filter false
             if (!WonderTradeRules.isSpeciesAllowed(entry.species)) return@filter false
-            // Solo se aplica este filtro cuando el bonus ha activado un intento de especial.
-            if (forceSpecial && !WonderTradeRules.isRareEntry(entry)) return@filter false
             true
         }
-        return candidates.randomOrNull()
+    }
+
+    // ------------------------------------------------------------ vista previa de probabilidades
+
+    /** Líneas para el menú de confirmación: qué probabilidad real hay de recibir un especial. */
+    fun tradePreviewLines(player: ServerPlayer, offered: Pokemon): List<String> {
+        val eligible = eligibleEntries(player)
+        val total = eligible.size
+        val specials = eligible.count { WonderTradeRules.isRareEntry(it) }
+        val lines = mutableListOf<String>()
+        if (total == 0) {
+            lines += ConfigManager.string("messages.previewEmptyPool", "&cNo hay Pokémon disponibles para ti en la pool.")
+            return lines
+        }
+        val bonusEnabled = ConfigManager.bool("bonus.enabled", true)
+        val offeredRare = WonderTradeRules.isRare(offered)
+        val maximum = ConfigManager.double("bonus.maximum", 60.0).coerceIn(0.0, 100.0)
+        val before = if (bonusEnabled) playerData.bonus(player.uuid) else 0.0
+        val gain = if (bonusEnabled) bonusGain(offered) else 0.0
+        // Igual que en el intercambio real: un normal suma antes de tirar; un especial no usa el bonus.
+        val forced = if (offeredRare || specials == 0) 0.0
+        else (before + gain).coerceAtMost(maximum).let { if (bonusEnabled) it else 0.0 }
+        val natural = specials * 100.0 / total
+        val finalChance = forced + (100.0 - forced) * natural / 100.0
+        lines += format(ConfigManager.string("messages.previewPool", "&7Especiales disponibles en la pool: &f{specials}&7/&f{total}"),
+            mapOf("specials" to specials, "total" to total))
+        if (bonusEnabled) {
+            lines += format(ConfigManager.string("messages.previewBonusNow", "&7Tu bonus actual: &d{percent}%"),
+                mapOf("percent" to percentText(before)))
+            if (offeredRare) {
+                lines += format(ConfigManager.string("messages.previewBonusOfferedSpecial", "&7Ofrecer un especial no usa el bonus, pero lo subirá a &d{percent}%&7."),
+                    mapOf("percent" to percentText((before + gain).coerceAtMost(maximum))))
+            } else {
+                lines += format(ConfigManager.string("messages.previewBonusUsed", "&7Bonus aplicado en este intercambio: &d{percent}% &8(+{gain}%)"),
+                    mapOf("percent" to percentText((before + gain).coerceAtMost(maximum)), "gain" to percentText(gain)))
+            }
+        }
+        lines += format(ConfigManager.string("messages.previewChance", "&7Probabilidad de recibir un especial: &d{percent}%"),
+            mapOf("percent" to String.format("%.1f", finalChance)))
+        if (bonusEnabled && !offeredRare) {
+            lines += ConfigManager.string("messages.previewReset", "&8Si te toca un especial, tu bonus se reinicia a 0%.")
+        }
+        return lines
     }
 
     // ------------------------------------------------------------ bonus por rareza
@@ -1149,6 +1217,7 @@ object WonderTradeService {
     fun colour(value: String): Component = Component.literal(value.replace('&', '§'))
 
     private fun defaultMessage(key: String): String = when (key) {
+        "tradeDisabled" -> "&cWonder Trade está desactivado temporalmente."
         "emptySlot" -> "&cNo tienes ningún Pokémon en ese slot."
         "invalidSlot" -> "&cEl slot debe estar entre 1 y 6."
         "confirmationExpired" -> "&cLa confirmación ha caducado."

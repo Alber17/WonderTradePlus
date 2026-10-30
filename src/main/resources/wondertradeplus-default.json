@@ -1,5 +1,6 @@
 {
   "general": {
+    "enabled": true,
     "requireConfirmation": true,
     "confirmationTimeoutSeconds": 45,
     "allowInBattle": false,
@@ -97,7 +98,8 @@
     "enabled": true,
     "poolViewPermissionLevel": 0,
     "showDonorNames": true,
-    "showBonusRatesInBook": true
+    "showBonusRatesInBook": true,
+    "showTradePreview": true
   },
   "broadcast": {
     "enabled": true,
@@ -163,6 +165,16 @@
     "successBonusIncreased": "&7Tu probabilidad ha aumentado &a+{gain}%&7. Ahora tienes &d{percent}%&7.",
     "successBonusReset": "&7Has recibido un especial y tu probabilidad se ha reiniciado a &d{percent}%&7.",
     "successBonusUnchanged": "&7Tu probabilidad acumulada sigue en &d{percent}%&7.",
+    "tradeDisabled": "&cWonder Trade está desactivado temporalmente.",
+    "previewTitle": "&dProbabilidades de este intercambio",
+    "previewPool": "&7Especiales disponibles en la pool: &f{specials}&7/&f{total}",
+    "previewBonusNow": "&7Tu bonus actual: &d{percent}%",
+    "previewBonusUsed": "&7Bonus aplicado en este intercambio: &d{percent}% &8(+{gain}%)",
+    "previewBonusOfferedSpecial": "&7Ofrecer un especial no usa el bonus, pero lo subirá a &d{percent}%&7.",
+    "previewChance": "&7Probabilidad de recibir un especial: &d{percent}%",
+    "previewReset": "&8Si te toca un especial, tu bonus se reinicia a 0%.",
+    "previewEmptyPool": "&cNo hay Pokémon disponibles para ti en la pool.",
+    "helpAdminToggleCommand": "&e/wt on | off &7Activar o desactivar Wonder Trade",
     "donationDisabled": "&cLas donaciones a la pool están desactivadas.",
     "donationPoolFull": "&cNo puedes donar porque la pool ya está completa (&f{size}/{maximum}&c).",
     "donationInBattle": "&cNo puedes donar Pokémon durante un combate.",
