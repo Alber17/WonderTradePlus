@@ -76,3 +76,12 @@
 - Eliminado el subcomando redundante `/wt gui`; `/wt` sigue abriendo el menú. `/wt help` muestra los comandos administrativos solo a jugadores con `admin.permissionLevel`.
 - El menú principal muestra un contador de cooldown que se actualiza cada segundo.
 - Configuración por defecto y documentación actualizadas. No se ha ejecutado Gradle.
+
+
+## Cambios de la versión 0.8.0 (sin compilar)
+
+- Rediseñada la barra inferior de `/wt pool`: controles alineados y separados para volver, resumen, paginación, filtro, orden, modo de eliminación y cierre.
+- Se mantiene la cuadrícula de 45 Pokémon por página; los filtros y la ordenación muestran claramente su selección actual y los recuentos.
+- Todos los menús usan ahora el mismo contenedor de 6 filas y un título común. Al cambiar de pantalla desde un botón se reutiliza el menú existente, evitando enviar un nuevo paquete de apertura que hacía que Minecraft recentrara el cursor.
+- La navegación entre equipo, PC, pool, historial, administración y confirmaciones se actualiza en el mismo contenedor.
+- No se ha ejecutado Gradle; debe validarse con GitHub Actions.
