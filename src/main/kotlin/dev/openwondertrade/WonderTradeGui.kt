@@ -4,6 +4,9 @@ import com.cobblemon.mod.common.Cobblemon
 import com.cobblemon.mod.common.item.PokemonItem
 import com.cobblemon.mod.common.pokemon.Pokemon
 import net.minecraft.core.component.DataComponents
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.sounds.SoundSource
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.Style
 import net.minecraft.server.level.ServerPlayer
@@ -35,33 +38,61 @@ class GuiMenu(
     rows: Int
 ) : ChestMenu(type, id, inventory, backing as Container, rows) {
     private val actions = HashMap<Int, (ServerPlayer) -> Unit>()
+    private val actionSounds = HashMap<Int, String>()
+    var isMainMenu: Boolean = false
+        private set
+    private var cooldownDisplaySlot: Int = -1
 
     fun put(slot: Int, stack: ItemStack) {
         backing.setItem(slot, stack)
         actions.remove(slot)
+        actionSounds.remove(slot)
     }
 
-    fun button(slot: Int, stack: ItemStack, action: (ServerPlayer) -> Unit) {
+    fun button(slot: Int, stack: ItemStack, soundKey: String = "buttonClick", action: (ServerPlayer) -> Unit) {
         backing.setItem(slot, stack)
         actions[slot] = action
+        actionSounds[slot] = soundKey
+    }
+
+    fun markMainMenu(cooldownSlot: Int) {
+        isMainMenu = true
+        cooldownDisplaySlot = cooldownSlot
+    }
+
+    fun updateCooldownDisplay(stack: ItemStack) {
+        if (isMainMenu && cooldownDisplaySlot >= 0) backing.setItem(cooldownDisplaySlot, stack)
     }
 
     fun wipe() {
         backing.clearContent()
         actions.clear()
+        actionSounds.clear()
+        isMainMenu = false
+        cooldownDisplaySlot = -1
     }
 
     // No llamamos a super: así es imposible mover, coger o duplicar objetos del menú.
     override fun clicked(slotId: Int, button: Int, clickType: ClickType, player: Player) {
         if (clickType == ClickType.PICKUP && slotId >= 0 && slotId < backing.containerSize) {
             val action = actions[slotId]
-            if (action != null && player is ServerPlayer) action(player)
+            if (action != null && player is ServerPlayer) {
+                WonderTradeGui.playSound(player, actionSounds[slotId] ?: "buttonClick")
+                action(player)
+            }
         }
     }
 
     override fun quickMoveStack(player: Player, index: Int): ItemStack = ItemStack.EMPTY
     override fun canTakeItemForPickAll(stack: ItemStack, slot: Slot): Boolean = false
     override fun canDragTo(slot: Slot): Boolean = false
+}
+
+enum class PoolSort(val label: String) {
+    NEWEST("&eHora añadida: descendente"),
+    OLDEST("&eHora añadida: ascendente");
+
+    fun next(): PoolSort = values()[(ordinal + 1) % values().size]
 }
 
 enum class PoolFilter(val label: String) {
@@ -87,13 +118,15 @@ object WonderTradeGui {
     fun openMain(player: ServerPlayer, donationMode: Boolean = false) = open(
         player,
         if (donationMode) "&5Wonder Trade &8- &fDonar" else "&5Wonder Trade &8- &fTu equipo",
-        3
+        3,
+        "menuOpen"
     ) { renderMain(it, player, donationMode) }
 
     fun openPc(player: ServerPlayer, box: Int = 0, donationMode: Boolean = false) = open(
         player,
         if (donationMode) "&5Wonder Trade &8- &fDonar desde PC" else "&5Wonder Trade &8- &fTu PC",
-        6
+        6,
+        "pcOpen"
     ) { renderPc(it, player, box, donationMode) }
 
     fun canViewPool(player: ServerPlayer): Boolean =
@@ -104,7 +137,8 @@ object WonderTradeGui {
         page: Int = 0,
         admin: Boolean = false,
         filter: PoolFilter = PoolFilter.ALL,
-        deleteMode: Boolean = false
+        deleteMode: Boolean = false,
+        sort: PoolSort = PoolSort.NEWEST
     ) {
         val allowed = if (admin) player.hasPermissions(WonderTradeService.adminLevel()) else canViewPool(player)
         if (!allowed) {
@@ -112,7 +146,7 @@ object WonderTradeGui {
             return
         }
         val title = if (admin) "&5Wonder Trade &8- &fPool &c(admin)" else "&5Wonder Trade &8- &fPool"
-        open(player, title, 6) { renderPool(it, player, page, admin, filter, deleteMode) }
+        open(player, title, 6) { renderPool(it, player, page, admin, filter, deleteMode, sort) }
     }
 
     fun openHistory(player: ServerPlayer, filter: String? = null, page: Int = 0) {
@@ -124,13 +158,14 @@ object WonderTradeGui {
         open(player, title, 6) { renderHistory(it, player, filter, page) }
     }
 
-    private fun open(player: ServerPlayer, title: String, rows: Int, build: (GuiMenu) -> Unit) {
+    private fun open(player: ServerPlayer, title: String, rows: Int, openSound: String = "menuOpen", build: (GuiMenu) -> Unit) {
         val type = if (rows == 3) MenuType.GENERIC_9x3 else MenuType.GENERIC_9x6
         player.openMenu(SimpleMenuProvider({ id, inventory, _ ->
             val menu = GuiMenu(type, id, inventory, SimpleContainer(rows * 9), rows)
             build(menu)
             menu
         }, lit(title)))
+        playSound(player, openSound)
     }
 
     // ---------------------------------------------------------------- pantallas
@@ -176,6 +211,8 @@ object WonderTradeGui {
             ConfigManager.string("messages.menuBookTitle", if (donationMode) "&dDonar a Wonder Trade" else "&dWonder Trade"),
             *bookLore.toTypedArray()
         ))
+        menu.markMainMenu(8)
+        menu.updateCooldownDisplay(cooldownStack(player))
 
         val party = Cobblemon.storage.getParty(player)
         for (i in 0 until 6) {
@@ -215,11 +252,11 @@ object WonderTradeGui {
                     menu.button(guiSlot, pokemonStack(pokemon, true)) { p -> select(p, pokemon, true, donationMode) }
                 }
             }
-            menu.button(48, named(Items.ARROW, "&eCaja anterior")) {
+            menu.button(48, named(Items.ARROW, "&eCaja anterior"), "pageTurn") {
                 renderPc(menu, it, (index - 1 + boxes.size) % boxes.size, donationMode)
             }
             menu.put(49, named(Items.PAPER, "&fCaja ${index + 1}/${boxes.size}"))
-            menu.button(50, named(Items.ARROW, "&eCaja siguiente")) {
+            menu.button(50, named(Items.ARROW, "&eCaja siguiente"), "pageTurn") {
                 renderPc(menu, it, (index + 1) % boxes.size, donationMode)
             }
         }
@@ -235,12 +272,17 @@ object WonderTradeGui {
         requestedPage: Int,
         admin: Boolean,
         filter: PoolFilter,
-        deleteMode: Boolean
+        deleteMode: Boolean,
+        sort: PoolSort
     ) {
         menu.wipe()
         fill(menu, 54)
         val all = WonderTradeService.poolEntries()
-        val entries = all.filter { filter.matches(it) }.sortedByDescending { it.addedAt }
+        val filtered = all.filter { filter.matches(it) }
+        val entries = when (sort) {
+            PoolSort.NEWEST -> filtered.sortedByDescending { it.addedAt }
+            PoolSort.OLDEST -> filtered.sortedBy { it.addedAt }
+        }
         val pages = maxOf(1, (entries.size + POOL_PER_PAGE - 1) / POOL_PER_PAGE)
         val page = requestedPage.coerceIn(0, pages - 1)
         val registryAccess = player.server.registryAccess()
@@ -260,7 +302,7 @@ object WonderTradeGui {
                 menu.button(i, stack) { p ->
                     if (p.hasPermissions(WonderTradeService.adminLevel())) {
                         WonderTradeService.removeFromPool(entry.id)
-                        renderPool(menu, p, page, true, filter, true)
+                        renderPool(menu, p, page, true, filter, true, sort)
                     }
                 }
             } else {
@@ -270,7 +312,9 @@ object WonderTradeGui {
         if (entries.isEmpty()) menu.put(22, named(Items.BARRIER, "&cNo hay Pokémon con este filtro"))
 
         val special = all.count { WonderTradeRules.isRareEntry(it) }
-        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver")) { openMain(it) }
+        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver")) {
+            if (admin) openAdmin(it) else openMain(it)
+        }
         if (admin) {
             val deleteButton = if (deleteMode) {
                 named(Items.TNT, "&cEliminar Pokémon: ACTIVADO", "&7Haz clic en los Pokémon que quieras quitar.", "&eClic para desactivar")
@@ -279,24 +323,110 @@ object WonderTradeGui {
             }
             menu.button(46, deleteButton) { p ->
                 if (p.hasPermissions(WonderTradeService.adminLevel())) {
-                    renderPool(menu, p, page, true, filter, !deleteMode)
+                    renderPool(menu, p, page, true, filter, !deleteMode, sort)
                 }
             }
         }
-        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior")) { renderPool(menu, it, page - 1, admin, filter, deleteMode) }
+        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior"), "pageTurn") { renderPool(menu, it, page - 1, admin, filter, deleteMode, sort) }
         menu.put(49, named(Items.PAPER, "&fPágina ${page + 1}/$pages", "&7${entries.size} Pokémon con este filtro"))
-        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente")) { renderPool(menu, it, page + 1, admin, filter, deleteMode) }
+        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente"), "pageTurn") { renderPool(menu, it, page + 1, admin, filter, deleteMode, sort) }
         val counts = mapOf(PoolFilter.ALL to all.size, PoolFilter.SPECIAL to special, PoolFilter.NORMAL to all.size - special)
         val options = PoolFilter.values().map { option ->
             if (option == filter) "&e▶ ${option.label} &f${counts[option]}"
             else "&8   ${option.label.drop(2)} ${counts[option]}"
         }
+        menu.button(51, named(Items.CLOCK, "&fOrdenar pool", sort.label, "&7Ordena por fecha de incorporación.", "&eClic para cambiar")) {
+            renderPool(menu, it, 0, admin, filter, deleteMode, sort.next())
+        }
         menu.button(52, named(Items.HOPPER, "&fCambiar filtro de pool",
             *options.toTypedArray(),
             "&eClic para cambiar")) {
-            renderPool(menu, it, 0, admin, filter.next(), deleteMode)
+            renderPool(menu, it, 0, admin, filter.next(), deleteMode, sort)
         }
         menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+    }
+
+    fun openAdmin(player: ServerPlayer) {
+        if (!player.hasPermissions(WonderTradeService.adminLevel())) {
+            WonderTradeService.send(player, "adminOnly")
+            return
+        }
+        open(player, ConfigManager.string("messages.adminMenuTitle", "&5Wonder Trade &8- &cAdministración"), 3) { menu ->
+            fill(menu, 27)
+            menu.button(10, named(Items.CHEST, ConfigManager.string("messages.adminMenuPool", "&6Gestionar pool"))) {
+                openPool(it, 0, true)
+            }
+            menu.button(12, named(Items.WRITABLE_BOOK, ConfigManager.string("messages.adminMenuHistory", "&eHistorial"))) {
+                openHistory(it)
+            }
+            menu.button(14, named(Items.COMPARATOR, ConfigManager.string("messages.adminMenuReload", "&bRecargar configuración"))) {
+                WonderTradeService.reload()
+                WonderTradeService.send(it, "reload")
+                openAdmin(it)
+            }
+            menu.button(16, named(Items.HOPPER, ConfigManager.string("messages.adminMenuMaintenance", "&aEjecutar mantenimiento"))) {
+                val (expired, generated) = WonderTradeService.maintainPool(it.server)
+                it.sendSystemMessage(WonderTradeService.info("&aMantenimiento: &f$expired &aPokémon caducados."))
+                openAdmin(it)
+            }
+            menu.button(20, named(Items.PAPER, ConfigManager.string("messages.adminMenuBackup", "&dCrear copia de seguridad"))) {
+                val backup = WonderTradeService.backupNow()
+                if (backup == null) it.sendSystemMessage(WonderTradeService.info("&cNo se pudo crear la copia."))
+                else it.sendSystemMessage(WonderTradeService.info("&aCopia creada: &f$backup"))
+                openAdmin(it)
+            }
+            menu.button(22, named(Items.TNT, ConfigManager.string("messages.adminMenuClear", "&cVaciar pool"))) {
+                openClearPoolConfirm(it)
+            }
+            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        }
+    }
+
+    private fun openClearPoolConfirm(player: ServerPlayer) {
+        open(player, "&cConfirmar vaciado de pool", 3) { menu ->
+            fill(menu, 27)
+            menu.button(11, named(Items.TNT, ConfigManager.string("messages.adminMenuClearConfirm", "&cConfirmar vaciado"))) {
+                WonderTradeService.clearPool()
+                WonderTradeService.send(it, "poolCleared")
+                openAdmin(it)
+            }
+            menu.button(15, named(Items.LIME_STAINED_GLASS_PANE, ConfigManager.string("messages.adminMenuBack", "&aVolver"))) { openAdmin(it) }
+        }
+    }
+
+    private fun cooldownStack(player: ServerPlayer): ItemStack {
+        val remaining = WonderTradeService.cooldownDisplayText(player)
+        val lore = ConfigManager.string("messages.cooldownMenuLore", "&7Tiempo restante: &f{time}")
+            .replace("{time}", remaining)
+        return named(Items.CLOCK, ConfigManager.string("messages.cooldownMenuTitle", "&bSiguiente Wonder Trade"), lore)
+    }
+
+    fun refreshCooldown(player: ServerPlayer) {
+        val menu = player.containerMenu as? GuiMenu ?: return
+        menu.updateCooldownDisplay(cooldownStack(player))
+    }
+
+    fun playSpecialSound(player: ServerPlayer, shiny: Boolean) {
+        playSound(player, if (shiny) "specialShinyReceived" else "specialReceived")
+    }
+
+    internal fun playSound(player: ServerPlayer, key: String) {
+        runCatching {
+            if (!ConfigManager.bool("sounds.enabled", true) || !ConfigManager.bool("sounds.$key", true)) return
+            val soundPath = when (key) {
+                "menuOpen" -> "block.chest.open"
+                "pcOpen" -> "block.ender_chest.open"
+                "buttonClick" -> "ui.button.click"
+                "pageTurn" -> "item.book.page_turn"
+                "specialReceived" -> "entity.experience_orb.pickup"
+                "specialShinyReceived" -> "item.totem.use"
+                else -> return
+            }
+            val sound = BuiltInRegistries.SOUND_EVENT.getOptional(ResourceLocation.withDefaultNamespace(soundPath)).orElse(null) ?: return
+            val volume = ConfigManager.double("sounds.volume", 0.45).coerceIn(0.0, 1.0).toFloat()
+            val pitch = ConfigManager.double("sounds.pitch", 1.0).coerceIn(0.5, 2.0).toFloat()
+            player.playNotifySound(sound, SoundSource.PLAYERS, volume, pitch)
+        }.onFailure { WonderTradePlus.LOGGER.debug("No se pudo reproducir el sonido {} de Wonder Trade Plus.", key, it) }
     }
 
     private fun renderHistory(menu: GuiMenu, player: ServerPlayer, filter: String?, requestedPage: Int) {
@@ -312,10 +442,10 @@ object WonderTradeGui {
         }
         if (entries.isEmpty()) menu.put(22, named(Items.BARRIER, "&cNo hay intercambios registrados"))
 
-        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, "&aCerrar historial")) { it.closeContainer() }
-        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior")) { renderHistory(menu, it, filter, page - 1) }
+        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver al panel admin")) { openAdmin(it) }
+        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior"), "pageTurn") { renderHistory(menu, it, filter, page - 1) }
         menu.put(49, named(Items.PAPER, "&fPágina ${page + 1}/$pages", "&7${entries.size} intercambios" + if (filter != null) " de $filter" else ""))
-        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente")) { renderHistory(menu, it, filter, page + 1) }
+        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente"), "pageTurn") { renderHistory(menu, it, filter, page + 1) }
         menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 

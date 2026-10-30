@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.7.8**.
+- Versión actual: **0.7.9**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -65,3 +65,14 @@
 - Comprobados los textos de chat y Discord: no quedan emojis de estrellas/estrellitas en el código ni en la configuración por defecto.
 - Se mantiene `/wt donar`: usa el menú de selección, no entrega un Pokémon ni consume cooldown/límite diario y rechaza nuevas donaciones cuando la pool alcanza `pool.maximumEntries`.
 - README.md y docs/CONFIGURATION.md actualizados. No se ha ejecutado Gradle ni ninguna compilación.
+
+
+## Cambios de la versión 0.7.9 (sin compilar)
+
+- Añadidos sonidos configurables para apertura de menús (cofre), acceso al PC (Ender Chest), botones, paginación, Pokémon especiales y especial shiny (sonido del tótem). Volumen y tono editables en `sounds.*`.
+- La pool ahora permite ordenar por hora añadida ascendente (más antiguos primero) y descendente (más recientes primero), además del filtro de categoría existente.
+- `/wt donar` queda limitado a 5 donaciones por jugador en una ventana móvil de 7 días (`donation.weeklyLimit`, `0` ilimitado) y admite especies prohibidas en `donation.speciesBlacklist`. Las donaciones propias continúan excluidas de las selecciones de Wonder Trade por `antiAbuse.excludeOwnDonations`.
+- `/wt admin` abre un panel gráfico con accesos a la pool, historial, recarga, mantenimiento, backup y vaciado con confirmación.
+- Eliminado el subcomando redundante `/wt gui`; `/wt` sigue abriendo el menú. `/wt help` muestra los comandos administrativos solo a jugadores con `admin.permissionLevel`.
+- El menú principal muestra un contador de cooldown que se actualiza cada segundo.
+- Configuración por defecto y documentación actualizadas. No se ha ejecutado Gradle.

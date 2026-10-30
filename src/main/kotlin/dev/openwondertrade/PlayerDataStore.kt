@@ -60,10 +60,33 @@ class PlayerDataStore(private val file: Path) {
     }
 
     /** Registra una donación directa. No altera cooldown, límite diario ni número de intercambios. */
-    fun recordDonation(uuid: UUID, special: Boolean) {
+    fun donationsInLastWeek(uuid: UUID, now: Long = System.currentTimeMillis()): Int {
+        val data = playerNode(uuid, create = false) ?: return 0
+        val cutoff = now - 7L * 24L * 60L * 60L * 1000L
+        val timestamps = data.getAsJsonArray("donationTimestamps") ?: return 0
+        return timestamps.count { node -> runCatching { node.asLong >= cutoff }.getOrDefault(false) }
+    }
+
+    fun recordDonation(uuid: UUID, special: Boolean, now: Long = System.currentTimeMillis()) {
         val data = playerNode(uuid, create = true)!!
         data.addProperty("donations", (data.get("donations")?.asInt ?: 0) + 1)
         if (special) data.addProperty("specialsDonated", (data.get("specialsDonated")?.asInt ?: 0) + 1)
+        val cutoff = now - 7L * 24L * 60L * 60L * 1000L
+        val previous = data.getAsJsonArray("donationTimestamps") ?: JsonArray()
+        val timestamps = JsonArray()
+        previous.mapNotNull { runCatching { it.asLong }.getOrNull() }
+            .filter { it >= cutoff }
+            .forEach { timestamps.add(it) }
+        timestamps.add(now)
+        data.add("donationTimestamps", timestamps)
+    }
+
+    fun cooldownRemainingSeconds(uuid: UUID, now: Long, cooldownSeconds: Long, bypass: Boolean): Long {
+        if (bypass || cooldownSeconds <= 0L) return 0L
+        val data = playerNode(uuid, create = false) ?: return 0L
+        val last = data.get("lastTradeAt")?.asLong ?: 0L
+        if (last <= 0L) return 0L
+        return ((last + cooldownSeconds * 1000L - now).coerceAtLeast(0L) + 999L) / 1000L
     }
 
     fun stat(uuid: UUID, key: String): Int = playerNode(uuid, create = false)?.get(key)?.asInt ?: 0

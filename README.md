@@ -6,12 +6,14 @@ Wonder Trade abierto y configurable para **Cobblemon**. Se distribuye como **mod
 
 - **Menú (GUI)** para elegir el Pokémon a ofrecer desde el **equipo** o desde el **PC**, con pantalla de confirmación.
 - **Pool persistente** de Pokémon aportados por los jugadores, guardados como datos completos de Cobblemon (no solo la especie).
-- **Donación directa** mediante `/wt donar`: usa el mismo menú de equipo/PC, retira el Pokémon elegido y lo añade a la pool sin entregar otro ni consumir cooldown o límite diario. Si la pool está llena, avisa y no abre el menú.
+- **Donación directa** mediante `/wt donar`: usa el mismo menú de equipo/PC, retira el Pokémon elegido y lo añade a la pool sin entregar otro ni consumir cooldown o límite diario. Máximo 5 donaciones por jugador en los últimos 7 días (configurable); especies prohibidas editables en `donation.speciesBlacklist`. Si la pool está llena, avisa y no abre el menú.
 - Vista del **pool completo** en un menú paginado de solo lectura (se puede restringir a operadores).
 - Los intercambios entregan cualquier Pokémon válido que ya exista en la pool; nunca generan Pokémon durante un intercambio.
 - Filtros de admisión para shiny, legendarios/míticos, Ultraentes y etiquetas especiales (la lista de etiquetas es configurable).
 - Bonus acumulado configurable: +0,1 puntos porcentuales por un Pokémon normal, +0,5 por un Pokémon shiny o especial y +0,2 extra si el ofrecido es shiny y además legendario, mítico, Ultraente o Paradoja. El libro del menú `/wt` muestra estos porcentajes.
-- Cooldown por jugador, límite diario opcional y bypass para operadores.
+- Cooldown por jugador, límite diario opcional y bypass para operadores; el menú muestra un contador que se actualiza cada segundo.
+- Sonidos configurables de cofre/Ender Chest, clics, paginación y obtención de especiales; un especial shiny reproduce el sonido del tótem.
+- Panel gráfico de administración en `/wt admin`, con accesos a la pool, historial, recarga, mantenimiento, copias de seguridad y vaciado protegido por confirmación.
 - Listas negra y blanca de especies.
 - Protección para no intercambiar Pokémon no intercambiables, debilitados, alfa o con objeto equipado (según configuración).
 - **Anuncios en el chat** cuando alguien aporta un Pokémon shiny, legendario, Ultraente o Paradoja del pasado/futuro, cada uno con su mensaje propio y su versión shiny.
@@ -42,8 +44,8 @@ Los comandos de jugador son públicos salvo que se indique otra cosa. Los nivele
 
 | Comando | Permiso | Función |
 |---|---|---|
-| `/wt` o `/wt gui` | Todos | Abre el menú de intercambio con equipo, PC y acceso a la pool. |
-| `/wt donar` | Todos | Abre el mismo menú en modo donación: el Pokémon se añade a la pool y no recibes otro. No consume cooldown ni límite diario. |
+| `/wt` | Todos | Abre el menú de intercambio con equipo, PC, contador de cooldown y acceso a la pool. `/wt gui` se ha eliminado porque era un alias redundante. |
+| `/wt donar` | Todos | Abre el mismo menú en modo donación: el Pokémon se añade a la pool y no recibes otro. No consume cooldown ni límite diario; máximo 5 donaciones en 7 días por defecto. |
 | `/wt <slot>` | Todos | Elige un Pokémon del equipo (slot 1–6) y pide confirmación. |
 | `/wt confirm` | Todos | Confirma el intercambio pendiente. |
 | `/wt <slot> confirm` | Todos | Intercambia ese slot al instante, sin confirmación aparte. |
@@ -54,10 +56,11 @@ Los comandos de jugador son públicos salvo que se indique otra cosa. Los nivele
 | `/wt top [trades\|received\|donated]` | Todos | Ranking de intercambios, especiales recibidos o especiales aportados. |
 | `/wt event` | Todos | Muestra si hay un evento activo y cuánto le queda. |
 | `/wt cancel` | Todos | Cancela el intercambio pendiente. |
-| `/wt pool` | `gui.poolViewPermissionLevel` (por defecto 0) | Abre la pool en un menú paginado de solo lectura. |
-| `/wt help` | Todos | Muestra la ayuda. |
+| `/wt pool` | `gui.poolViewPermissionLevel` (por defecto 0) | Abre la pool en un menú paginado de solo lectura, con filtro de categoría y orden por hora añadida ascendente/descendente. |
+| `/wt help` | Todos | Muestra los comandos públicos; añade los comandos de administración solo si el jugador tiene `admin.permissionLevel`. |
 | `/wt reload` | `admin.permissionLevel` | Recarga configuración y archivos. |
 | `/wt clearpool` | `admin.permissionLevel` | Vacía la pool. |
+| `/wt admin` | `admin.permissionLevel` | Abre el panel gráfico de administración. |
 
 ### Comandos de administrador
 
@@ -85,7 +88,7 @@ Todos requieren `admin.permissionLevel` (nivel OP 2 por defecto, configurable en
 
 - `/wt 3 confirm`: intercambia el Pokémon del slot 3 de golpe.
 - `/wt 3` y después `/wt confirm`: realiza el intercambio en dos pasos.
-- `/wt donar`: abre el menú de donación; el Pokémon se retira del equipo o PC y se incorpora a la pool sin recibir otro.
+- `/wt donar`: abre el menú de donación; el Pokémon se retira del equipo o PC y se incorpora a la pool sin recibir otro. Hay un máximo de 5 donaciones por jugador en los últimos 7 días (configurable). No puedes recibir tus propias aportaciones y se pueden bloquear especies mediante `donation.speciesBlacklist`.
 
 ### Cómo funciona el menú
 
@@ -93,7 +96,7 @@ Todos requieren `admin.permissionLevel` (nivel OP 2 por defecto, configurable en
 2. Se abre una pantalla de confirmación (si `general.requireConfirmation` está activado).
 3. Al confirmar, recibes otro Pokémon. Si ofreciste uno del equipo, el nuevo llega al equipo; si era del PC, llega al PC. El resultado y el aumento, reinicio o mantenimiento de tu probabilidad se muestran juntos en un único mensaje de chat.
 
-Cada Pokémon muestra su nivel, **tipos**, forma (Alolan, Galarian…), categoría real (Legendario, Mítico, Ultraente, Paradoja), la etiqueta Shiny y si es alfa. El libro del menú `/wt` informa de los incrementos configurados: normal, shiny, especiales y especial shiny.
+Cada Pokémon muestra su nivel, **tipos**, forma (Alolan, Galarian…), categoría real (Legendario, Mítico, Ultraente, Paradoja), la etiqueta Shiny y si es alfa. El menú muestra un reloj con el tiempo restante del cooldown y se actualiza cada segundo. Los sonidos de apertura, PC, botones, paginación y obtención de especiales se pueden activar y ajustar en `sounds.*`; un especial shiny usa el sonido del tótem. El libro del menú `/wt` informa de los incrementos configurados: normal, shiny, especiales y especial shiny.
 
 Los Pokémon que no se pueden ofrecer (debilitados, fuera del rango de nivel, cooldown activo, etc.) se marcan en rojo y el motivo aparece en el chat al pulsarlos.
 
@@ -152,6 +155,7 @@ Opciones principales:
 - La selección no empareja especie, rareza, nivel ni estado shiny: se elige cualquier entrada válida de la pool. Los ajustes antiguos `matchSpecialTier`, `avoidSameSpecies`, `matchLevel`, `levelDifference` y `shinyMode` se conservan por compatibilidad, pero ya no se utilizan.
 - `general.speciesBlacklist`, `general.useSpeciesWhitelist`, `general.speciesWhitelist`: listas de especies.
 - `pool.enabled`, `pool.maximumEntries`: comportamiento del pool. Los intercambios solo entregan Pokémon ya guardados en el pool.
+- `donation.weeklyLimit`: máximo de donaciones directas por jugador en una ventana móvil de 7 días; `0` = ilimitado (5 por defecto). `donation.speciesBlacklist`: especies que no se pueden donar, acepta nombres como `ditto` o `cobblemon:ditto`.
 - `fallback.minimumLevel` / `fallback.maximumLevel`: rango aleatorio para `/wt admin addspecies` y `/wt admin fill`.
 - `bonus.enabled`, `bonus.maximum`, `bonus.normalTradeGain`, `bonus.specialTradeGain` y `bonus.specialShinyExtraGain`: activan el sistema, fijan el límite y configuran los incrementos: normal (+0,1 puntos porcentuales), especial (+0,5) y el extra por especial shiny (+0,2 adicionales cuando es legendario, mítico, Ultraente o Paradoja) por defecto.
 - `admin.regionalForms`: permite activar o desactivar individualmente las opciones `alolan`, `galarian`, `hisuian` y `paldean` de `/wt admin addspecies`. El jugador escribe la opción regional igual que en `/pokegive`; el mod localiza y asigna la forma registrada en Cobblemon sin exigir `form=...`. `fallback.minimumLevel` y `fallback.maximumLevel` configuran el nivel aleatorio.
@@ -163,6 +167,8 @@ Opciones principales:
 - `gui.enabled`: si es `false`, `/wt` muestra la ayuda en lugar del menú.
 - `gui.poolViewPermissionLevel`: nivel de operador para ver el pool (`0` = todos, `2` = solo operadores).
 - `gui.showDonorNames`: muestra quién aportó cada Pokémon en la vista del pool.
+- `sounds.enabled` y `sounds.*`: activan los sonidos de los menús, apertura del PC, clics, cambio de página y especiales; `sounds.volume` y `sounds.pitch` ajustan volumen y tono. El shiny especial usa el sonido del tótem.
+- La vista de pool incorpora orden por hora añadida: ascendente (más antiguos primero) y descendente (más recientes primero).
 - `broadcast.*`: qué categorías se anuncian.
 
 El modo shiny es una regla importante: revísalo antes de abrir el servidor. Ver el pool quita la sorpresa del Wonder Trade; si quieres mantenerla, pon `gui.poolViewPermissionLevel` en `2`.
@@ -170,7 +176,7 @@ El modo shiny es una regla importante: revísalo antes de abrir el servidor. Ver
 ## Datos y recuperación
 
 - `pool.json`: Pokémon almacenados y sus índices de búsqueda.
-- `player-data.json`: último intercambio y contador diario de cada jugador.
+- `player-data.json`: último intercambio, contador diario, bonus y marcas de tiempo de las donaciones semanales de cada jugador.
 - `history.json`: historial de intercambios.
 - `event.json`: evento temporal activo.
 - `backups/`: copias automáticas de los archivos anteriores.

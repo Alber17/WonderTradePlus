@@ -35,18 +35,13 @@ class WonderTradePlus : ModInitializer {
                 if (player != null && ConfigManager.bool("gui.enabled", true)) {
                     WonderTradeGui.openMain(player)
                 } else {
-                    context.source.sendSuccess({ WonderTradeService.helpComponent() }, false)
+                    context.source.sendSuccess({ WonderTradeService.helpComponent(context.source.player) }, false)
                 }
                 1
             }
             // PERMISO: público; muestra la ayuda.
             .then(literal("help").executes { context ->
-                context.source.sendSuccess({ WonderTradeService.helpComponent() }, false)
-                1
-            })
-            // PERMISO: público; abre el menú de intercambio.
-            .then(literal("gui").executes { context ->
-                WonderTradeGui.openMain(context.source.playerOrException)
+                context.source.sendSuccess({ WonderTradeService.helpComponent(context.source.player) }, false)
                 1
             })
             // PERMISO: público; cualquier jugador puede donar si las donaciones están habilitadas y hay espacio.
@@ -182,6 +177,12 @@ class WonderTradePlus : ModInitializer {
     // PERMISO: /wt admin y cada subcomando hijo requieren admin.permissionLevel (OP 2 por defecto).
     private fun adminCommands() = literal("admin")
         .requires { it.hasPermission(WonderTradeService.adminLevel()) }
+        .executes { context ->
+            val player = context.source.player
+            if (player == null) context.source.sendFailure(WonderTradeService.info("&cEste panel solo se puede abrir dentro del juego."))
+            else WonderTradeGui.openAdmin(player)
+            1
+        }
         // PERMISO: admin.permissionLevel.
         .then(literal("add").then(argument("slot", IntegerArgumentType.integer(1, 6)).executes { context ->
             val player = context.source.playerOrException
@@ -432,7 +433,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.7.8"
+        const val MOD_VERSION = "0.7.9"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

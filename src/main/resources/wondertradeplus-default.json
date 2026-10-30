@@ -172,6 +172,38 @@
     "menuBookShinyGain": "&7Pokémon shiny (sin categoría especial): &d+{gain}%",
     "menuBookSpecialGain": "&7Legendario / Mítico / Ultraente / Paradoja: &d+{gain}%",
     "menuBookSpecialShinyGain": "&7Especial shiny: &d+{base}% + {extra}% extra = {total}%",
-    "donationBookDescription": "&7Elige un Pokémon para donarlo a la pool. No recibirás nada a cambio."
+    "donationBookDescription": "&7Elige un Pokémon para donarlo a la pool. No recibirás nada a cambio.",
+    "helpPlayerCommands": "&e/wt &7Menú · &e/wt donar &7Donar · &e/wt stats [jugador] &7Estadísticas · &e/wt top [trades|received|donated] &7Ranking · &e/wt chance &7Probabilidad · &e/wt help &7Ayuda",
+    "helpAdminCommands": "&cComandos admin: &e/wt admin &7Panel · &e/wt reload &7Recargar · &e/wt clearpool &7Vaciar pool · &e/wt chance <jugador> set|reset · &e/wt admin addspecies|fill|remove|resetstats|event|backup|maintenance|history|clear",
+    "donationWeeklyLimit": "&cYa has alcanzado el límite de &f{limit} &cdonaciones en los últimos 7 días.",
+    "donationSpeciesBlocked": "&cEsta especie no está permitida para donaciones.",
+    "cooldownReady": "&aDisponible para intercambiar",
+    "adminMenuTitle": "&5Wonder Trade &8- &cAdministración",
+    "adminMenuPool": "&6Gestionar pool",
+    "adminMenuHistory": "&eHistorial",
+    "adminMenuReload": "&bRecargar configuración",
+    "adminMenuMaintenance": "&aEjecutar mantenimiento",
+    "adminMenuBackup": "&dCrear copia de seguridad",
+    "adminMenuClear": "&cVaciar pool",
+    "adminMenuClearConfirm": "&cConfirmar vaciado",
+    "adminMenuBack": "&aVolver",
+    "cooldownMenuTitle": "&bSiguiente Wonder Trade",
+    "cooldownMenuLore": "&7Tiempo restante: &f{time}",
+    "helpPoolCommand": "&e/wt pool &7Ver pool"
+  },
+  "donation": {
+    "weeklyLimit": 5,
+    "speciesBlacklist": []
+  },
+  "sounds": {
+    "enabled": true,
+    "menuOpen": true,
+    "pcOpen": true,
+    "buttonClick": true,
+    "pageTurn": true,
+    "specialReceived": true,
+    "specialShinyReceived": true,
+    "volume": 0.45,
+    "pitch": 1.0
   }
 }

@@ -99,10 +99,19 @@ object WonderTradeService {
         send(player, "cancelled")
     }
 
-    fun helpComponent(): Component = colour(
-        ConfigManager.string("messages.prefix", "") +
-            ConfigManager.string("messages.help", "&7Usa &e/wt <slot> &7para iniciar un intercambio.")
-    )
+    fun helpComponent(player: ServerPlayer? = null): Component {
+        val lines = mutableListOf(
+            ConfigManager.string("messages.help", "&7Usa &e/wt <slot> &7para iniciar un intercambio."),
+            ConfigManager.string("messages.helpPlayerCommands", "&e/wt &7Menú · &e/wt donar &7Donar · &e/wt stats [jugador] &7Estadísticas · &e/wt top [trades|received|donated] &7Ranking · &e/wt chance &7Probabilidad · &e/wt help &7Ayuda")
+        )
+        if (player != null && (WonderTradeGui.canViewPool(player) || player.hasPermissions(adminLevel()))) {
+            lines += ConfigManager.string("messages.helpPoolCommand", "&e/wt pool &7Ver pool")
+        }
+        if (player?.hasPermissions(adminLevel()) == true) {
+            lines += ConfigManager.string("messages.helpAdminCommands", "&cComandos admin: &e/wt admin &7Panel · &e/wt reload &7Recargar · &e/wt clearpool &7Vaciar pool · &e/wt chance <jugador> set|reset · &e/wt admin addspecies|fill|remove|resetstats|event|backup|maintenance|history|clear")
+        }
+        return colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
+    }
 
     fun poolSummaryComponent(): Component {
         val entries = pool.all()
@@ -138,6 +147,11 @@ object WonderTradeService {
                 "size" to pool.size,
                 "maximum" to ConfigManager.int("pool.maximumEntries", 5000).coerceAtLeast(1)
             ))
+            return false
+        }
+        val weeklyLimit = ConfigManager.int("donation.weeklyLimit", 5).coerceAtLeast(0)
+        if (weeklyLimit > 0 && playerData.donationsInLastWeek(player.uuid) >= weeklyLimit) {
+            send(player, "donationWeeklyLimit", mapOf("limit" to weeklyLimit))
             return false
         }
         return true
@@ -188,6 +202,12 @@ object WonderTradeService {
         }
         WonderTradeRules.validateOffer(pokemon)?.let { key ->
             send(player, key, mapOf("min" to ConfigManager.int("general.minimumOfferedLevel", 1), "max" to ConfigManager.int("general.maximumOfferedLevel", 100)))
+            return false
+        }
+        val speciesPath = pokemon.species.resourceIdentifier.path.lowercase()
+        val blocked = ConfigManager.strings("donation.speciesBlacklist").map { it.substringAfter(':').lowercase() }
+        if (speciesPath in blocked) {
+            send(player, "donationSpeciesBlocked")
             return false
         }
         return true
@@ -508,7 +528,7 @@ object WonderTradeService {
             pool.add(PoolEntry.fromPokemon(donation, registryAccess, player.gameProfile.name, now, player.uuid.toString()))
             pool.save()
             playerData.setName(player.uuid, player.gameProfile.name)
-            playerData.recordDonation(player.uuid, WonderTradeRules.isRare(donation))
+            playerData.recordDonation(player.uuid, WonderTradeRules.isRare(donation), now)
             playerData.save()
         } catch (exception: Exception) {
             WonderTradePlus.LOGGER.error("Ha fallado la donación de Wonder Trade para {}. Se intentará revertirla.", player.gameProfile.name, exception)
@@ -625,6 +645,7 @@ object WonderTradeService {
             }
             playerData.save()
             pending.remove(player.uuid)
+            if (incomingRare) WonderTradeGui.playSpecialSound(player, incoming.shiny)
             val bonusText = when {
                 !bonusEnabled -> ""
                 !offeredRare && incomingRare && bonusForRoll > 0.0 -> format(
@@ -770,6 +791,7 @@ object WonderTradeService {
         tickCounter++
         if (tickCounter % 20 != 0) return
         secondCounter++
+        server.playerList.players.forEach { WonderTradeGui.refreshCooldown(it) }
 
         if (eventEndsAt > 0L && System.currentTimeMillis() >= eventEndsAt) {
             eventEndsAt = 0L
@@ -1010,6 +1032,18 @@ object WonderTradeService {
         if (!ConfigManager.string("messages.bonusInfo", "").contains("{specialShinyExtraGain}")) {
             send(player, "bonusShinyExtraInfo", mapOf("specialShinyExtraGain" to shinyExtra))
         }
+    }
+
+    fun cooldownRemainingSeconds(player: ServerPlayer): Long {
+        val bypassLevel = ConfigManager.int("trade.adminBypassPermissionLevel", 2).coerceIn(0, 4)
+        val bypass = player.hasPermissions(bypassLevel)
+        val cooldown = (ConfigManager.int("trade.cooldownMinutes", 720).coerceAtLeast(0) * 60L * eventCooldownMultiplier()).toLong()
+        return playerData.cooldownRemainingSeconds(player.uuid, System.currentTimeMillis(), cooldown, bypass)
+    }
+
+    fun cooldownDisplayText(player: ServerPlayer): String {
+        val remaining = cooldownRemainingSeconds(player)
+        return if (remaining <= 0L) ConfigManager.string("messages.cooldownReady", "&aDisponible") else formatDuration(remaining)
     }
 
     private fun checkLimits(player: ServerPlayer): Boolean? {

@@ -2,6 +2,26 @@
 
 La configuración inicial se copia en `config/wondertradeplus/config.json`. Edita el JSON con el servidor apagado o usa `/wt reload` después de guardar. El JSON debe seguir siendo válido: no admite comentarios ni comas sobrantes.
 
+
+## `donation`
+
+- `weeklyLimit`: máximo de donaciones directas por jugador en los últimos 7 días (ventana móvil). Por defecto `5`; `0` lo desactiva. Solo cuenta `/wt donar`, no las aportaciones que acompañan a un Wonder Trade normal.
+- `speciesBlacklist`: lista de especies que no pueden donarse mediante `/wt donar`. Admite nombres simples (`ditto`) o identificadores (`cobblemon:ditto`).
+
+El sistema también aplica `antiAbuse.excludeOwnDonations`: un jugador nunca puede recibir una entrada que haya donado él mismo.
+
+## `sounds`
+
+- `enabled`: interruptor general de sonidos.
+- `menuOpen`: sonido de apertura de menús tipo cofre.
+- `pcOpen`: sonido de apertura de Ender Chest al entrar al PC.
+- `buttonClick`: sonido suave de botones.
+- `pageTurn`: sonido de pasar página en el PC, pool e historial.
+- `specialReceived`: sonido suave al recibir un Pokémon especial no shiny.
+- `specialShinyReceived`: sonido del tótem al recibir un Pokémon que sea especial y shiny a la vez.
+- `volume`: volumen común (`0.0–1.0`, por defecto `0.45`).
+- `pitch`: tono común (`0.5–2.0`, por defecto `1.0`).
+
 ## `general`
 
 - `requireConfirmation`: pide `/wt confirm` después de `/wt <slot>`.
@@ -125,9 +145,12 @@ Todos los subcomandos `/wt admin ...`, además de `/wt reload`, `/wt clearpool` 
 
 ## `gui`
 
+El menú principal incluye un reloj que muestra el cooldown restante hasta el próximo Wonder Trade. Se actualiza cada segundo mientras el jugador mantiene abierto el menú. `/wt gui` no está registrado: `/wt` es el único acceso al menú principal. `/wt admin` abre el panel gráfico de administración (requiere `admin.permissionLevel`).
+
 - `enabled`: `/wt` sin argumentos abre el menú. Si es `false`, muestra la ayuda.
 - `poolViewPermissionLevel`: nivel de operador necesario para `/wt pool` y el botón "Ver pool". `0` = todos los jugadores, `2` = solo operadores, `4` = solo owner.
 - `showDonorNames`: muestra quién aportó cada Pokémon en la vista del pool.
+- La pool incluye un control de orden por hora añadida: ascendente (más antiguo primero) y descendente (más reciente primero).
 - `showBonusRatesInBook`: muestra en el libro del menú `/wt` los incrementos configurados para Pokémon normales, shiny sin categoría especial, legendarios/míticos/Ultraentes/Paradojas y especiales shiny. Si `bonus.enabled` está desactivado, muestra el texto configurable `messages.menuBookBonusDisabled`.
 
 ## `broadcast`
