@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.7.5**.
+- Versión actual: **0.7.8**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -31,7 +31,7 @@
 
 ## Cambios de la versión 0.7.4 (sin compilar)
 
-- `/wt admin addspecies` acepta los alias regionales `alolan`, `galarian`, `hisuian`, `paldean` y la sintaxis `form=alola|galar|hisui|paldea` de Cobblemon 1.8.x. Las formas se validan contra las formas registradas de cada especie y se comprueban antes de añadirlas a la pool.
+- En las revisiones 0.7.4–0.7.6 se probaron distintos formatos internos para formas regionales; en 0.7.7 el comando queda alineado con `/pokegive` y acepta directamente `alolan`, `galarian`, `hisuian` y `paldean`.
 - La creación regional utiliza `PokemonProperties` con `form=<id>` y reaplica la propiedad tras la inicialización para conservar la forma correcta.
 - El bonus de WT normal se configura con `bonus.normalTradeGain` (0,1 puntos porcentuales por defecto); el bonus de Pokémon especiales permanece en `bonus.specialTradeGain` (0,5 por defecto). Los dos valores, el máximo, los mensajes y los multiplicadores de evento son configurables.
 - `admin.regionalForms.*` permite activar o desactivar cada tipo de forma regional y `fallback.minimumLevel` / `fallback.maximumLevel` controla el nivel aleatorio.
@@ -44,3 +44,24 @@
 - Añadido `bonus.specialShinyExtraGain` (+0,2 puntos porcentuales por defecto): se suma al incremento especial base cuando el Pokémon ofrecido es shiny y además legendario, mítico, Ultraente o Paradoja. Un shiny sin una de esas categorías no recibe el extra.
 - `bonusInfo` recibe el marcador `{specialShinyExtraGain}` para mostrar el extra configurado. Los archivos `config.json` existentes reciben automáticamente la nueva clave al recargar; si conservan un `bonusInfo` personalizado antiguo, se muestra el extra en una segunda línea configurable (`messages.bonusShinyExtraInfo`).
 - El multiplicador de eventos también afecta a este extra. README y docs/CONFIGURATION.md actualizados. No se ha ejecutado Gradle, según lo solicitado.
+
+## Cambios de la versión 0.7.7 (sin compilar)
+
+- El libro de `/wt` muestra los incrementos de bonus configurados para Pokémon normales, especiales y especiales shiny; se controla con `gui.showBonusRatesInBook`.
+- Los comandos de administración incluyen comentarios `PERMISO` junto a cada ruta en `WonderTradePlus.kt`, indicando si son públicos o heredan `admin.permissionLevel`; la documentación README incluye una columna de permisos.
+- `/wt admin addspecies` usa únicamente los atributos de Cobblemon `/pokegive` (`alolan`, `galarian`, `hisuian`, `paldean`, `shiny`). La comprobación de formas acepta tanto el nombre de FormData como el ID de Showdown para evitar rechazos por diferencias de nomenclatura.
+- El resultado del intercambio y el cambio de bonus se muestran en un único mensaje mediante `messages.success` y `{bonusText}`.
+- Eliminados los símbolos de estrellas/estrellitas de mensajes de chat y Discord.
+- Añadido `/wt donar`: menú compartido con `/wt`, pero dona el Pokémon seleccionado sin entregar otro ni consumir cooldown o límite diario. La opción `pool.playerDonationsEnabled` permite desactivarlo. Se comprueba la capacidad de la pool al abrir el menú y al confirmar la donación.
+- Actualizados README.md, docs/CONFIGURATION.md y la configuración por defecto. No se ha ejecutado Gradle, según lo solicitado.
+
+
+## Cambios de la versión 0.7.8 (sin compilar)
+
+- El libro de `/wt` muestra los incrementos configurados para Pokémon normales, shiny sin categoría especial, legendarios/míticos/Ultraentes/Paradojas y especiales shiny. Se controla con `gui.showBonusRatesInBook` y los textos `messages.menuBook*`.
+- `/wt admin addspecies <especie> [alolan|galarian|hisuian|paldean] [shiny]` conserva la sintaxis de `/pokegive`. Primero aplica el atributo regional nativo (aspecto) y, si la versión de Cobblemon utiliza `FormData`, resuelve y asigna la forma registrada después de crear el Pokémon. Si la forma no existe o no se aplica, falla explícitamente y no añade el Pokémon base por accidente.
+- Revisados los comentarios `PERMISO` junto a las rutas públicas y administrativas en `WonderTradePlus.kt`; todos los subcomandos de `/wt admin` heredan `admin.permissionLevel`.
+- Confirmado que el éxito del intercambio y el cambio de probabilidad se envían mediante un único mensaje configurable (`messages.success` + `{bonusText}`).
+- Comprobados los textos de chat y Discord: no quedan emojis de estrellas/estrellitas en el código ni en la configuración por defecto.
+- Se mantiene `/wt donar`: usa el menú de selección, no entrega un Pokémon ni consume cooldown/límite diario y rechaza nuevas donaciones cuando la pool alcanza `pool.maximumEntries`.
+- README.md y docs/CONFIGURATION.md actualizados. No se ha ejecutado Gradle ni ninguna compilación.

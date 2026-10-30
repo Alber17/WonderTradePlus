@@ -122,6 +122,27 @@ object WonderTradeService {
 
     fun poolSize(): Int = pool.size
 
+    fun isPoolFull(): Boolean = pool.size >= ConfigManager.int("pool.maximumEntries", 5000).coerceAtLeast(1)
+
+    private fun playerDonationsEnabled(): Boolean =
+        ConfigManager.bool("pool.playerDonationsEnabled", true) && ConfigManager.bool("pool.enabled", true)
+
+    /** Comprueba la disponibilidad al abrir el menú y de nuevo al confirmar una donación. */
+    fun canOpenDonation(player: ServerPlayer): Boolean {
+        if (!playerDonationsEnabled()) {
+            send(player, "donationDisabled")
+            return false
+        }
+        if (isPoolFull()) {
+            send(player, "donationPoolFull", mapOf(
+                "size" to pool.size,
+                "maximum" to ConfigManager.int("pool.maximumEntries", 5000).coerceAtLeast(1)
+            ))
+            return false
+        }
+        return true
+    }
+
     fun clearPool() {
         backupNow()
         pool.clear()
@@ -156,6 +177,32 @@ object WonderTradeService {
         }
         pending.remove(player.uuid)
         performTrade(player, store, offered)
+    }
+
+    /** Comprueba que la pool admita donaciones y que el Pokémon se pueda aportar. */
+    fun precheckDonation(player: ServerPlayer, pokemon: Pokemon): Boolean {
+        if (!canOpenDonation(player)) return false
+        if (!ConfigManager.bool("general.allowInBattle", false) && Cobblemon.battleRegistry.getBattleByParticipatingPlayer(player) != null) {
+            send(player, "donationInBattle")
+            return false
+        }
+        WonderTradeRules.validateOffer(pokemon)?.let { key ->
+            send(player, key, mapOf("min" to ConfigManager.int("general.minimumOfferedLevel", 1), "max" to ConfigManager.int("general.maximumOfferedLevel", 100)))
+            return false
+        }
+        return true
+    }
+
+    /** Dona el Pokémon seleccionado desde el equipo o PC; no entrega nada a cambio ni consume cooldown. */
+    fun donateFromStore(player: ServerPlayer, fromPc: Boolean, pokemonId: UUID) {
+        val store: PokemonStore<*> = if (fromPc) Cobblemon.storage.getPC(player) else Cobblemon.storage.getParty(player)
+        val offered = store.firstOrNull { it.uuid == pokemonId }
+        if (offered == null) {
+            send(player, "confirmationExpired")
+            return
+        }
+        pending.remove(player.uuid)
+        performDonation(player, store, offered)
     }
 
     /** Comprueba reglas, cooldown y límite diario antes de abrir la confirmación de la GUI. */
@@ -243,8 +290,8 @@ object WonderTradeService {
     data class AddedSpeciesResult(val name: String, val level: Int)
 
     /**
-     * Crea una especie base o una forma regional con las mismas propiedades que admite /pokegive.
-     * Ejemplos: addspecies vulpix, addspecies vulpix alolan, addspecies vulpix alolan shiny.
+     * Crea una especie o una forma regional usando exactamente el atributo de /pokegive
+     * (por ejemplo, "vulpix alolan shiny").
      */
     fun adminAddSpecies(
         player: ServerPlayer,
@@ -261,62 +308,88 @@ object WonderTradeService {
             cleaned == identifier || (':' !in cleaned && cleaned == path)
         } ?: return null
 
-        // Los nombres visibles de las opciones siguen el estilo de /pokegive,
-        // pero Cobblemon 1.8.x selecciona las formas de FormData mediante form=<id>.
-        // Ej.: /pokegive vulpix form=alola -> /wt admin addspecies vulpix alolan.
-        val regionalForm = regionalFormInput?.trim()?.lowercase()?.takeIf { it.isNotBlank() }
-        val regionalFormIds = mapOf(
-            "alolan" to "alola",
-            "galarian" to "galar",
-            "hisuian" to "hisui",
-            "paldean" to "paldea"
-        )
-        val formId = regionalForm?.let { requested ->
-            val id = regionalFormIds[requested]
-                ?: throw IllegalArgumentException("Forma regional no reconocida: '$requested'. Opciones: ${regionalFormIds.keys.joinToString()}.")
-            if (!ConfigManager.bool("admin.regionalForms.$requested", true)) {
-                throw IllegalArgumentException("La opción regional '$requested' está desactivada en config.json.")
+        val regionalToken = regionalFormInput?.trim()?.lowercase()?.takeIf { it.isNotBlank() }
+        val regionalOptions = setOf("alolan", "galarian", "hisuian", "paldean")
+        if (regionalToken != null) {
+            if (regionalToken !in regionalOptions) {
+                throw IllegalArgumentException("Forma regional no reconocida: '$regionalToken'. Opciones: ${regionalOptions.joinToString()}.")
             }
-            species.forms.firstOrNull { it.name.equals(id, ignoreCase = true) }
-                ?: throw IllegalArgumentException("${species.resourceIdentifier.path} no tiene una forma regional '$requested' en los datos cargados por Cobblemon.")
-            id
+            if (!ConfigManager.bool("admin.regionalForms.$regionalToken", true)) {
+                throw IllegalArgumentException("La opción regional '$regionalToken' está desactivada en config.json.")
+            }
         }
 
         val low = ConfigManager.int("fallback.minimumLevel", 1).coerceIn(1, 100)
         val high = ConfigManager.int("fallback.maximumLevel", 100).coerceIn(low, 100)
         val randomLevel = Random.nextInt(low, high + 1)
 
-        // Se utiliza el parser oficial de propiedades de Cobblemon 1.8.x:
-        // form=alola, form=galar, form=hisui o form=paldea.
+        // El comando del jugador conserva la sintaxis de /pokegive (por ejemplo, "vulpix alolan").
+        // Para no depender del parser de alias de propiedades en cada versión de Cobblemon,
+        // la forma regional se resuelve directamente desde las FormData registradas para esa especie.
+        val propertySpecies = if (species.resourceIdentifier.namespace == Cobblemon.MODID) {
+            species.resourceIdentifier.path
+        } else {
+            species.resourceIdentifier.toString()
+        }
         val propertyText = buildList {
-            add(species.resourceIdentifier.toString())
+            add(propertySpecies)
+            regionalToken?.let(::add) // Primero intenta el mismo atributo que /pokegive ("alolan").
             add("level=$randomLevel")
             add("shiny=$shiny")
-            formId?.let { add("form=$it") }
         }.joinToString(" ")
         val properties = try {
             PokemonProperties.parse(propertyText)
         } catch (exception: Exception) {
-            WonderTradePlus.LOGGER.error("No se pudieron interpretar las propiedades de addspecies: {}", propertyText, exception)
+            WonderTradePlus.LOGGER.error("No se pudieron interpretar las propiedades de addspecies '{}'.", propertyText, exception)
             return null
         }
-        val pokemon = runCatching { properties.create(player) }.getOrNull() ?: return null
-        if (pokemon.species.resourceIdentifier != species.resourceIdentifier) return null
+        val pokemon = runCatching { properties.create(player) }.getOrElse { exception ->
+            WonderTradePlus.LOGGER.error("No se pudo crear el Pokémon con las propiedades '{}'.", propertyText, exception)
+            return null
+        }
+        if (pokemon.species.resourceIdentifier != species.resourceIdentifier) {
+            WonderTradePlus.LOGGER.error("addspecies creó una especie distinta. Solicitada: {}; obtenida: {}", species.resourceIdentifier, pokemon.species.resourceIdentifier)
+            return null
+        }
 
-        if (formId != null) {
-            // create() inicializa el Pokémon. Reaplicamos form= después de initialize()
-            // para que se mantenga la FormData regional, y regeneramos los movimientos.
-            try {
-                properties.apply(pokemon)
-                pokemon.initializeMovesetFromDefault()
-            } catch (exception: Exception) {
-                WonderTradePlus.LOGGER.error("No se pudo aplicar form={} a {}.", formId, species.resourceIdentifier, exception)
-                throw IllegalArgumentException("No se pudo aplicar la forma regional '$regionalForm' a ${species.resourceIdentifier.path}.")
+        if (regionalToken != null) {
+            val acceptedFormIds = when (regionalToken) {
+                "alolan" -> setOf("alolan", "alola")
+                "galarian" -> setOf("galarian", "galar")
+                "hisuian" -> setOf("hisuian", "hisui")
+                "paldean" -> setOf("paldean", "paldea")
+                else -> emptySet()
             }
-            if (!pokemon.form.name.equals(formId, ignoreCase = true)) {
+            fun normalizeFormId(value: String): String = value.lowercase().filter { it.isLetterOrDigit() }
+
+            // En Cobblemon con formas basadas en aspectos, el atributo /pokegive añade
+            // directamente el aspecto (p. ej. "alolan"). En versiones con FormData
+            // regional, usamos la forma registrada como respaldo sin cambiar la sintaxis del comando.
+            val aspectIds = pokemon.aspects.map(::normalizeFormId).toSet()
+            val aspectApplied = aspectIds.any { it in acceptedFormIds }
+
+            if (!aspectApplied) {
+                val regionalForm = species.forms.firstOrNull { form ->
+                    normalizeFormId(form.name) in acceptedFormIds ||
+                        normalizeFormId(form.formOnlyShowdownId()) in acceptedFormIds
+                } ?: throw IllegalArgumentException(
+                    "${species.resourceIdentifier.path} no tiene registrada la forma regional '$regionalToken' en Cobblemon. No se ha añadido ningún Pokémon."
+                )
+
+                // La asignación se realiza después de initialize(), para que no se pierda
+                // durante la creación del Pokémon.
+                pokemon.form = regionalForm
+                pokemon.updateAspects()
+            }
+
+            val actualFormIds = buildSet {
+                addAll(pokemon.aspects.map(::normalizeFormId))
+                add(normalizeFormId(pokemon.form.name))
+                add(normalizeFormId(pokemon.form.formOnlyShowdownId()))
+            }
+            if (actualFormIds.intersect(acceptedFormIds).isEmpty()) {
                 throw IllegalArgumentException(
-                    "Cobblemon no ha aplicado la forma '$regionalForm' (form=$formId) a ${species.resourceIdentifier.path}. " +
-                        "Comprueba que esa forma esté registrada por los datos/datapacks cargados."
+                    "No se pudo aplicar la forma '$regionalToken' a ${species.resourceIdentifier.path}. No se ha añadido el Pokémon."
                 )
             }
         }
@@ -407,6 +480,49 @@ object WonderTradeService {
         val removed = pool.removeWhere { it.donorName.equals(donor, ignoreCase = true) }
         if (removed > 0) pool.save()
         return removed
+    }
+
+    private fun performDonation(player: ServerPlayer, store: PokemonStore<*>, offered: Pokemon) {
+        if (!precheckDonation(player, offered)) return
+        val now = System.currentTimeMillis()
+        val previousPool = pool.snapshot()
+        val previousPlayerData = playerData.snapshot()
+        val registryAccess = player.server.registryAccess()
+        val donation = try {
+            offered.clone(newUUID = false, registryAccess = registryAccess)
+        } catch (exception: Exception) {
+            WonderTradePlus.LOGGER.error("No se pudo clonar el Pokémon donado por {}.", player.gameProfile.name, exception)
+            send(player, "generationFailed")
+            return
+        }
+        if (ConfigManager.bool("pool.clampDonatedLevel", false)) {
+            val minimum = ConfigManager.int("pool.donatedMinimumLevel", 1).coerceIn(1, 100)
+            val maximum = ConfigManager.int("pool.donatedMaximumLevel", 100).coerceIn(minimum, 100)
+            donation.level = donation.level.coerceIn(minimum, maximum)
+        }
+
+        try {
+            // Revalidar capacidad justo antes de escribir evita aceptar donaciones cuando se llena la pool.
+            if (!canOpenDonation(player)) return
+            if (!store.remove(offered)) throw IllegalStateException("No se pudo retirar el Pokémon donado del equipo/PC")
+            pool.add(PoolEntry.fromPokemon(donation, registryAccess, player.gameProfile.name, now, player.uuid.toString()))
+            pool.save()
+            playerData.setName(player.uuid, player.gameProfile.name)
+            playerData.recordDonation(player.uuid, WonderTradeRules.isRare(donation))
+            playerData.save()
+        } catch (exception: Exception) {
+            WonderTradePlus.LOGGER.error("Ha fallado la donación de Wonder Trade para {}. Se intentará revertirla.", player.gameProfile.name, exception)
+            pool.restore(previousPool)
+            playerData.restore(previousPlayerData)
+            runCatching { if (store.none { it.uuid == offered.uuid }) store.add(offered) }
+            runCatching { pool.save() }.onFailure { WonderTradePlus.LOGGER.error("No se pudo restaurar pool.json tras una donación fallida.", it) }
+            runCatching { playerData.save() }.onFailure { WonderTradePlus.LOGGER.error("No se pudo restaurar player-data.json tras una donación fallida.", it) }
+            send(player, "saveFailed")
+            return
+        }
+        send(player, "donationSuccess", mapOf("pokemon" to donation.getDisplayName().string, "size" to pool.size))
+        announceDonation(player, donation)
+        notifyDiscordDonation(player, donation)
     }
 
     private fun performTrade(player: ServerPlayer, party: PokemonStore<*>, offered: Pokemon) {
@@ -509,29 +625,29 @@ object WonderTradeService {
             }
             playerData.save()
             pending.remove(player.uuid)
-            send(player, "success", mapOf("sent" to offered.getDisplayName().string, "received" to incoming.getDisplayName().string))
+            val bonusText = when {
+                !bonusEnabled -> ""
+                !offeredRare && incomingRare && bonusForRoll > 0.0 -> format(
+                    ConfigManager.string("messages.successBonusReset", "&7Has recibido un especial y tu probabilidad se ha reiniciado a &d0%&7."),
+                    mapOf("percent" to percentText(0.0))
+                )
+                bonusAfter > bonusBefore -> format(
+                    ConfigManager.string("messages.successBonusIncreased", "&7Tu probabilidad ha aumentado &a+{gain}%&7. Ahora tienes &d{percent}%&7."),
+                    mapOf("gain" to percentText(bonusAfter - bonusBefore), "percent" to percentText(bonusAfter))
+                )
+                else -> format(
+                    ConfigManager.string("messages.successBonusUnchanged", "&7Tu probabilidad acumulada sigue en &d{percent}%&7."),
+                    mapOf("percent" to percentText(bonusAfter))
+                )
+            }
+            sendTradeSuccess(player, mapOf(
+                "sent" to offered.getDisplayName().string,
+                "received" to incoming.getDisplayName().string,
+                "bonusText" to bonusText
+            ), bonusText)
             announceDonation(player, donation)
             recordHistory(player, offered, incoming, fromPool, now)
             notifyDiscord(player, offered, incoming)
-            if (bonusEnabled) {
-                when {
-                    !offeredRare && incomingRare && bonusForRoll > 0.0 -> {
-                        send(player, "bonusReset", mapOf("percent" to percentText(0.0)))
-                    }
-                    offeredRare && bonusAfter > bonusBefore -> {
-                        send(player, "bonusIncreased", mapOf(
-                            "gain" to percentText(bonusAfter - bonusBefore),
-                            "percent" to percentText(bonusAfter)
-                        ))
-                    }
-                    !offeredRare && bonusAfter > bonusBefore -> {
-                        send(player, "bonusNormalIncreased", mapOf(
-                            "gain" to percentText(bonusAfter - bonusBefore),
-                            "percent" to percentText(bonusAfter)
-                        ))
-                    }
-                }
-            }
         } catch (exception: Exception) {
             WonderTradePlus.LOGGER.error("Ha fallado el intercambio de Wonder Trade para {}. Se intentará revertirlo.", player.gameProfile.name, exception)
             runCatching { party.remove(incoming) }
@@ -582,9 +698,13 @@ object WonderTradeService {
         return (base + specialShinyExtra) * eventBonusMultiplier()
     }
 
-    fun normalBonusGainText(): String = percentText(ConfigManager.double("bonus.normalTradeGain", 0.1).coerceAtLeast(0.0))
-    fun specialBonusGainText(): String = percentText(ConfigManager.double("bonus.specialTradeGain", 0.5).coerceAtLeast(0.0))
-    fun specialShinyExtraGainText(): String = percentText(ConfigManager.double("bonus.specialShinyExtraGain", 0.2).coerceAtLeast(0.0))
+    fun normalBonusGainText(): String = percentText(ConfigManager.double("bonus.normalTradeGain", 0.1).coerceAtLeast(0.0) * eventBonusMultiplier())
+    fun specialBonusGainText(): String = percentText(ConfigManager.double("bonus.specialTradeGain", 0.5).coerceAtLeast(0.0) * eventBonusMultiplier())
+    fun specialShinyExtraGainText(): String = percentText(ConfigManager.double("bonus.specialShinyExtraGain", 0.2).coerceAtLeast(0.0) * eventBonusMultiplier())
+    fun specialShinyTotalGainText(): String = percentText(
+        (ConfigManager.double("bonus.specialTradeGain", 0.5).coerceAtLeast(0.0) +
+            ConfigManager.double("bonus.specialShinyExtraGain", 0.2).coerceAtLeast(0.0)) * eventBonusMultiplier()
+    )
 
     // ------------------------------------------------------------ evento temporal
 
@@ -624,8 +744,8 @@ object WonderTradeService {
     fun startEvent(server: MinecraftServer, minutes: Int) {
         eventEndsAt = System.currentTimeMillis() + minutes.coerceAtLeast(1) * 60_000L
         saveEvent()
-        broadcastTemplate(server, "eventStart", "&d✦ ¡Evento de Wonder Trade! &7Durante &f{time}&7.", eventValues(minutes * 60L))
-        discordEvent("eventStartMessage", "✦ **¡Evento de Wonder Trade!** Durante {time}.", eventValues(minutes * 60L))
+        broadcastTemplate(server, "eventStart", "&d¡Evento de Wonder Trade! &7Durante &f{time}&7.", eventValues(minutes * 60L))
+        discordEvent("eventStartMessage", "**¡Evento de Wonder Trade!** Durante {time}.", eventValues(minutes * 60L))
     }
 
     fun stopEvent(server: MinecraftServer): Boolean {
@@ -768,12 +888,18 @@ object WonderTradeService {
         return if (parts.isEmpty()) "Especial" else parts.joinToString(" · ")
     }
 
-    private fun notifyDiscord(player: ServerPlayer, offered: Pokemon, incoming: Pokemon) {
-        if (!ConfigManager.bool("discord.enabled", false)) return
-        if (ConfigManager.bool("discord.notifyDonations", true) && WonderTradeRules.isRare(offered)) {
-            val template = ConfigManager.string("discord.donationMessage", "✨ **{player}** ha aportado **{pokemon}** (Nv. {level}, {category}) al pool.")
+    private fun notifyDiscordDonation(player: ServerPlayer, offered: Pokemon) {
+        if (!ConfigManager.bool("discord.enabled", false) || !ConfigManager.bool("discord.notifyDonations", true)) return
+        if (!WonderTradeRules.isRare(offered)) return
+        val template = ConfigManager.string("discord.donationMessage", "**{player}** ha aportado **{pokemon}** (Nv. {level}, {category}) al pool.")
+        if (template.isNotBlank()) {
             discordPost(format(template, mapOf("player" to player.gameProfile.name, "pokemon" to plainName(offered), "level" to offered.level, "category" to plainCategory(offered))))
         }
+    }
+
+    private fun notifyDiscord(player: ServerPlayer, offered: Pokemon, incoming: Pokemon) {
+        if (!ConfigManager.bool("discord.enabled", false)) return
+        notifyDiscordDonation(player, offered)
         if (ConfigManager.bool("discord.notifyReceived", true) && WonderTradeRules.isRare(incoming)) {
             val template = ConfigManager.string("discord.receivedMessage", "🎉 **{player}** ha recibido **{pokemon}** (Nv. {level}, {category}) en un Wonder Trade.")
             discordPost(format(template, mapOf("player" to player.gameProfile.name, "pokemon" to plainName(incoming), "level" to incoming.level, "category" to plainCategory(incoming))))
@@ -824,6 +950,7 @@ object WonderTradeService {
             "&7Intercambios: &f${playerData.stat(uuid, "trades")}",
             "&7Especiales recibidos: &d${playerData.stat(uuid, "specialsReceived")}",
             "&7Especiales aportados: &d${playerData.stat(uuid, "specialsDonated")}",
+            "&7Donaciones directas: &f${playerData.stat(uuid, "donations")}",
             "&7Probabilidad acumulada: &d${percentText(bonus)}%"
         )
         return colour(lines.joinToString("\n"))
@@ -952,6 +1079,15 @@ object WonderTradeService {
         player.server.playerList.broadcastSystemMessage(colour(ConfigManager.string("messages.prefix") + content), false)
     }
 
+    /** Envía el éxito y el cambio del bonus en una sola línea; mantiene compatibles mensajes personalizados antiguos. */
+    private fun sendTradeSuccess(player: ServerPlayer, values: Map<String, Any>, bonusText: String) {
+        val fallback = "&aIntercambio completado: has recibido &f{received}&a. {bonusText}"
+        val template = ConfigManager.string("messages.success", fallback)
+        var message = format(template, values)
+        if (!template.contains("{bonusText}") && bonusText.isNotBlank()) message += " $bonusText"
+        player.sendSystemMessage(colour(ConfigManager.string("messages.prefix", "") + message))
+    }
+
     fun send(player: ServerPlayer, key: String, values: Map<String, Any> = emptyMap()) {
         val fallback = defaultMessage(key)
         val template = ConfigManager.string("messages.$key", fallback)
@@ -971,7 +1107,11 @@ object WonderTradeService {
         "invalidSlot" -> "&cEl slot debe estar entre 1 y 6."
         "confirmationExpired" -> "&cLa confirmación ha caducado."
         "nothingToConfirm" -> "&cNo tienes ningún intercambio pendiente."
-        "success" -> "&aIntercambio completado: {sent} → {received}."
+        "success" -> "&aIntercambio completado: has recibido &f{received}&a. {bonusText}"
+        "donationDisabled" -> "&cLas donaciones a la pool están desactivadas."
+        "donationPoolFull" -> "&cNo puedes donar porque la pool ya está completa ({size}/{maximum})."
+        "donationInBattle" -> "&cNo puedes donar Pokémon durante un combate."
+        "donationSuccess" -> "&aDonación completada: &f{pokemon} &ase ha añadido a la pool. ¡Gracias!"
         else -> "&cNo se ha podido completar el intercambio."
     }
 }

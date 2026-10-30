@@ -29,7 +29,8 @@ La configuración inicial se copia en `config/wondertradeplus/config.json`. Edit
 ## `pool`
 
 - `enabled`: usa el pool compartido de Pokémon aportados por jugadores.
-- `acceptDonations`: guarda en el pool una copia del Pokémon que se ha ofrecido tras completar el intercambio.
+- `acceptDonations`: guarda en la pool una copia del Pokémon ofrecido tras completar un Wonder Trade.
+- `playerDonationsEnabled`: permite `/wt donar`, que es una aportación directa sin recibir otro Pokémon. No consume cooldown ni límite diario; la pool se comprueba tanto al abrir el menú como al confirmar. Si alcanza `maximumEntries`, la donación se rechaza con un mensaje.
 - `randomFallback`: opción heredada que se ignora; ningún intercambio genera Pokémon fuera del pool.
 - `maximumEntries`: máximo de entradas guardadas.
 - `trimOldestFirst`: elimina entradas antiguas al superar el máximo si está activo.
@@ -38,7 +39,7 @@ La configuración inicial se copia en `config/wondertradeplus/config.json`. Edit
 
 ## `fallback`
 
-- `minimumLevel`, `maximumLevel`: rango de nivel aleatorio para `/wt admin addspecies` y `/wt admin fill`. El comando `addspecies` recibe primero la especie base y, opcionalmente, una opción regional separada (`alolan`, `galarian`, `hisuian` o `paldean`) y `shiny`. También acepta la sintaxis de Cobblemon 1.8.x: `form=alola`, `form=galar`, `form=hisui` o `form=paldea`.
+- `minimumLevel`, `maximumLevel`: rango de nivel aleatorio para `/wt admin addspecies` y `/wt admin fill`. `addspecies` recibe la especie base y acepta, opcionalmente, los mismos atributos de `/pokegive`: `alolan`, `galarian`, `hisuian`, `paldean` y `shiny`. Ejemplos: `/wt admin addspecies vulpix alolan`, `/wt admin addspecies vulpix alolan shiny` y `/wt admin addspecies meowth shiny galarian`. No se usa `form=...`.
 - `speciesGenerationAttempts`: intentos máximos para que `/wt admin fill` genere una especie válida.
 - `shinyBehavior`: opción heredada que ya no afecta a los intercambios.
 
@@ -47,7 +48,7 @@ La configuración inicial se copia en `config/wondertradeplus/config.json`. Edit
 - `excludeOwnDonations`: un jugador no puede recibir Pokémon que él mismo aportó al pool. Por defecto `true`.
 - `donationHoldMinutes`: minutos que un Pokémon recién aportado por un jugador no puede ser recibido por nadie. Por defecto `10`; `0` lo desactiva. No afecta a lo creado por comandos de admin ni a entradas antiguas.
 
-Si ninguna entrada del pool es válida para un jugador, el intercambio se cancela y no se genera ni entrega ningún Pokémon externo al pool.
+Si ninguna entrada de la pool es válida para un jugador, el intercambio se cancela y no se genera ni entrega ningún Pokémon externo a la pool. La donación directa `/wt donar` no requiere entrada de retorno.
 
 ## `maintenance`
 
@@ -93,9 +94,9 @@ Sistema de probabilidad acumulada **por jugador** para recibir un Pokémon espec
 - `specialShinyExtraGain`: puntos porcentuales adicionales cuando el Pokémon ofrecido es **shiny y además** es legendario, mítico, Ultraente o Paradoja. Por defecto `0.2`; por tanto, un especial shiny suma `0.5 + 0.2 = 0.7` puntos porcentuales. Un shiny de especie normal conserva el incremento base `specialTradeGain` (+0,5% por defecto), pero no recibe este extra.
 - `shiny`, `legendary`, `mythical`, `ultraBeast`, `paradox`, `other` y `combineMode`: opciones heredadas que se conservan en archivos antiguos por compatibilidad, pero ya no intervienen en el cálculo.
 
-Todos los incrementos se expresan en puntos porcentuales (`0.1` = +0,1%, no 10%). Durante un evento activo, se aplica `event.bonusGainMultiplier` tanto al incremento base como al extra shiny.
+El libro que aparece al abrir `/wt` muestra estos valores: normal, shiny sin categoría especial, Pokémon legendario/mítico/Ultraente/Paradoja y el total para especial shiny. La línea shiny sin categoría especial usa el mismo `specialTradeGain` que el resto de Pokémon considerados especiales. Todos los incrementos se expresan en puntos porcentuales (`0.1` = +0,1%, no 10%). Durante un evento activo, se aplica `event.bonusGainMultiplier` tanto al incremento base como al extra shiny.
 
-Funcionamiento: cuando el jugador ofrece un Pokémon **normal**, primero se suma `normalTradeGain` y después se tira un dado con el porcentaje acumulado actualizado para ese mismo intercambio; si sale, se intenta entregar un especial existente en la pool. Si no hay ninguno disponible, recibe cualquier Pokémon válido de la pool y conserva el bonus acumulado. Al recibir un especial, el porcentaje vuelve a 0. Ofrecer un Pokémon especial suma `specialTradeGain` y, si además es shiny y pertenece a las categorías legendario, mítico, Ultraente o Paradoja, suma también `specialShinyExtraGain`; ese incremento se aplica al siguiente intercambio normal. El jugador puede consultarlo con `/wt chance` y los admins con `/wt chance <jugador>`. Los mensajes (`bonusIncreased`, `bonusNormalIncreased`, `bonusReset`, `bonusInfo`) son editables; `bonusInfo` admite `{specialShinyExtraGain}`. Si un `bonusInfo` personalizado de una configuración anterior no incluye ese marcador, se muestra adicionalmente `bonusShinyExtraInfo`, que también es editable.
+Funcionamiento: cuando el jugador ofrece un Pokémon **normal**, primero se suma `normalTradeGain` y después se tira un dado con el porcentaje acumulado actualizado para ese mismo intercambio; si sale, se intenta entregar un especial existente en la pool. Si no hay ninguno disponible, recibe cualquier Pokémon válido de la pool y conserva el bonus acumulado. Al recibir un especial, el porcentaje vuelve a 0. Ofrecer un Pokémon especial suma `specialTradeGain` y, si además es shiny y pertenece a las categorías legendario, mítico, Ultraente o Paradoja, suma también `specialShinyExtraGain`; ese incremento se aplica al siguiente intercambio normal. El jugador puede consultarlo con `/wt chance` y los admins con `/wt chance <jugador>`. El mensaje de intercambio incluye en una sola línea el Pokémon recibido y el estado actualizado del bonus; se personaliza con `messages.success`, `successBonusIncreased`, `successBonusReset` y `successBonusUnchanged`. Los mensajes (`bonusIncreased`, `bonusNormalIncreased`, `bonusReset`, `bonusInfo`) son editables; `bonusInfo` admite `{specialShinyExtraGain}`. Si un `bonusInfo` personalizado de una configuración anterior no incluye ese marcador, se muestra adicionalmente `bonusShinyExtraInfo`, que también es editable.
 
 ## `event`
 
@@ -117,14 +118,17 @@ Se consulta con `/wt admin history`.
 
 ## `admin`
 
+Todos los subcomandos `/wt admin ...`, además de `/wt reload`, `/wt clearpool` y las consultas/modificaciones de bonus a otros jugadores mediante `/wt chance <jugador>`, requieren el nivel configurado aquí. Los comandos `/wt`, `/wt donar`, `/wt stats`, `/wt top`, `/wt event`, `/wt cancel` y `/wt chance` propio son públicos. `/wt pool` usa `gui.poolViewPermissionLevel`.
+
 - `permissionLevel`: nivel de operador (`0–4`) necesario para los comandos `/wt admin ...`. Por defecto `2`.
-- `regionalForms.alolan`, `regionalForms.galarian`, `regionalForms.hisuian`, `regionalForms.paldean`: activa o desactiva cada opción de forma regional para `/wt admin addspecies`. Todas están activadas por defecto. Se aceptan los alias de comando `alolan`, `galarian`, `hisuian`, `paldean` y las propiedades nativas de Cobblemon 1.8.x `form=alola`, `form=galar`, `form=hisui`, `form=paldea`. Ejemplos: `/wt admin addspecies vulpix alolan`, `/wt admin addspecies vulpix form=alola`, `/wt admin addspecies meowth galarian shiny`. El mod comprueba que la forma exista para esa especie y que Cobblemon la haya aplicado antes de guardarla en el pool.
+- `regionalForms.alolan`, `regionalForms.galarian`, `regionalForms.hisuian`, `regionalForms.paldean`: activa o desactiva cada opción de forma regional para `/wt admin addspecies`. Todas están activadas por defecto. Se aceptan únicamente los atributos de comando `alolan`, `galarian`, `hisuian` y `paldean`, igual que `/pokegive`. Ejemplos: `/wt admin addspecies vulpix alolan`, `/wt admin addspecies vulpix alolan shiny` y `/wt admin addspecies meowth shiny galarian`. No se debe usar `form=alola`. El mod comprueba que la forma exista para esa especie y que Cobblemon la haya aplicado antes de guardarla en el pool.
 
 ## `gui`
 
 - `enabled`: `/wt` sin argumentos abre el menú. Si es `false`, muestra la ayuda.
 - `poolViewPermissionLevel`: nivel de operador necesario para `/wt pool` y el botón "Ver pool". `0` = todos los jugadores, `2` = solo operadores, `4` = solo owner.
 - `showDonorNames`: muestra quién aportó cada Pokémon en la vista del pool.
+- `showBonusRatesInBook`: muestra en el libro del menú `/wt` los incrementos configurados para Pokémon normales, shiny sin categoría especial, legendarios/míticos/Ultraentes/Paradojas y especiales shiny. Si `bonus.enabled` está desactivado, muestra el texto configurable `messages.menuBookBonusDisabled`.
 
 ## `broadcast`
 
@@ -140,7 +144,7 @@ Cada intercambio genera un solo anuncio. Prioridad: Ultraente > Paradoja pasado/
 
 ## `messages`
 
-Todas las cadenas son editables. Los colores usan `&` como prefijo, por ejemplo `&a` para verde. Las plantillas admiten `{sent}`, `{received}`, `{seconds}`, `{time}`, `{limit}`, `{min}`, `{max}`, `{size}`, `{player}` y `{pokemon}` según el mensaje.
+Todas las cadenas son editables. Los colores usan `&` como prefijo, por ejemplo `&a` para verde. Las plantillas admiten `{sent}`, `{received}`, `{seconds}`, `{time}`, `{limit}`, `{min}`, `{max}`, `{size}`, `{player}` y `{pokemon}` según el mensaje. `messages.success` acepta `{bonusText}` para mostrar resultado y cambio de probabilidad en un único mensaje; `successBonusIncreased`, `successBonusReset` y `successBonusUnchanged` personalizan el fragmento del bonus. `donationPoolFull` admite `{size}` y `{maximum}`.
 
 ## Selección de Pokémon
 

@@ -28,6 +28,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     private fun registerCommands(dispatcher: CommandDispatcher<CommandSourceStack>, root: String) {
+        // PERMISO: cualquier jugador puede ejecutar el comando raíz para abrir la GUI o ver ayuda.
         val command = literal(root)
             .executes { context ->
                 val player = context.source.player
@@ -38,30 +39,45 @@ class WonderTradePlus : ModInitializer {
                 }
                 1
             }
+            // PERMISO: público; muestra la ayuda.
             .then(literal("help").executes { context ->
                 context.source.sendSuccess({ WonderTradeService.helpComponent() }, false)
                 1
             })
+            // PERMISO: público; abre el menú de intercambio.
             .then(literal("gui").executes { context ->
                 WonderTradeGui.openMain(context.source.playerOrException)
                 1
             })
+            // PERMISO: público; cualquier jugador puede donar si las donaciones están habilitadas y hay espacio.
+            // La capacidad se vuelve a comprobar al confirmar la donación.
+            .then(literal("donar").executes { context ->
+                val player = context.source.playerOrException
+                if (WonderTradeService.canOpenDonation(player)) {
+                    WonderTradeGui.openMain(player, donationMode = true)
+                }
+                1
+            })
+            // PERMISO: público; inicia un intercambio desde el slot 1–6.
             .then(argument("slot", IntegerArgumentType.integer(1, 6))
                 .executes { context ->
                     val player = context.source.playerOrException
                     WonderTradeService.request(player, IntegerArgumentType.getInteger(context, "slot"))
                     1
                 }
+                // PERMISO: público; confirma directamente el slot indicado.
                 .then(literal("confirm").executes { context ->
                     val player = context.source.playerOrException
                     WonderTradeService.tradeNow(player, IntegerArgumentType.getInteger(context, "slot"))
                     1
                 })
             )
+            // PERMISO: público; confirma el intercambio pendiente.
             .then(literal("confirm").executes { context ->
                 WonderTradeService.confirm(context.source.playerOrException)
                 1
             })
+            // PERMISO: /wt chance es público; consultar/modificar el bonus de otro jugador requiere admin.permissionLevel.
             .then(literal("chance")
                 .executes { context ->
                     WonderTradeService.showBonus(context.source.playerOrException)
@@ -90,15 +106,19 @@ class WonderTradePlus : ModInitializer {
                         }
                         1
                     }
+                    // PERMISO: admin.permissionLevel, heredado del argumento "player".
                     .then(literal("set")
                         .then(argument("value", DoubleArgumentType.doubleArg(0.0, 100.0)).executes { context ->
                             setChance(context, DoubleArgumentType.getDouble(context, "value"))
                         }))
+                    // PERMISO: admin.permissionLevel, heredado del argumento "player".
                     .then(literal("reset").executes { context -> setChance(context, 0.0) })))
+            // PERMISO: público; consulta el estado del evento.
             .then(literal("event").executes { context ->
                 context.source.sendSuccess({ WonderTradeService.eventStatusComponent() }, false)
                 1
             })
+            // PERMISO: público; estadísticas propias y públicas visibles sin OP.
             .then(literal("stats")
                 .executes { context ->
                     val player = context.source.playerOrException
@@ -122,15 +142,18 @@ class WonderTradePlus : ModInitializer {
                         }
                         1
                     }))
+            // PERMISO: público; el ranking es visible para todos.
             .then(literal("top")
                 .executes { context -> showTop(context, "trades") }
                 .then(literal("trades").executes { context -> showTop(context, "trades") })
                 .then(literal("received").executes { context -> showTop(context, "received") })
                 .then(literal("donated").executes { context -> showTop(context, "donated") }))
+            // PERMISO: público; cancela el intercambio pendiente.
             .then(literal("cancel").executes { context ->
                 WonderTradeService.cancel(context.source.playerOrException)
                 1
             })
+            // PERMISO: gui.poolViewPermissionLevel para jugadores; los admins acceden con admin.permissionLevel.
             .then(literal("pool").executes { context ->
                 val player = context.source.player
                 if (player == null) {
@@ -140,13 +163,15 @@ class WonderTradePlus : ModInitializer {
                 }
                 1
             })
-            .then(literal("reload").requires { it.hasPermission(2) }.executes { context ->
+            // PERMISO: admin.permissionLevel (configurable; por defecto OP nivel 2).
+            .then(literal("reload").requires { it.hasPermission(WonderTradeService.adminLevel()) }.executes { context ->
                 WonderTradeService.reload()
                 context.source.sendSuccess({ WonderTradeService.configuredMessage("reload", "&aConfiguración y pool recargados.") }, true)
                 1
             })
             .then(adminCommands())
-            .then(literal("clearpool").requires { it.hasPermission(2) }.executes { context ->
+            // PERMISO: admin.permissionLevel (configurable; por defecto OP nivel 2).
+            .then(literal("clearpool").requires { it.hasPermission(WonderTradeService.adminLevel()) }.executes { context ->
                 WonderTradeService.clearPool()
                 context.source.sendSuccess({ WonderTradeService.configuredMessage("poolCleared", "&aPool vaciado.") }, true)
                 1
@@ -154,8 +179,10 @@ class WonderTradePlus : ModInitializer {
         dispatcher.register(command)
     }
 
+    // PERMISO: /wt admin y cada subcomando hijo requieren admin.permissionLevel (OP 2 por defecto).
     private fun adminCommands() = literal("admin")
         .requires { it.hasPermission(WonderTradeService.adminLevel()) }
+        // PERMISO: admin.permissionLevel.
         .then(literal("add").then(argument("slot", IntegerArgumentType.integer(1, 6)).executes { context ->
             val player = context.source.playerOrException
             val name = WonderTradeService.adminAddFromParty(player, IntegerArgumentType.getInteger(context, "slot"))
@@ -166,7 +193,9 @@ class WonderTradePlus : ModInitializer {
             }
             1
         }))
+        // PERMISO: admin.permissionLevel.
         .then(addSpeciesCommand())
+        // PERMISO: admin.permissionLevel.
         .then(literal("fill").then(argument("amount", IntegerArgumentType.integer(1, 500))
             .executes { context ->
                 fill(context, null, ConfigManager.int("fallback.minimumLevel", 1), ConfigManager.int("fallback.maximumLevel", 100))
@@ -189,10 +218,12 @@ class WonderTradePlus : ModInitializer {
                             IntegerArgumentType.getInteger(context, "maxLevel")
                         )
                     })))))
+        // PERMISO: admin.permissionLevel.
         .then(literal("remove").executes { context ->
             WonderTradeGui.openPool(context.source.playerOrException, 0, true, deleteMode = true)
             1
         })
+        // PERMISO: admin.permissionLevel.
         .then(literal("resetstats").then(argument("player", StringArgumentType.word())
             .suggests { context, builder ->
                 SharedSuggestionProvider.suggest(
@@ -219,12 +250,15 @@ class WonderTradePlus : ModInitializer {
                 }
                 1
             }))
+        // PERMISO: admin.permissionLevel (heredado de /wt admin).
         .then(literal("event")
+            // PERMISO: admin.permissionLevel, heredado de /wt admin.
             .then(literal("start")
                 .executes { context -> startEvent(context, WonderTradeService.defaultEventMinutes()) }
                 .then(argument("minutes", IntegerArgumentType.integer(1, 10080)).executes { context ->
                     startEvent(context, IntegerArgumentType.getInteger(context, "minutes"))
                 }))
+            // PERMISO: admin.permissionLevel, heredado de /wt admin.
             .then(literal("stop").executes { context ->
                 if (WonderTradeService.stopEvent(context.source.server)) {
                     context.source.sendSuccess({ WonderTradeService.info("&aEvento terminado.") }, true)
@@ -233,6 +267,7 @@ class WonderTradePlus : ModInitializer {
                 }
                 1
             }))
+        // PERMISO: admin.permissionLevel.
         .then(literal("backup").executes { context ->
             val name = WonderTradeService.backupNow()
             if (name == null) {
@@ -242,11 +277,13 @@ class WonderTradePlus : ModInitializer {
             }
             1
         })
+        // PERMISO: admin.permissionLevel.
         .then(literal("maintenance").executes { context ->
             val (expired, generated) = WonderTradeService.maintainPool(context.source.server)
             context.source.sendSuccess({ WonderTradeService.info("&aMantenimiento hecho: &f$expired &acaducados, &f$generated &agenerados.") }, true)
             1
         })
+        // PERMISO: admin.permissionLevel.
         .then(literal("discord").then(literal("test").executes { context ->
             val source = context.source
             WonderTradeService.discordTest { ok, text ->
@@ -258,6 +295,7 @@ class WonderTradePlus : ModInitializer {
             source.sendSuccess({ WonderTradeService.info("&7Enviando mensaje de prueba a Discord…") }, false)
             1
         }))
+        // PERMISO: admin.permissionLevel.
         .then(literal("history")
             .executes { context ->
                 WonderTradeGui.openHistory(context.source.playerOrException)
@@ -269,6 +307,7 @@ class WonderTradePlus : ModInitializer {
                     WonderTradeGui.openHistory(context.source.playerOrException, StringArgumentType.getString(context, "player"))
                     1
                 }))
+        // PERMISO: admin.permissionLevel.
         .then(literal("removeplayer").then(argument("player", StringArgumentType.word())
             .suggests { _, builder -> SharedSuggestionProvider.suggest(WonderTradeService.poolDonors(), builder) }
             .executes { context ->
@@ -277,6 +316,7 @@ class WonderTradePlus : ModInitializer {
             context.source.sendSuccess({ WonderTradeService.info("&aSe han eliminado &f$removed &aPokémon aportados por &f$donor&a.") }, true)
             1
         }))
+        // PERMISO: admin.permissionLevel.
         .then(literal("clear").executes { context ->
             WonderTradeService.clearPool()
             context.source.sendSuccess({ WonderTradeService.configuredMessage("poolCleared", "&aPool vaciado.") }, true)
@@ -309,45 +349,38 @@ class WonderTradePlus : ModInitializer {
     }
 
     /**
-     * Registra las opciones regionales como propiedades de Cobblemon, igual que /pokegive:
+     * Registra las opciones regionales con la misma sintaxis de atributos que /pokegive:
      * /wt admin addspecies vulpix alolan [shiny]
      * También se acepta el orden /wt admin addspecies vulpix shiny alolan.
+     * PERMISO: admin.permissionLevel (OP 2 por defecto), heredado de /wt admin.
      */
     private fun addSpeciesCommand() = literal("addspecies").then(
         argument("species", StringArgumentType.word())
             .suggests { _, builder -> SharedSuggestionProvider.suggest(WonderTradeService.speciesNames(), builder) }
             .executes { context -> addSpecies(context, shiny = false, regionalForm = null) }
-            // greedyString permite también form=alola, ya que '=' forma parte de la
-            // sintaxis de propiedades de Cobblemon y no es una palabra simple Brigadier.
             .then(argument("options", StringArgumentType.greedyString()).executes { context ->
                 val tokens = StringArgumentType.getString(context, "options")
                     .trim()
                     .split(Regex("\\s+"))
                     .filter { it.isNotBlank() }
-                val regionalAliases = mapOf(
-                    "alolan" to "alolan", "alola" to "alolan", "form=alola" to "alolan",
-                    "galarian" to "galarian", "galar" to "galarian", "form=galar" to "galarian",
-                    "hisuian" to "hisuian", "hisui" to "hisuian", "form=hisui" to "hisuian",
-                    "paldean" to "paldean", "paldea" to "paldean", "form=paldea" to "paldean"
-                )
+                val regionalOptions = setOf("alolan", "galarian", "hisuian", "paldean")
                 var shiny = false
                 var regionalForm: String? = null
                 for (token in tokens) {
                     when (token.lowercase()) {
                         "shiny", "shiny=true" -> shiny = true
-                        else -> {
-                            val resolvedForm = regionalAliases[token.lowercase()]
-                            if (resolvedForm == null) {
-                                context.source.sendFailure(WonderTradeService.info(
-                                    "&cOpción desconocida: &f$token&c. Usa &fshiny&c, &falolan&c, &fgalarian&c, &fhisuian&c, &fpaldean&c o &fform=alola/galar/hisui/paldea&c."
-                                ))
-                                return@executes 1
-                            }
-                            if (regionalForm != null && regionalForm != resolvedForm) {
+                        in regionalOptions -> {
+                            if (regionalForm != null && regionalForm != token.lowercase()) {
                                 context.source.sendFailure(WonderTradeService.info("&cSolo puedes indicar una forma regional por Pokémon."))
                                 return@executes 1
                             }
-                            regionalForm = resolvedForm
+                            regionalForm = token.lowercase()
+                        }
+                        else -> {
+                            context.source.sendFailure(WonderTradeService.info(
+                                "&cOpción desconocida: &f$token&c. Usa &fshiny&c, &falolan&c, &fgalarian&c, &fhisuian&c o &fpaldean&c."
+                            ))
+                            return@executes 1
                         }
                     }
                 }
@@ -370,7 +403,7 @@ class WonderTradePlus : ModInitializer {
         }
         if (result == null) {
             context.source.sendFailure(WonderTradeService.info(
-                "&cNo se pudo crear &f$species&c. Usa el nombre base en inglés y una opción regional, por ejemplo &fvulpix alolan&c o &fvulpix form=alola&c."
+                "&cNo se pudo crear &f$species&c. Usa el nombre base en inglés y, opcionalmente, &falolan&c, &fgalarian&c, &fhisuian&c, &fpaldean&c o &fshiny&c. Ejemplo: &fvulpix alolan shiny&c."
             ))
         } else {
             val options = buildList {
@@ -399,7 +432,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.7.5"
+        const val MOD_VERSION = "0.7.8"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

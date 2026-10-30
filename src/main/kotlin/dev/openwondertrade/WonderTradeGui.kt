@@ -84,9 +84,17 @@ object WonderTradeGui {
 
     // ---------------------------------------------------------------- apertura
 
-    fun openMain(player: ServerPlayer) = open(player, "&5Wonder Trade &8- &fTu equipo", 3) { renderMain(it, player) }
+    fun openMain(player: ServerPlayer, donationMode: Boolean = false) = open(
+        player,
+        if (donationMode) "&5Wonder Trade &8- &fDonar" else "&5Wonder Trade &8- &fTu equipo",
+        3
+    ) { renderMain(it, player, donationMode) }
 
-    fun openPc(player: ServerPlayer, box: Int = 0) = open(player, "&5Wonder Trade &8- &fTu PC", 6) { renderPc(it, player, box) }
+    fun openPc(player: ServerPlayer, box: Int = 0, donationMode: Boolean = false) = open(
+        player,
+        if (donationMode) "&5Wonder Trade &8- &fDonar desde PC" else "&5Wonder Trade &8- &fTu PC",
+        6
+    ) { renderPc(it, player, box, donationMode) }
 
     fun canViewPool(player: ServerPlayer): Boolean =
         player.hasPermissions(ConfigManager.int("gui.poolViewPermissionLevel", 0).coerceIn(0, 4))
@@ -127,12 +135,47 @@ object WonderTradeGui {
 
     // ---------------------------------------------------------------- pantallas
 
-    private fun renderMain(menu: GuiMenu, player: ServerPlayer) {
+    private fun renderMain(menu: GuiMenu, player: ServerPlayer, donationMode: Boolean) {
         menu.wipe()
         fill(menu, 27)
-        menu.put(4, named(Items.BOOK, "&dWonder Trade",
-            "&7Elige un Pokémon para ofrecerlo.",
-            "&7Recibirás otro a cambio."))
+        val bookLore = mutableListOf(
+            ConfigManager.string(
+                if (donationMode) "messages.donationBookDescription" else "messages.menuBookDescription",
+                if (donationMode) "&7Elige un Pokémon para donarlo a la pool." else "&7Elige un Pokémon para ofrecerlo. Recibirás otro a cambio."
+            )
+        )
+        if (!donationMode && ConfigManager.bool("gui.showBonusRatesInBook", true)) {
+            if (!ConfigManager.bool("bonus.enabled", true)) {
+                bookLore += ConfigManager.string("messages.menuBookBonusDisabled", "&cEl sistema de bonus está desactivado.")
+            } else {
+                bookLore += ConfigManager.string("messages.menuBookBonusHeader", "&7Bonus por ofrecer Pokémon:")
+                bookLore += WonderTradeService.format(
+                    ConfigManager.string("messages.menuBookNormalGain", "&7Pokémon normal: &a+{gain}%"),
+                    mapOf("gain" to WonderTradeService.normalBonusGainText())
+                )
+                bookLore += WonderTradeService.format(
+                    ConfigManager.string("messages.menuBookShinyGain", "&7Pokémon shiny (sin categoría especial): &d+{gain}%"),
+                    mapOf("gain" to WonderTradeService.specialBonusGainText())
+                )
+                bookLore += WonderTradeService.format(
+                    ConfigManager.string("messages.menuBookSpecialGain", "&7Legendario / Mítico / Ultraente / Paradoja: &d+{gain}%"),
+                    mapOf("gain" to WonderTradeService.specialBonusGainText())
+                )
+                bookLore += WonderTradeService.format(
+                    ConfigManager.string("messages.menuBookSpecialShinyGain", "&7Especial shiny: &d+{base}% + {extra}% extra = {total}%"),
+                    mapOf(
+                        "base" to WonderTradeService.specialBonusGainText(),
+                        "extra" to WonderTradeService.specialShinyExtraGainText(),
+                        "total" to WonderTradeService.specialShinyTotalGainText()
+                    )
+                )
+            }
+        }
+        menu.put(4, named(
+            Items.BOOK,
+            ConfigManager.string("messages.menuBookTitle", if (donationMode) "&dDonar a Wonder Trade" else "&dWonder Trade"),
+            *bookLore.toTypedArray()
+        ))
 
         val party = Cobblemon.storage.getParty(player)
         for (i in 0 until 6) {
@@ -141,11 +184,11 @@ object WonderTradeGui {
             if (pokemon == null) {
                 menu.put(guiSlot, named(Items.LIGHT_GRAY_STAINED_GLASS_PANE, "&8Hueco vacío"))
             } else {
-                menu.button(guiSlot, pokemonStack(pokemon, true)) { p -> select(p, pokemon, false) }
+                menu.button(guiSlot, pokemonStack(pokemon, true)) { p -> select(p, pokemon, false, donationMode) }
             }
         }
 
-        menu.button(22, named(Items.ENDER_CHEST, "&bAbrir PC", "&7Elige un Pokémon de tus cajas.")) { openPc(it, 0) }
+        menu.button(22, named(Items.ENDER_CHEST, "&bAbrir PC", "&7Elige un Pokémon de tus cajas.")) { openPc(it, 0, donationMode) }
         if (canViewPool(player) || player.hasPermissions(WonderTradeService.adminLevel())) {
             menu.button(17, named(Items.CHEST, "&6Ver pool", "&7Pokémon aportados por los jugadores.")) {
                 openPool(it, 0, it.hasPermissions(WonderTradeService.adminLevel()))
@@ -154,7 +197,7 @@ object WonderTradeGui {
         menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
-    private fun renderPc(menu: GuiMenu, player: ServerPlayer, requestedBox: Int) {
+    private fun renderPc(menu: GuiMenu, player: ServerPlayer, requestedBox: Int, donationMode: Boolean) {
         menu.wipe()
         fill(menu, 54)
         val boxes = Cobblemon.storage.getPC(player).boxes
@@ -169,18 +212,20 @@ object WonderTradeGui {
                 if (pokemon == null) {
                     menu.put(guiSlot, named(Items.LIGHT_GRAY_STAINED_GLASS_PANE, "&8Vacío"))
                 } else {
-                    menu.button(guiSlot, pokemonStack(pokemon, true)) { p -> select(p, pokemon, true) }
+                    menu.button(guiSlot, pokemonStack(pokemon, true)) { p -> select(p, pokemon, true, donationMode) }
                 }
             }
             menu.button(48, named(Items.ARROW, "&eCaja anterior")) {
-                renderPc(menu, it, (index - 1 + boxes.size) % boxes.size)
+                renderPc(menu, it, (index - 1 + boxes.size) % boxes.size, donationMode)
             }
             menu.put(49, named(Items.PAPER, "&fCaja ${index + 1}/${boxes.size}"))
             menu.button(50, named(Items.ARROW, "&eCaja siguiente")) {
-                renderPc(menu, it, (index + 1) % boxes.size)
+                renderPc(menu, it, (index + 1) % boxes.size, donationMode)
             }
         }
-        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver al equipo")) { openMain(it) }
+        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, if (donationMode) "&aVolver a donar" else "&aVolver al equipo")) {
+            openMain(it, donationMode)
+        }
         menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
@@ -286,12 +331,12 @@ object WonderTradeGui {
         val icon = pokemon?.let { runCatching { PokemonItem.from(it) }.getOrNull() } ?: ItemStack(Items.PAPER)
         val receivedTypes = pokemon?.let { WonderTradeRules.typesLabel(it) }
 
-        val star = "&e✨"
+        val shinyLabel = "&e[Shiny]"
         icon.set(DataComponents.CUSTOM_NAME, lit("&b${entry.player}"))
         val lines = listOf(
             "&8────────────────",
-            "&c▼ Dio: &f${entry.sentName} &7Nv.${entry.sentLevel}" + if (entry.sentShiny) " $star" else "",
-            "&a▲ Recibió: &f${entry.receivedName} &7Nv.${entry.receivedLevel}" + if (entry.receivedShiny) " $star" else "",
+            "&c▼ Dio: &f${entry.sentName} &7Nv.${entry.sentLevel}" + if (entry.sentShiny) " $shinyLabel" else "",
+            "&a▲ Recibió: &f${entry.receivedName} &7Nv.${entry.receivedLevel}" + if (entry.receivedShiny) " $shinyLabel" else "",
             "&7Tipo: " + (receivedTypes ?: "&8desconocido"),
             "&8────────────────",
             "&7Origen: &f" + if (entry.fromPool) "pool de jugadores" else "generado al azar",
@@ -301,27 +346,39 @@ object WonderTradeGui {
         return icon
     }
 
-    private fun openConfirm(player: ServerPlayer, pokemon: Pokemon, fromPc: Boolean) {
-        open(player, "&5Wonder Trade &8- &fConfirmar", 3) { menu ->
+    private fun openConfirm(player: ServerPlayer, pokemon: Pokemon, fromPc: Boolean, donationMode: Boolean) {
+        open(
+            player,
+            if (donationMode) "&5Wonder Trade &8- &fConfirmar donación" else "&5Wonder Trade &8- &fConfirmar",
+            3
+        ) { menu ->
             fill(menu, 27)
             menu.put(13, pokemonStack(pokemon, false))
-            menu.button(11, named(Items.LIME_CONCRETE, "&aConfirmar intercambio",
-                "&7Ofreces: &f${pokemon.getDisplayName().string}")) { p ->
-                WonderTradeService.tradeFromStore(p, fromPc, pokemon.uuid)
+            menu.button(11, named(
+                Items.LIME_CONCRETE,
+                if (donationMode) "&aConfirmar donación" else "&aConfirmar intercambio",
+                "&7Ofreces: &f${pokemon.getDisplayName().string}",
+                if (donationMode) "&7No recibirás ningún Pokémon a cambio." else "&7Recibirás otro Pokémon de la pool."
+            )) { p ->
+                if (donationMode) WonderTradeService.donateFromStore(p, fromPc, pokemon.uuid)
+                else WonderTradeService.tradeFromStore(p, fromPc, pokemon.uuid)
                 p.closeContainer()
             }
-            menu.button(15, named(Items.RED_CONCRETE, "&cCancelar")) { openMain(it) }
+            menu.button(15, named(Items.RED_CONCRETE, "&cCancelar")) { openMain(it, donationMode) }
         }
     }
 
     // ---------------------------------------------------------------- lógica
 
-    private fun select(player: ServerPlayer, pokemon: Pokemon, fromPc: Boolean) {
-        if (!WonderTradeService.precheck(player, pokemon)) return
+    private fun select(player: ServerPlayer, pokemon: Pokemon, fromPc: Boolean, donationMode: Boolean) {
+        val allowed = if (donationMode) WonderTradeService.precheckDonation(player, pokemon)
+        else WonderTradeService.precheck(player, pokemon)
+        if (!allowed) return
         if (ConfigManager.bool("general.requireConfirmation", true)) {
-            openConfirm(player, pokemon, fromPc)
+            openConfirm(player, pokemon, fromPc, donationMode)
         } else {
-            WonderTradeService.tradeFromStore(player, fromPc, pokemon.uuid)
+            if (donationMode) WonderTradeService.donateFromStore(player, fromPc, pokemon.uuid)
+            else WonderTradeService.tradeFromStore(player, fromPc, pokemon.uuid)
             player.closeContainer()
         }
     }
@@ -345,7 +402,7 @@ object WonderTradeGui {
     private fun pokemonStack(pokemon: Pokemon, showOfferHint: Boolean, extra: List<String> = emptyList()): ItemStack {
         val stack = runCatching { PokemonItem.from(pokemon) }.getOrElse { ItemStack(Items.PAPER) }
         val name = pokemon.getDisplayName().string
-        stack.set(DataComponents.CUSTOM_NAME, lit((if (pokemon.shiny) "&e✨ " else "&f") + name))
+        stack.set(DataComponents.CUSTOM_NAME, lit((if (pokemon.shiny) "&e" else "&f") + name))
 
         val lines = mutableListOf("&7Nivel: &f${pokemon.level}")
         WonderTradeRules.typesLabel(pokemon)?.let { lines += "&7Tipo: $it" }

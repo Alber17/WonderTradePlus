@@ -59,6 +59,13 @@ class PlayerDataStore(private val file: Path) {
         if (receivedSpecial) data.addProperty("specialsReceived", (data.get("specialsReceived")?.asInt ?: 0) + 1)
     }
 
+    /** Registra una donación directa. No altera cooldown, límite diario ni número de intercambios. */
+    fun recordDonation(uuid: UUID, special: Boolean) {
+        val data = playerNode(uuid, create = true)!!
+        data.addProperty("donations", (data.get("donations")?.asInt ?: 0) + 1)
+        if (special) data.addProperty("specialsDonated", (data.get("specialsDonated")?.asInt ?: 0) + 1)
+    }
+
     fun stat(uuid: UUID, key: String): Int = playerNode(uuid, create = false)?.get(key)?.asInt ?: 0
 
     /** Reinicia los contadores visibles en /wt stats y usados por /wt top para un jugador. */
@@ -84,6 +91,7 @@ class PlayerDataStore(private val file: Path) {
         data.addProperty("trades", 0)
         data.addProperty("specialsReceived", 0)
         data.addProperty("specialsDonated", 0)
+        data.addProperty("donations", 0)
     }
 
     /** Ranking descendente (uuid, nombre, valor) por un contador; ignora a quienes tienen 0. */
