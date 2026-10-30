@@ -55,7 +55,8 @@ Los comandos de jugador son públicos salvo que se indique otra cosa. Los nivele
 | `/wt stats [jugador]` | Todos | Muestra intercambios, donaciones directas, especiales recibidos/aportados y bonus. |
 | `/wt top` | Todos | Abre un menú para elegir entre los tres rankings. |
 | `/wt cancel` | Todos | Cancela el intercambio pendiente. |
-| `/wt pool` | `gui.poolViewPermissionLevel` (por defecto 0) | Abre la pool en un menú paginado de solo lectura, con filtro de categoría y orden por hora añadida ascendente/descendente. |
+| `/wt pool` | `gui.poolViewPermissionLevel` (por defecto 0) | Abre la pool en un menú paginado de solo lectura, con filtro de categoría, orden por hora añadida ascendente/descendente (la opción activa lleva una flecha ▶) y búsqueda por nombre o especie. También lo abren los admins en vista normal; para gestionar la pool usan `/wt admin`. |
+| `/wt pool search <texto>` | `gui.poolViewPermissionLevel` (por defecto 0) | Abre la pool mostrando solo los Pokémon cuyo nombre (apodo) o especie coincidan con el texto, por ejemplo `/wt pool search tusk` o `great tusk`. Desde el menú, el botón **Buscar por nombre o especie** cierra el menú y deja en el chat un enlace clicable que rellena este comando. |
 | `/wt help` | Todos | Muestra los comandos públicos; añade los comandos de administración solo si el jugador tiene `admin.permissionLevel`. |
 | `/wt reload` | `admin.permissionLevel` | Recarga configuración y archivos. |
 | `/wt clearpool` | `admin.permissionLevel` | Vacía la pool. |
@@ -214,3 +215,16 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 - Opciones del relleno rápido: 25, 50, 100, 250 y 500.
 - Las configuraciones antiguas que tenían el valor predeterminado erróneo de 5000 se actualizan automáticamente.
 - Al iniciar o recargar se recorta la pool si supera el máximo configurado, respetando `pool.trimOldestFirst`.
+
+
+### 0.8.8
+- Corregido el espacio sobrante en el mensaje `broadcastShiny`.
+- La pool abierta desde el menú principal o con `/wt pool` se muestra siempre en vista normal, también para admins: el botón **Volver** lleva al menú principal. El panel de administración solo se abre con `/wt admin`.
+- El botón de orden por hora marca con una flecha ▶ la opción activa, igual que el filtro de categoría.
+- Nuevo filtro de búsqueda por nombre o especie en la pool (`/wt pool search <texto>` y botón en el menú). Se conserva al cambiar de página, filtro u orden.
+
+### 0.8.9
+- `/wt top`: se quita "Volver al menú principal"; en su lugar hay un botón Cerrar.
+- Pool (admin): «Eliminar Pokémon» aparece en rojo y negrita.
+- Rellenar pool: al elegir una cantidad se queda en el mismo menú (ya no vuelve al panel admin).
+- `/wt`: el reloj del siguiente Wonder Trade pasa a la esquina superior izquierda.

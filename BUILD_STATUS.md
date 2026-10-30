@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.8.7**.
+- Versión actual: **0.8.9**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -132,3 +132,14 @@
 - Al iniciar o recargar, la pool se ajusta al máximo configurado, eliminando primero las entradas más antiguas si `pool.trimOldestFirst` está activado.
 - Se mantiene la protección de `adminFill` para generar solo los Pokémon que caben.
 - No se ha ejecutado Gradle; requiere validación en GitHub Actions.
+
+
+## 0.8.8
+- Corregido el espacio sobrante en `broadcastShiny`.
+- La pool abierta desde `/wt` o `/wt pool` es siempre la vista normal; el panel de admin solo se abre con `/wt admin`.
+- Flecha ▶ en el botón de orden por hora y nuevo filtro de búsqueda por nombre o especie (`/wt pool search`).
+- No se ha ejecutado Gradle; requiere validación en GitHub Actions.
+
+## 0.8.9
+- /wt top sin botón Volver (ahora Cerrar), «Eliminar Pokémon» en rojo y negrita, rellenar pool sin volver al panel admin, reloj de /wt arriba a la izquierda.
+- Gradle no se ha ejecutado en el entorno de edición.

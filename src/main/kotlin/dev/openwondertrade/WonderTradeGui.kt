@@ -7,6 +7,7 @@ import net.minecraft.core.component.DataComponents
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.sounds.SoundSource
+import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.Style
 import net.minecraft.server.level.ServerPlayer
@@ -25,6 +26,7 @@ import net.minecraft.world.item.Items
 import net.minecraft.world.item.component.ItemLore
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.UUID
 
 /**
  * Menú de cofre controlado por el servidor.
@@ -138,7 +140,8 @@ object WonderTradeGui {
         admin: Boolean = false,
         filter: PoolFilter = PoolFilter.ALL,
         deleteMode: Boolean = false,
-        sort: PoolSort = PoolSort.NEWEST
+        sort: PoolSort = PoolSort.NEWEST,
+        query: String? = null
     ) {
         val allowed = if (admin) player.hasPermissions(WonderTradeService.adminLevel()) else canViewPool(player)
         if (!allowed) {
@@ -146,7 +149,7 @@ object WonderTradeGui {
             return
         }
         val title = if (admin) "&5Wonder Trade &8- &fPool &c(admin)" else "&5Wonder Trade &8- &fPool"
-        open(player, title, 6) { renderPool(it, player, page, admin, filter, deleteMode, sort) }
+        open(player, title, 6) { renderPool(it, player, page, admin, filter, deleteMode, sort, query) }
     }
 
     fun openHistory(player: ServerPlayer, filter: String? = null, page: Int = 0) {
@@ -265,7 +268,7 @@ object WonderTradeGui {
             ConfigManager.string("messages.menuBookTitle", if (donationMode) "&dDonar a Wonder Trade" else "&dWonder Trade"),
             *bookLore.toTypedArray()
         ))
-        menu.markMainMenu(8)
+        menu.markMainMenu(0)
         menu.updateCooldownDisplay(cooldownStack(player))
 
         val party = Cobblemon.storage.getParty(player)
@@ -282,7 +285,7 @@ object WonderTradeGui {
         menu.button(22, named(Items.ENDER_CHEST, "&bAbrir PC", "&7Elige un Pokémon de tus cajas.")) { openPc(it, 0, donationMode) }
         if (canViewPool(player) || player.hasPermissions(WonderTradeService.adminLevel())) {
             menu.button(17, named(Items.CHEST, "&6Ver pool", "&7Pokémon aportados por los jugadores.")) {
-                openPool(it, 0, it.hasPermissions(WonderTradeService.adminLevel()))
+                openPool(it, 0, false)
             }
         }
         menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
@@ -327,12 +330,13 @@ object WonderTradeGui {
         admin: Boolean,
         filter: PoolFilter,
         deleteMode: Boolean,
-        sort: PoolSort
+        sort: PoolSort,
+        query: String? = null
     ) {
         menu.wipe()
         fill(menu, 54)
         val all = WonderTradeService.poolEntries()
-        val filtered = all.filter { filter.matches(it) }
+        val filtered = all.filter { filter.matches(it) && matchesQuery(it, query) }
         val entries = when (sort) {
             PoolSort.NEWEST -> filtered.sortedByDescending { it.addedAt }
             PoolSort.OLDEST -> filtered.sortedBy { it.addedAt }
@@ -349,14 +353,14 @@ object WonderTradeGui {
             extra += "&7Fecha: &f${format.format(Date(entry.addedAt))}"
             val pokemon = runCatching { Pokemon.loadFromJSON(registryAccess, entry.pokemonJson.deepCopy()) }.getOrNull()
             if (admin && deleteMode) extra += "&c✖ Clic para eliminar del pool"
-            else if (admin) extra += "&7Activa «Eliminar Pokémon» para poder borrarlo."
+            else if (admin) extra += "&7Activa &c&l«Eliminar Pokémon»&r&7 para poder borrarlo."
             val stack = if (pokemon != null) pokemonStack(pokemon, false, extra)
             else named(Items.BARRIER, "&c${entry.species}", "&7No se pudo cargar este Pokémon.")
             if (admin && deleteMode) {
                 menu.button(i, stack) { p ->
                     if (p.hasPermissions(WonderTradeService.adminLevel())) {
                         WonderTradeService.removeFromPool(entry.id)
-                        renderPool(menu, p, page, true, filter, true, sort)
+                        renderPool(menu, p, page, true, filter, true, sort, query)
                     }
                 }
             } else {
@@ -377,27 +381,88 @@ object WonderTradeGui {
             }
             menu.button(46, deleteButton) { p ->
                 if (p.hasPermissions(WonderTradeService.adminLevel())) {
-                    renderPool(menu, p, page, true, filter, !deleteMode, sort)
+                    renderPool(menu, p, page, true, filter, !deleteMode, sort, query)
                 }
             }
         }
-        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior"), "pageTurn") { renderPool(menu, it, page - 1, admin, filter, deleteMode, sort) }
+        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior"), "pageTurn") { renderPool(menu, it, page - 1, admin, filter, deleteMode, sort, query) }
         menu.put(49, named(Items.PAPER, "&fPágina ${page + 1}/$pages", "&7${entries.size} Pokémon con este filtro"))
-        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente"), "pageTurn") { renderPool(menu, it, page + 1, admin, filter, deleteMode, sort) }
+        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente"), "pageTurn") { renderPool(menu, it, page + 1, admin, filter, deleteMode, sort, query) }
         val counts = mapOf(PoolFilter.ALL to all.size, PoolFilter.SPECIAL to special, PoolFilter.NORMAL to all.size - special)
         val options = PoolFilter.values().map { option ->
             if (option == filter) "&e▶ ${option.label} &f${counts[option]}"
             else "&8   ${option.label.drop(2)} ${counts[option]}"
         }
-        menu.button(51, named(Items.CLOCK, "&fOrdenar pool", sort.label, "&7Ordena por fecha de incorporación.", "&eClic para cambiar")) {
-            renderPool(menu, it, 0, admin, filter, deleteMode, sort.next())
+        val sortOptions = PoolSort.values().map { option ->
+            if (option == sort) "&e▶ ${option.label}" else "&8   ${option.label.drop(2)}"
+        }
+        menu.button(51, named(Items.CLOCK, "&fOrdenar pool", *sortOptions.toTypedArray(), "&7Ordena por fecha de incorporación.", "&eClic para cambiar")) {
+            renderPool(menu, it, 0, admin, filter, deleteMode, sort.next(), query)
+        }
+        if (query != null) {
+            menu.button(47, named(Items.NAME_TAG, "&fBúsqueda: &e$query", "&7Mostrando solo los Pokémon que coinciden.", "&eClic para quitar la búsqueda")) {
+                renderPool(menu, it, 0, admin, filter, deleteMode, sort, null)
+            }
+        } else {
+            menu.button(47, named(Items.NAME_TAG, "&fBuscar por nombre o especie", "&7Encuentra un Pokémon concreto del pool.", "&eClic para buscar")) {
+                startSearch(it, admin, filter, deleteMode, sort)
+            }
         }
         menu.button(52, named(Items.HOPPER, "&fCambiar filtro de pool",
             *options.toTypedArray(),
             "&eClic para cambiar")) {
-            renderPool(menu, it, 0, admin, filter.next(), deleteMode, sort)
+            renderPool(menu, it, 0, admin, filter.next(), deleteMode, sort, query)
         }
         menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+    }
+
+    // ---------------------------------------------------------------- búsqueda en la pool
+
+    private data class SearchContext(
+        val admin: Boolean,
+        val filter: PoolFilter,
+        val deleteMode: Boolean,
+        val sort: PoolSort,
+        val expiresAt: Long
+    )
+
+    private val pendingSearch = HashMap<UUID, SearchContext>()
+
+    private fun normalize(text: String): String = text.lowercase().filter { it.isLetterOrDigit() }
+
+    /** Coincide por especie ("greattusk", "great tusk", "tusk") o por apodo del Pokémon. */
+    private fun matchesQuery(entry: PoolEntry, query: String?): Boolean {
+        if (query.isNullOrBlank()) return true
+        val needle = normalize(query)
+        if (needle.isEmpty()) return true
+        if (normalize(entry.species.substringAfter(':')).contains(needle)) return true
+        val nickname = entry.pokemonJson.entrySet().firstOrNull { it.key.equals("nickname", ignoreCase = true) }?.value?.toString()
+            ?: return false
+        return normalize(nickname).contains(needle)
+    }
+
+    /** Cierra el menú y envía un mensaje clicable que rellena el comando de búsqueda en el chat. */
+    private fun startSearch(player: ServerPlayer, admin: Boolean, filter: PoolFilter, deleteMode: Boolean, sort: PoolSort) {
+        pendingSearch[player.uuid] = SearchContext(admin, filter, deleteMode, sort, System.currentTimeMillis() + 120_000L)
+        player.closeContainer()
+        val button = Component.literal("§e§n[Pulsa aquí para buscar]")
+            .setStyle(Style.EMPTY.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/wt pool search ")))
+        player.sendSystemMessage(
+            WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + "&7Escribe el nombre o la especie del Pokémon. ").copy().append(button)
+        )
+    }
+
+    /** Abre la pool con el texto buscado, conservando el modo (normal o admin), filtro y orden desde donde se pulsó el botón. */
+    fun openSearch(player: ServerPlayer, text: String) {
+        val context = pendingSearch.remove(player.uuid)?.takeIf { it.expiresAt >= System.currentTimeMillis() }
+        openPool(
+            player, 0,
+            context?.admin ?: false,
+            context?.filter ?: PoolFilter.ALL,
+            context?.deleteMode ?: false,
+            context?.sort ?: PoolSort.NEWEST,
+            text.trim()
+        )
     }
 
     fun openTop(player: ServerPlayer) {
@@ -413,8 +478,7 @@ object WonderTradeGui {
             menu.button(15, named(Items.EMERALD, "&aTop especiales aportados", "&7Jugadores que más Pokémon especiales han aportado.", "&eClic para consultar")) { p ->
                 p.sendSystemMessage(WonderTradeService.topComponent("donated", p.uuid))
             }
-            menu.button(22, named(Items.ARROW, "&aVolver al menú principal")) { openMain(it) }
-            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+            menu.button(22, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
         }
     }
 
@@ -463,7 +527,12 @@ object WonderTradeGui {
     }
 
     private fun openAdminFill(player: ServerPlayer) {
-        open(player, "&5Administración &8- &aRellenar pool", 3) { menu ->
+        open(player, "&5Administración &8- &aRellenar pool", 3) { renderAdminFill(it) }
+    }
+
+    private fun renderAdminFill(menu: GuiMenu) {
+        run {
+            menu.wipe()
             fill(menu, 27)
             menu.put(4, named(Items.HOPPER, "&aRellenar la pool", "&7Probabilidad automática configurada.", "&7Niveles: ${ConfigManager.int("fallback.minimumLevel", 1)}-${ConfigManager.int("fallback.maximumLevel", 100)}"))
             val maximumPool = ConfigManager.int("pool.maximumEntries", 500).coerceAtLeast(1)
@@ -491,7 +560,7 @@ object WonderTradeGui {
                         val result = WonderTradeService.adminFill(p, amount, null, minLevel, maxLevel)
                         val chance = String.format("%.2f", result.chancePercent)
                         p.sendSystemMessage(WonderTradeService.info("&aGenerados &f${result.added}/$availableNow &aPokémon; especiales: &d${result.special} &7(probabilidad: $chance%)."))
-                        openAdmin(p)
+                        renderAdminFill(menu)
                     }
                 }
             }

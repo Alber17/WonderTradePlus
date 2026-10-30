@@ -151,15 +151,26 @@ class WonderTradePlus : ModInitializer {
                 1
             })
             // PERMISO: gui.poolViewPermissionLevel para jugadores; los admins acceden con admin.permissionLevel.
-            .then(literal("pool").executes { context ->
-                val player = context.source.player
-                if (player == null) {
-                    context.source.sendFailure(WonderTradeService.info("&cEste comando solo puede usarse dentro del juego."))
-                } else {
-                    WonderTradeGui.openPool(player, 0, player.hasPermissions(WonderTradeService.adminLevel()))
+            .then(literal("pool")
+                .executes { context ->
+                    val player = context.source.player
+                    if (player == null) {
+                        context.source.sendFailure(WonderTradeService.info("&cEste comando solo puede usarse dentro del juego."))
+                    } else {
+                        // Vista normal para todos; la gestión de la pool está en /wt admin.
+                        WonderTradeGui.openPool(player, 0, false)
+                    }
+                    1
                 }
-                1
-            })
+                .then(literal("search").then(argument("text", StringArgumentType.greedyString()).executes { context ->
+                    val player = context.source.player
+                    if (player == null) {
+                        context.source.sendFailure(WonderTradeService.info("&cEste comando solo puede usarse dentro del juego."))
+                    } else {
+                        WonderTradeGui.openSearch(player, StringArgumentType.getString(context, "text"))
+                    }
+                    1
+                })))
             // PERMISO: admin.permissionLevel (configurable; por defecto OP nivel 2).
             .then(literal("reload").requires { it.hasPermission(WonderTradeService.adminLevel()) }.executes { context ->
                 WonderTradeService.reload()
@@ -413,7 +424,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.8.7"
+        const val MOD_VERSION = "0.8.9"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

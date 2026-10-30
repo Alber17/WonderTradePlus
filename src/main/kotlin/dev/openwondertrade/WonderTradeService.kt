@@ -112,6 +112,7 @@ object WonderTradeService {
         )
         if (player != null && (WonderTradeGui.canViewPool(player) || player.hasPermissions(adminLevel()))) {
             lines += ConfigManager.string("messages.helpPoolCommand", "&e/wt pool &7Ver la pool")
+            lines += ConfigManager.string("messages.helpPoolSearchCommand", "&e/wt pool search <texto> &7Buscar en la pool por nombre o especie")
         }
         lines += ConfigManager.string("messages.helpHelpCommand", "&e/wt help &7Mostrar esta ayuda")
         if (player?.hasPermissions(adminLevel()) == true) {
