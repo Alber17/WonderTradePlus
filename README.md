@@ -12,7 +12,7 @@ Wonder Trade abierto y configurable para **Cobblemon**. Se distribuye como **mod
 - Filtros de admisión para shiny, legendarios/míticos, Ultraentes y etiquetas especiales (la lista de etiquetas es configurable).
 - Bonus acumulado configurable: +0,1 puntos porcentuales por un Pokémon normal, +0,5 por un Pokémon shiny o especial y +0,2 extra si el ofrecido es shiny y además legendario, mítico, Ultraente o Paradoja. El libro del menú `/wt` muestra estos porcentajes.
 - Cooldown por jugador, límite diario opcional y bypass para operadores; el menú muestra un contador que se actualiza cada segundo.
-- Sonidos configurables de cofre/Ender Chest, clics, paginación y obtención de especiales; un especial shiny reproduce el sonido del tótem.
+- Sonidos configurables de cofre/Ender Chest, clics, paginación y obtención de especiales; el sonido del tótem solo suena con un legendario, mítico, Ultraente o Paradoja que además sea shiny; un shiny normal usa el sonido de especial.
 - Panel gráfico de administración en `/wt admin`, con accesos a la pool, historial, recarga, mantenimiento, copias de seguridad y vaciado protegido por confirmación.
 - Listas negra y blanca de especies.
 - Protección para no intercambiar Pokémon no intercambiables, debilitados, alfa o con objeto equipado (según configuración).
@@ -59,6 +59,10 @@ Los comandos de jugador son públicos salvo que se indique otra cosa. Los nivele
 | `/wt pool search <texto>` | `gui.poolViewPermissionLevel` (por defecto 0) | Abre la pool mostrando solo los Pokémon cuyo nombre (apodo) o especie coincidan con el texto, por ejemplo `/wt pool search tusk` o `great tusk`. Desde el menú, el botón **Buscar por nombre o especie** cierra el menú y deja en el chat un enlace clicable que rellena este comando. |
 | `/wt help` | Todos | Muestra los comandos públicos; añade los comandos de administración solo si el jugador tiene `admin.permissionLevel`. |
 | `/wt reload` | `admin.permissionLevel` | Recarga configuración y archivos. |
+| `/wt eventos` | Todos | Muestra los eventos activos, qué hacen y cuándo puedes usar el intercambio de evento. |
+| `/wt admin eventos` | `admin.permissionLevel` | Lista los eventos activos con su id. |
+| `/wt admin eventos crear <arriesgar\|recibir> <shiny\|legendario\|mitico\|ultraente\|paradoja> <duración> [valor] [espera]` | `admin.permissionLevel` | Crea un evento. Duración: `30s`, `5m`, `2h`, `1d`, `1h30m`. El valor y la espera son opcionales. |
+| `/wt admin eventos parar <id>` | `admin.permissionLevel` | Finaliza un evento. |
 | `/wt on` / `/wt off` | `admin.permissionLevel` | Activa o desactiva Wonder Trade sin quitar el mod. |
 | `/wt clearpool` | `admin.permissionLevel` | Vacía la pool. |
 | `/wt admin` | `admin.permissionLevel` | Abre el panel gráfico de administración. |
@@ -95,7 +99,7 @@ Todos requieren `admin.permissionLevel` (nivel OP 2 por defecto, configurable en
 2. Se abre una pantalla de confirmación (si `general.requireConfirmation` está activado).
 3. Al confirmar, recibes otro Pokémon. Si ofreciste uno del equipo, el nuevo llega al equipo; si era del PC, llega al PC. El resultado y el aumento, reinicio o mantenimiento de tu probabilidad se muestran juntos en un único mensaje de chat.
 
-Cada Pokémon muestra su nivel, **tipos**, forma (Alolan, Galarian…), categoría real (Legendario, Mítico, Ultraente, Paradoja), la etiqueta Shiny y si es alfa. El menú muestra un reloj con el tiempo restante del cooldown y se actualiza cada segundo. Los sonidos de apertura, PC, botones, paginación y obtención de especiales se pueden activar y ajustar en `sounds.*`; un especial shiny usa el sonido del tótem. El libro del menú `/wt` informa de los incrementos configurados: normal, shiny, especiales y especial shiny.
+Cada Pokémon muestra su nivel, **tipos**, forma (Alolan, Galarian…), categoría real (Legendario, Mítico, Ultraente, Paradoja), la etiqueta Shiny y si es alfa. El menú muestra un reloj con el tiempo restante del cooldown y se actualiza cada segundo. Los sonidos de apertura, PC, botones, paginación y obtención de especiales se pueden activar y ajustar en `sounds.*`; el tótem solo suena con un especial de categoría que además sea shiny. El libro del menú `/wt` informa de los incrementos configurados: normal, shiny, especiales y especial shiny.
 
 Los Pokémon que no se pueden ofrecer (debilitados, fuera del rango de nivel, cooldown activo, etc.) se marcan en rojo y el motivo aparece en el chat al pulsarlos.
 
@@ -161,7 +165,7 @@ Opciones principales:
 - `gui.enabled`: si es `false`, `/wt` muestra la ayuda en lugar del menú.
 - `gui.poolViewPermissionLevel`: nivel de operador para ver el pool (`0` = todos, `2` = solo operadores).
 - `gui.showDonorNames`: muestra quién aportó cada Pokémon en la vista del pool.
-- `sounds.enabled` y `sounds.*`: activan los sonidos de los menús, apertura del PC, clics, cambio de página y especiales; `sounds.volume` y `sounds.pitch` ajustan volumen y tono. El shiny especial usa el sonido del tótem.
+- `sounds.enabled` y `sounds.*`: activan los sonidos de los menús, apertura del PC, clics, cambio de página y especiales; `sounds.volume` y `sounds.pitch` ajustan volumen y tono. El tótem solo suena con un especial de categoría que además sea shiny.
 - La vista de pool incorpora orden por hora añadida: ascendente (más antiguos primero) y descendente (más recientes primero).
 - `broadcast.*`: qué categorías se anuncian.
 
@@ -233,3 +237,19 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 ### 0.9.0
 - Menú de confirmación: muestra la probabilidad real de recibir un especial (especiales disponibles en la pool, tu bonus y el resultado con este intercambio). Se puede quitar con `gui.showTradePreview: false`.
 - Nuevo `/wt on` y `/wt off` (solo admins): activa o desactiva Wonder Trade sin quitar el mod. El estado se guarda en `general.enabled` de `config.json`.
+
+### 0.11.0
+- **Purga automática:** un Pokémon normal que lleve más de 1 semana en la pool sin ser recibido se elimina y se sustituye por uno nuevo (también normal). Los especiales (shiny, legendario, mítico, Ultraente y Paradoja) no se purgan. Configuración en `maintenance.purge`: `enabled`, `afterHours` (168 = 1 semana) e `includePlayerDonations`. Se ejecuta con el mantenimiento automático y hace falta al menos un jugador conectado para generar los nuevos.
+- **Eventos por categoría:** ahora hay «Arriesgar» y «Recibir» para Shiny, Legendario, Mítico, Ultraente y Paradoja. Comando: `/wt admin eventos crear <tipo> <categoría> <duración> [valor] [espera]`. Los valores por defecto están en `events.risk` y `events.receive`.
+- **`/wt admin fill`:** corregido. Con probabilidad 100 podían salir algunos Pokémon normales porque la búsqueda de especiales se rendía demasiado pronto. Ahora insiste mucho más y, si se pidió un especial, nunca lo sustituye por un normal.
+
+### 0.10.0
+- Eventos temporales. Se ven con `/wt eventos` y los gestionan los admins con `/wt admin eventos` o el botón «Gestionar eventos» del panel.
+  - **Arriesgar Shiny:** cada shiny ofrecido suma un % extra (por defecto `+0.2%`, `events.risk.extraGain`) a tu probabilidad de especial. Se reinicia a 0 cuando te toca un especial.
+  - **Recibir Shiny:** probabilidad extra de que te entreguen un shiny de la pool (por defecto `10%`, `events.receive.chance`).
+  - Mientras un evento está activo puedes hacer un intercambio extra cada cierto tiempo (por defecto 1 por minuto) sin gastar tu tiempo normal ni tu límite diario.
+- Los eventos se guardan en `event.json` y siguen activos tras un reinicio. El reloj del menú principal muestra cuándo tienes disponible el intercambio de evento.
+
+### 0.11.1
+- Panel `/wt admin` ampliado a 6 filas: pool, servidor (eventos, on/off, historial, estadísticas) y sistema (recarga, mantenimiento, copia, Discord) en una sola página.
+- Corregido el sonido del tótem: solo suena con un legendario, mítico, Ultraente o Paradoja shiny; un shiny normal usa el sonido de especial.

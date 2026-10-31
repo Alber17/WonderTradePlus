@@ -49,7 +49,12 @@
   },
   "maintenance": {
     "expireAfterDays": 14,
-    "intervalMinutes": 30
+    "intervalMinutes": 30,
+    "purge": {
+      "enabled": true,
+      "afterHours": 168,
+      "includePlayerDonations": true
+    }
   },
   "backup": {
     "intervalHours": 6,
@@ -92,6 +97,19 @@
         250,
         500
       ]
+    }
+  },
+  "events": {
+    "enabled": true,
+    "maximumDurationHours": 720,
+    "menuDurations": ["5m", "30m", "1h", "3h", "1d"],
+    "risk": {
+      "extraGain": 0.2,
+      "cooldownSeconds": 60
+    },
+    "receive": {
+      "chance": 10.0,
+      "cooldownSeconds": 60
     }
   },
   "gui": {
@@ -165,6 +183,17 @@
     "successBonusIncreased": "&7Tu probabilidad ha aumentado &a+{gain}%&7. Ahora tienes &d{percent}%&7.",
     "successBonusReset": "&7Has recibido un especial y tu probabilidad se ha reiniciado a &d{percent}%&7.",
     "successBonusUnchanged": "&7Tu probabilidad acumulada sigue en &d{percent}%&7.",
+    "eventStarted": "&d★ ¡Evento «{name}» activo durante {duration}! &7Usa &e/wt eventos &7para ver los detalles.",
+    "eventEnded": "&d★ El evento «{name}» ha terminado.",
+    "eventNone": "&7No hay ningún evento activo ahora mismo.",
+    "eventsHeader": "&d&lEventos activos:",
+    "eventRiskDescription": "&7Cada Pokémon &f{category}&7 que ofrezcas suma &d+{value}%&7 extra a tu probabilidad de especial.",
+    "eventReceiveDescription": "&7Probabilidad extra de recibir un Pokémon &f{category}&7: &d+{value}%&7 en cada intercambio.",
+    "eventCooldownDescription": "&7Puedes intercambiar una vez cada &f{cooldown}&7 sin gastar tu tiempo normal.",
+    "eventYourCooldown": "&7Tu próximo intercambio de evento: {state}",
+    "previewEventShiny": "&d★ Evento: &7+{percent}% de recibir un Pokémon {category}",
+    "helpEventsCommand": "&e/wt eventos &7Ver los eventos activos",
+    "helpAdminEventsCommand": "&e/wt admin eventos [crear <tipo> <categoría> <duración> [valor] [espera] | parar <id>] &7Gestionar eventos",
     "tradeDisabled": "&cWonder Trade está desactivado temporalmente.",
     "previewTitle": "&dProbabilidades de este intercambio",
     "previewPool": "&7Especiales disponibles en la pool: &f{specials}&7/&f{total}",

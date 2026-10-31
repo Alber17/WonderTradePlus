@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.9.0**.
+- Versión actual: **0.11.1**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -147,4 +147,21 @@
 ## 0.9.0
 - Vista previa de probabilidades en el menú de confirmación (gui.showTradePreview).
 - /wt on | off (general.enabled) para desactivar Wonder Trade sin quitar el mod.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.10.0
+- Eventos: «Arriesgar Shiny» y «Recibir Shiny» (WonderTradeEvents.kt, event.json, sección events en config).
+- /wt eventos, /wt admin eventos [crear|parar|lista] y botón «Gestionar eventos» en el panel admin.
+- Los intercambios de evento usan su propia espera y no tocan el tiempo normal ni el límite diario.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.11.0
+- Purga automática de normales con más de maintenance.purge.afterHours en la pool (se sustituyen por otros nuevos).
+- Eventos por categoría (shiny, legendario, mítico, Ultraente, Paradoja) para Arriesgar y Recibir.
+- Corregido /wt admin fill con probabilidad alta (más intentos para especiales y sin sustituir por normales).
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.11.1
+- Panel de administración ampliado a 6 filas con todas las funciones en una sola página (incluye interruptor on/off y eventos).
+- Sonido del tótem solo para especial de categoría + shiny; un shiny normal usa el sonido de especial.
 - Gradle no se ha ejecutado en el entorno de edición.

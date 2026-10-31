@@ -29,6 +29,7 @@ object WonderTradeService {
         pool = PoolStore(directory.resolve("pool.json"))
         playerData = PlayerDataStore(directory.resolve("player-data.json"))
         history = HistoryStore(directory.resolve("history.json"))
+        WonderTradeEvents.load(directory)
         pool.load()
         trimAndSave()
         playerData.load()
@@ -38,6 +39,8 @@ object WonderTradeService {
 
     fun reload() {
         ConfigManager.load()
+        entryCategoryCache.clear()
+        WonderTradeEvents.load()
         pool.load()
         trimAndSave()
         playerData.load()
@@ -124,6 +127,7 @@ object WonderTradeService {
             ConfigManager.string("messages.helpStatsCommand", "&e/wt stats [jugador] &7Consultar estadísticas"),
             ConfigManager.string("messages.helpTopCommand", "&e/wt top &7Abrir el menú de rankings"),
             ConfigManager.string("messages.helpChanceCommand", "&e/wt chance &7Consultar tu probabilidad de especial"),
+            ConfigManager.string("messages.helpEventsCommand", "&e/wt eventos &7Ver los eventos activos"),
             ConfigManager.string("messages.helpSoundsCommand", "&e/wt sonidos &7Configurar tus sonidos")
         )
         if (player != null && (WonderTradeGui.canViewPool(player) || player.hasPermissions(adminLevel()))) {
@@ -142,6 +146,7 @@ object WonderTradeService {
             lines += ConfigManager.string("messages.helpAdminHistoryCommand", "&e/wt admin history [jugador] &7Consultar historial")
             lines += ConfigManager.string("messages.helpAdminResetStatsCommand", "&e/wt admin resetstats <jugador|all> &7Reiniciar estadísticas")
             lines += ConfigManager.string("messages.helpAdminChanceCommand", "&e/wt chance <jugador> set <porcentaje> | reset &7Editar el bonus")
+            lines += ConfigManager.string("messages.helpAdminEventsCommand", "&e/wt admin eventos [crear <tipo> <categoría> <duración> [valor] [espera] | parar <id>] &7Gestionar eventos")
             lines += ConfigManager.string("messages.helpAdminToggleCommand", "&e/wt on | off &7Activar o desactivar Wonder Trade")
             lines += ConfigManager.string("messages.helpAdminReloadCommand", "&e/wt reload &7Recargar configuración y datos")
             lines += ConfigManager.string("messages.helpAdminMaintenanceCommand", "&e/wt admin maintenance &7Ejecutar mantenimiento")
@@ -480,6 +485,16 @@ object WonderTradeService {
     /** Probabilidad (en %) de que cada Pokémon generado sea especial, calculada según el tamaño de la pool. */
     fun autoSpecialChance(amount: Int): Double = (0.25 + amount * 0.005).coerceAtMost(2.0)
 
+    private const val SPECIAL_ATTEMPT_FACTOR = 50
+
+    /** Filtro de generación automática: respeta shiny/especial/alfa permitidos y las listas de especies. */
+    private fun fillAllowed(candidate: Pokemon): Boolean {
+        if (!ConfigManager.bool("general.allowShinyPokemon", true) && candidate.shiny) return false
+        if (!ConfigManager.bool("general.allowSpecialPokemon", true) && WonderTradeRules.isSpecialSpecies(candidate)) return false
+        if (!ConfigManager.bool("general.allowAlphaPokemon", true) && candidate.isAlpha) return false
+        return WonderTradeRules.isSpeciesAllowed(candidate.species.resourceIdentifier.toString())
+    }
+
     private fun generateRandom(player: ServerPlayer, low: Int, high: Int, attempts: Int, shiny: Boolean?, accept: (Pokemon) -> Boolean): Pokemon? {
         repeat(attempts) {
             val candidate = try {
@@ -512,12 +527,7 @@ object WonderTradeService {
         val allowAlpha = ConfigManager.bool("general.allowAlphaPokemon", true)
         val chance = (chancePercent ?: autoSpecialChance(targetAmount)).coerceIn(0.0, 100.0)
 
-        fun allowed(candidate: Pokemon): Boolean {
-            if (!allowShiny && candidate.shiny) return false
-            if (!allowSpecial && WonderTradeRules.isSpecialSpecies(candidate)) return false
-            if (!allowAlpha && candidate.isAlpha) return false
-            return WonderTradeRules.isSpeciesAllowed(candidate.species.resourceIdentifier.toString())
-        }
+        fun allowed(candidate: Pokemon): Boolean = fillAllowed(candidate)
 
         var added = 0
         var special = 0
@@ -525,15 +535,24 @@ object WonderTradeService {
             var pokemon: Pokemon? = null
             var isSpecialOne = false
 
-            if ((allowShiny || allowSpecial) && Random.nextDouble() * 100.0 < chance) {
+            val wantsSpecial = (allowShiny || allowSpecial) && Random.nextDouble() * 100.0 < chance
+            if (wantsSpecial) {
                 // Un tercio de los especiales son shiny; el resto, legendarios/míticos/Ultraentes/Paradoja.
                 val shinyOne = allowShiny && (!allowSpecial || Random.nextInt(3) == 0)
-                pokemon = generateRandom(player, low, high, attempts, if (shinyOne) true else null) { candidate ->
+                // Los especiales de especie son poco frecuentes entre las especies aleatorias, así que se
+                // buscan con muchos más intentos; antes se rendía y dejaba un Pokémon normal.
+                val specialAttempts = if (shinyOne) attempts else attempts * SPECIAL_ATTEMPT_FACTOR
+                pokemon = generateRandom(player, low, high, specialAttempts, if (shinyOne) true else null) { candidate ->
                     allowed(candidate) && (shinyOne || WonderTradeRules.isSpecialSpecies(candidate))
+                }
+                // Si aun así no apareció, se genera un shiny (siempre posible) para respetar la probabilidad.
+                if (pokemon == null && allowShiny) {
+                    pokemon = generateRandom(player, low, high, attempts, true) { allowed(it) }
                 }
                 isSpecialOne = pokemon != null
             }
-            if (pokemon == null) {
+            // Si se pidió especial, nunca se rellena con un normal en su lugar.
+            if (pokemon == null && !wantsSpecial) {
                 // Pokémon normal: se descartan los especiales para que la probabilidad sea la indicada.
                 pokemon = generateRandom(player, low, high, attempts, false) { allowed(it) && !WonderTradeRules.isRare(it) }
             }
@@ -613,6 +632,9 @@ object WonderTradeService {
             return
         }
         checkLimits(player)?.let { return }
+        // Si hay un evento activo con la espera cumplida, este intercambio usa el evento y no gasta tu tiempo normal.
+        val eventBypass = player.hasPermissions(ConfigManager.int("trade.adminBypassPermissionLevel", 2).coerceIn(0, 4))
+        val eventUse = if (eventBypass) null else WonderTradeEvents.readyEvent(player)
 
         val now = System.currentTimeMillis()
         val previousPool = pool.snapshot()
@@ -649,6 +671,15 @@ object WonderTradeService {
         // Nunca se inventan Pokémon ni se exige compatibilidad con el Pokémon ofrecido.
         var chosenEntry: PoolEntry? = if (forceSpecial) choosePoolEntry(forceSpecial = true, player = player) else null
         if (chosenEntry == null) chosenEntry = choosePoolEntry(forceSpecial = false, player = player)
+
+        // Eventos «Recibir …»: probabilidad extra de que la entrega sea de la categoría del evento.
+        for (event in WonderTradeEvents.receiveEvents()) {
+            val current = chosenEntry ?: break
+            if (entryMatches(current, event.category, registryAccess)) continue
+            if (Random.nextDouble() * 100.0 >= event.value) continue
+            val pick = eligibleEntries(player).filter { entryMatches(it, event.category, registryAccess) }.randomOrNull()
+            if (pick != null) chosenEntry = pick
+        }
 
         val selectedEntry = chosenEntry ?: run {
             send(player, "noCandidate")
@@ -687,7 +718,8 @@ object WonderTradeService {
             }
             pool.save()
             val incomingRare = WonderTradeRules.isRare(incoming)
-            playerData.recordTrade(player.uuid, now, offeredRare, incomingRare)
+            playerData.recordTrade(player.uuid, now, offeredRare, incomingRare, affectCooldown = eventUse == null)
+            if (eventUse != null) WonderTradeEvents.markUsed(player, eventUse)
             playerData.setName(player.uuid, player.gameProfile.name)
             var bonusAfter = bonusBefore
             if (bonusEnabled) {
@@ -703,7 +735,8 @@ object WonderTradeService {
             }
             playerData.save()
             pending.remove(player.uuid)
-            if (incomingRare) WonderTradeGui.playSpecialSound(player, incoming.shiny)
+            // El tótem es solo para un especial (legendario, mítico, Ultraente o Paradoja) que además sea shiny.
+            if (incomingRare) WonderTradeGui.playSpecialSound(player, incoming.shiny && WonderTradeRules.isSpecialSpecies(incoming))
             val bonusText = when {
                 !bonusEnabled -> ""
                 !offeredRare && incomingRare && bonusForRoll > 0.0 -> format(
@@ -764,6 +797,24 @@ object WonderTradeService {
         }
     }
 
+    // ------------------------------------------------------------ categorías de entradas (eventos)
+
+    private val entryCategoryCache = HashMap<String, String>()
+
+    /** Categoría de especie de una entrada de la pool (legendary, mythical, ultraBeast, paradox) o null. */
+    private fun entryCategoryKey(entry: PoolEntry, registryAccess: net.minecraft.core.RegistryAccess): String? {
+        val id = entry.species.substringAfter(':').lowercase()
+        if (id in WonderTradeRules.pastParadox || id in WonderTradeRules.futureParadox) return "paradox"
+        val key = entryCategoryCache.getOrPut(entry.id) {
+            runCatching { Pokemon.loadFromJSON(registryAccess, entry.pokemonJson.deepCopy()) }.getOrNull()
+                ?.let { WonderTradeRules.speciesCategoryKey(it) } ?: ""
+        }
+        return key.ifEmpty { null }
+    }
+
+    private fun entryMatches(entry: PoolEntry, category: EventCategory, registryAccess: net.minecraft.core.RegistryAccess): Boolean =
+        if (category == EventCategory.SHINY) entry.shiny else entryCategoryKey(entry, registryAccess) == category.speciesCategory()
+
     // ------------------------------------------------------------ vista previa de probabilidades
 
     /** Líneas para el menú de confirmación: qué probabilidad real hay de recibir un especial. */
@@ -785,7 +836,12 @@ object WonderTradeService {
         val forced = if (offeredRare || specials == 0) 0.0
         else (before + gain).coerceAtMost(maximum).let { if (bonusEnabled) it else 0.0 }
         val natural = specials * 100.0 / total
-        val finalChance = forced + (100.0 - forced) * natural / 100.0
+        val registryAccess = player.server.registryAccess()
+        // Solo cuentan los eventos de recepción para los que existe algún Pokémon de su categoría en la pool.
+        val usefulEvents = WonderTradeEvents.receiveEvents().filter { event -> eligible.any { entryMatches(it, event.category, registryAccess) } }
+        var noSpecial = (1.0 - forced / 100.0) * (1.0 - natural / 100.0)
+        usefulEvents.forEach { noSpecial *= (1.0 - it.value / 100.0) }
+        val finalChance = (1.0 - noSpecial) * 100.0
         lines += format(ConfigManager.string("messages.previewPool", "&7Especiales disponibles en la pool: &f{specials}&7/&f{total}"),
             mapOf("specials" to specials, "total" to total))
         if (bonusEnabled) {
@@ -801,6 +857,10 @@ object WonderTradeService {
         }
         lines += format(ConfigManager.string("messages.previewChance", "&7Probabilidad de recibir un especial: &d{percent}%"),
             mapOf("percent" to String.format("%.1f", finalChance)))
+        usefulEvents.forEach { event ->
+            lines += format(ConfigManager.string("messages.previewEventShiny", "&d★ Evento: &7+{percent}% de recibir un Pokémon {category}"),
+                mapOf("percent" to percentText(event.value), "category" to event.category.label))
+        }
         if (bonusEnabled && !offeredRare) {
             lines += ConfigManager.string("messages.previewReset", "&8Si te toca un especial, tu bonus se reinicia a 0%.")
         }
@@ -822,7 +882,9 @@ object WonderTradeService {
         val specialShinyExtra = if (pokemon.shiny && WonderTradeRules.categoryLabel(pokemon) != null) {
             ConfigManager.double("bonus.specialShinyExtraGain", 0.2).coerceAtLeast(0.0)
         } else 0.0
-        return base + specialShinyExtra
+        // Evento «Arriesgar Shiny»: cada shiny ofrecido suma un % extra.
+        val eventExtra = WonderTradeEvents.riskExtraGain(pokemon)
+        return base + specialShinyExtra + eventExtra
     }
 
     fun normalBonusGainText(): String = percentText(ConfigManager.double("bonus.normalTradeGain", 0.1).coerceAtLeast(0.0))
@@ -838,6 +900,7 @@ object WonderTradeService {
         tickCounter++
         if (tickCounter % 20 != 0) return
         secondCounter++
+        runCatching { WonderTradeEvents.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el control de eventos.", it) }
         server.playerList.players.forEach { WonderTradeGui.refreshCooldown(it) }
 
 
@@ -863,8 +926,44 @@ object WonderTradeService {
             pool.save()
             WonderTradePlus.LOGGER.info("Mantenimiento del pool: {} entradas caducadas eliminadas; {} Pokémon permanecen.", expired, pool.size)
         }
-        // El segundo valor se conserva por compatibilidad con el comando de mantenimiento.
-        return expired to 0
+        val (purged, generated) = purgeStale(server)
+        return (expired + purged) to generated
+    }
+
+    /**
+     * Purga automática: un Pokémon normal que lleva demasiado tiempo en la pool sin que nadie lo reciba se
+     * elimina y se sustituye por uno nuevo (normal). Los especiales (shiny, legendario, mítico, Ultraente
+     * y Paradoja) nunca se purgan. Solo se retira una entrada si se ha podido generar su sustituto.
+     */
+    private fun purgeStale(server: MinecraftServer): Pair<Int, Int> {
+        if (!ConfigManager.bool("maintenance.purge.enabled", true)) return 0 to 0
+        val hours = ConfigManager.int("maintenance.purge.afterHours", 168)
+        if (hours <= 0) return 0 to 0
+        // Generar Pokémon necesita un jugador conectado; si no hay ninguno se aplaza a la siguiente pasada.
+        val player = server.playerList.players.firstOrNull() ?: return 0 to 0
+        val limit = System.currentTimeMillis() - hours * 3_600_000L
+        val includeDonations = ConfigManager.bool("maintenance.purge.includePlayerDonations", true)
+        val stale = pool.all().filter {
+            it.addedAt > 0L && it.addedAt < limit && !WonderTradeRules.isRareEntry(it) && (includeDonations || it.donorUuid.isEmpty())
+        }
+        if (stale.isEmpty()) return 0 to 0
+        val low = ConfigManager.int("fallback.minimumLevel", 1).coerceIn(1, 100)
+        val high = ConfigManager.int("fallback.maximumLevel", 100).coerceIn(low, 100)
+        val attempts = ConfigManager.int("fallback.speciesGenerationAttempts", 128).coerceIn(1, 1000)
+        val registryAccess = server.registryAccess()
+        var replaced = 0
+        for (entry in stale) {
+            val fresh = generateRandom(player, low, high, attempts, false) { fillAllowed(it) && !WonderTradeRules.isRare(it) } ?: continue
+            if (pool.remove(entry.id)) {
+                addAdminEntry(fresh, registryAccess)
+                replaced++
+            }
+        }
+        if (replaced > 0) {
+            pool.save()
+            WonderTradePlus.LOGGER.info("Purga de la pool: {} Pokémon con más de {} h sustituidos por otros nuevos.", replaced, hours)
+        }
+        return replaced to replaced
     }
 
     /** Copia pool.json, player-data.json y history.json a backups/<fecha>. Devuelve el nombre de la carpeta. */
@@ -1084,7 +1183,7 @@ object WonderTradeService {
 
     private fun checkLimits(player: ServerPlayer): Boolean? {
         val bypassLevel = ConfigManager.int("trade.adminBypassPermissionLevel", 2).coerceIn(0, 4)
-        val bypass = player.hasPermissions(bypassLevel)
+        val bypass = player.hasPermissions(bypassLevel) || WonderTradeEvents.readyEvent(player) != null
         val cooldown = (ConfigManager.int("trade.cooldownMinutes", 720).coerceAtLeast(0) * 60L).toLong()
         val limit = ConfigManager.int("trade.dailyLimit", 0).coerceAtLeast(0)
         val check = playerData.check(player.uuid, System.currentTimeMillis(), cooldown, limit, bypass)

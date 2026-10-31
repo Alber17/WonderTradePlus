@@ -35,6 +35,18 @@ object WonderTradeRules {
         return keys
     }
 
+    /** Categoría de especie para eventos: ultraBeast, paradox, mythical, legendary o null. */
+    fun speciesCategoryKey(pokemon: Pokemon): String? {
+        val id = pokemon.species.resourceIdentifier.path.lowercase()
+        return when {
+            runCatching { pokemon.isUltraBeast() }.getOrDefault(false) -> "ultraBeast"
+            id in pastParadox || id in futureParadox -> "paradox"
+            runCatching { pokemon.isMythical() }.getOrDefault(false) -> "mythical"
+            runCatching { pokemon.isLegendary() }.getOrDefault(false) -> "legendary"
+            else -> null
+        }
+    }
+
     /** Legendario, mítico, Ultraente o Paradoja (sin contar shiny). */
     fun isSpecialSpecies(pokemon: Pokemon): Boolean = categoryLabel(pokemon) != null || isSpecial(pokemon)
 

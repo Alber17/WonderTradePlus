@@ -1,0 +1,389 @@
+package dev.openwondertrade
+
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
+import net.minecraft.network.chat.Component
+import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerPlayer
+import java.nio.file.Files
+import java.nio.file.Path
+
+/** Tipos de evento disponibles. */
+enum class EventType(val key: String, val title: String) {
+    /** Ofrecer un Pokémon de la categoría del evento suma un % extra a tu probabilidad de especial. */
+    RISK("arriesgar", "Arriesgar"),
+
+    /** Aumenta la probabilidad de recibir un Pokémon de la categoría del evento en cada intercambio. */
+    RECEIVE("recibir", "Recibir");
+
+    companion object {
+        fun parse(text: String): EventType? =
+            values().firstOrNull { it.key.equals(text, true) || it.name.equals(text, true) }
+    }
+}
+
+/** Categoría a la que afecta un evento. */
+enum class EventCategory(val key: String, val label: String, private val speciesKey: String?) {
+    SHINY("shiny", "Shiny", null),
+    LEGENDARY("legendario", "Legendario", "legendary"),
+    MYTHICAL("mitico", "Mítico", "mythical"),
+    ULTRABEAST("ultraente", "Ultraente", "ultraBeast"),
+    PARADOX("paradoja", "Paradoja", "paradox");
+
+    fun matches(pokemon: com.cobblemon.mod.common.pokemon.Pokemon): Boolean =
+        if (this == SHINY) pokemon.shiny else WonderTradeRules.speciesCategoryKey(pokemon) == speciesKey
+
+    /** Clave de categoría de especie (null para shiny). */
+    fun speciesCategory(): String? = speciesKey
+
+    companion object {
+        fun parse(text: String): EventCategory? {
+            val clean = text.lowercase().replace('í', 'i').replace('é', 'e')
+            return values().firstOrNull {
+                it.key == clean || it.name.lowercase() == clean || it.label.lowercase().replace('í', 'i') == clean
+            }
+        }
+    }
+}
+
+/**
+ * Un evento temporal.
+ * [value] es el % extra por shiny ofrecido (arriesgar) o el % extra de recibir un shiny (recibir).
+ * [cooldownSeconds] es la espera entre intercambios "de evento" de cada jugador.
+ */
+data class WtEvent(
+    val id: Int,
+    val type: EventType,
+    val category: EventCategory,
+    val startAt: Long,
+    val endAt: Long,
+    val value: Double,
+    val cooldownSeconds: Long,
+    val createdBy: String
+) {
+    /** Nombre completo, por ejemplo «Arriesgar Legendario». */
+    val title: String get() = "${type.title} ${category.label}"
+
+    fun toJson(): JsonObject = JsonObject().apply {
+        addProperty("id", id)
+        addProperty("type", type.key)
+        addProperty("category", category.key)
+        addProperty("startAt", startAt)
+        addProperty("endAt", endAt)
+        addProperty("value", value)
+        addProperty("cooldownSeconds", cooldownSeconds)
+        addProperty("createdBy", createdBy)
+    }
+
+    companion object {
+        fun fromJson(json: JsonObject): WtEvent? {
+            val type = EventType.parse(json.get("type")?.asString ?: return null) ?: return null
+            return WtEvent(
+                id = json.get("id")?.asInt ?: return null,
+                type = type,
+                category = EventCategory.parse(json.get("category")?.asString ?: "shiny") ?: EventCategory.SHINY,
+                startAt = json.get("startAt")?.asLong ?: 0L,
+                endAt = json.get("endAt")?.asLong ?: return null,
+                value = json.get("value")?.asDouble ?: 0.0,
+                cooldownSeconds = json.get("cooldownSeconds")?.asLong ?: 60L,
+                createdBy = json.get("createdBy")?.asString ?: "?"
+            )
+        }
+    }
+}
+
+/** Gestión de eventos: almacenamiento (event.json), esperas por jugador y mensajes. */
+object WonderTradeEvents {
+    private val gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
+    private var file: Path? = null
+    private val events = mutableListOf<WtEvent>()
+    private var nextId = 1
+
+    /** Última vez que cada jugador usó un intercambio de evento: "uuid:idEvento" -> milisegundos. */
+    private val lastUse = HashMap<String, Long>()
+
+    // ------------------------------------------------------------ carga y guardado
+
+    fun load(directory: Path? = null) {
+        if (directory != null) {
+            file = directory.resolve("event.json")
+            lastUse.clear()
+        }
+        val path = file ?: return
+        events.clear()
+        nextId = 1
+        Files.createDirectories(path.parent)
+        if (!Files.exists(path)) {
+            save()
+            return
+        }
+        try {
+            val root = Files.newBufferedReader(path).use { JsonParser.parseReader(it).asJsonObject }
+            nextId = root.get("nextId")?.asInt ?: 1
+            val now = System.currentTimeMillis()
+            for (node in root.getAsJsonArray("events") ?: JsonArray()) {
+                val event = runCatching { WtEvent.fromJson(node.asJsonObject) }.getOrNull() ?: continue
+                if (event.endAt > now) events.add(event)
+                if (event.id >= nextId) nextId = event.id + 1
+            }
+        } catch (exception: Exception) {
+            WonderTradePlus.LOGGER.error("No se pudo cargar event.json. Se empieza sin eventos.", exception)
+            runCatching { Files.copy(path, path.resolveSibling("event.json.corrupt-${System.currentTimeMillis()}")) }
+            events.clear()
+        }
+        save()
+    }
+
+    private fun save() {
+        val path = file ?: return
+        Files.createDirectories(path.parent)
+        val root = JsonObject().apply {
+            addProperty("schemaVersion", 1)
+            addProperty("nextId", nextId)
+            add("events", JsonArray().also { array -> events.forEach { array.add(it.toJson()) } })
+        }
+        val temporary = path.resolveSibling(path.fileName.toString() + ".tmp")
+        Files.newBufferedWriter(temporary).use { gson.toJson(root, it) }
+        try {
+            Files.move(temporary, path, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE)
+        } catch (_: java.nio.file.AtomicMoveNotSupportedException) {
+            Files.move(temporary, path, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        }
+    }
+
+    // ------------------------------------------------------------ consulta
+
+    fun enabled(): Boolean = ConfigManager.bool("events.enabled", true)
+
+    fun active(now: Long = System.currentTimeMillis()): List<WtEvent> =
+        if (!enabled()) emptyList() else events.filter { it.startAt <= now && now < it.endAt }
+
+    /** % extra al ofrecer este Pokémon (eventos «Arriesgar …» activos cuya categoría coincide). */
+    fun riskExtraGain(pokemon: com.cobblemon.mod.common.pokemon.Pokemon): Double =
+        active().filter { it.type == EventType.RISK && it.category.matches(pokemon) }.sumOf { it.value }.coerceAtLeast(0.0)
+
+    /** Eventos «Recibir …» activos. */
+    fun receiveEvents(): List<WtEvent> = active().filter { it.type == EventType.RECEIVE && it.value > 0.0 }
+
+    // ------------------------------------------------------------ esperas por jugador
+
+    private fun key(player: ServerPlayer, event: WtEvent) = "${player.uuid}:${event.id}"
+
+    private fun remainingSeconds(player: ServerPlayer, event: WtEvent, now: Long): Long {
+        val last = lastUse[key(player, event)] ?: return 0L
+        val left = last + event.cooldownSeconds * 1000L - now
+        return if (left <= 0L) 0L else (left + 999L) / 1000L
+    }
+
+    /** Un evento activo cuya espera ya terminó para este jugador, o null. */
+    fun readyEvent(player: ServerPlayer): WtEvent? {
+        val now = System.currentTimeMillis()
+        return active(now).firstOrNull { remainingSeconds(player, it, now) <= 0L }
+    }
+
+    /** Segundos hasta el próximo intercambio de evento (0 = disponible); null si no hay eventos activos. */
+    fun cooldownRemaining(player: ServerPlayer): Long? {
+        val now = System.currentTimeMillis()
+        return active(now).minOfOrNull { remainingSeconds(player, it, now) }
+    }
+
+    fun markUsed(player: ServerPlayer, event: WtEvent) {
+        lastUse[key(player, event)] = System.currentTimeMillis()
+    }
+
+    fun unmark(player: ServerPlayer, event: WtEvent) {
+        lastUse.remove(key(player, event))
+    }
+
+    // ------------------------------------------------------------ creación y fin
+
+    fun defaultValue(type: EventType): Double = when (type) {
+        EventType.RISK -> ConfigManager.double("events.risk.extraGain", 0.2)
+        EventType.RECEIVE -> ConfigManager.double("events.receive.chance", 10.0)
+    }.coerceIn(0.0, 100.0)
+
+    fun defaultCooldownSeconds(type: EventType): Long = when (type) {
+        EventType.RISK -> ConfigManager.int("events.risk.cooldownSeconds", 60)
+        EventType.RECEIVE -> ConfigManager.int("events.receive.cooldownSeconds", 60)
+    }.coerceAtLeast(1).toLong()
+
+    fun maximumDurationSeconds(): Long = ConfigManager.int("events.maximumDurationHours", 720).coerceAtLeast(1) * 3600L
+
+    /** Crea e inicia un evento y lo anuncia a todos los jugadores. Devuelve null si los eventos están desactivados. */
+    fun create(
+        server: MinecraftServer,
+        type: EventType,
+        category: EventCategory,
+        durationSeconds: Long,
+        value: Double?,
+        cooldownSeconds: Long?,
+        createdBy: String
+    ): WtEvent? {
+        if (!enabled()) return null
+        val now = System.currentTimeMillis()
+        val event = WtEvent(
+            id = nextId++,
+            type = type,
+            category = category,
+            startAt = now,
+            endAt = now + durationSeconds * 1000L,
+            value = (value ?: defaultValue(type)).coerceIn(0.0, 100.0),
+            cooldownSeconds = (cooldownSeconds ?: defaultCooldownSeconds(type)).coerceAtLeast(1L),
+            createdBy = createdBy
+        )
+        events.add(event)
+        save()
+        broadcast(server, ConfigManager.string("messages.eventStarted", "&d★ ¡Evento «{name}» activo durante {duration}! &7Usa &e/wt eventos &7para ver los detalles."),
+            mapOf("name" to event.title, "duration" to formatDuration(durationSeconds)))
+        return event
+    }
+
+    fun stop(server: MinecraftServer, id: Int): WtEvent? {
+        val event = events.firstOrNull { it.id == id } ?: return null
+        events.remove(event)
+        lastUse.keys.removeAll { it.endsWith(":${event.id}") }
+        save()
+        announceEnd(server, event)
+        return event
+    }
+
+    /** Se llama una vez por segundo: termina los eventos caducados. */
+    fun tick(server: MinecraftServer) {
+        val now = System.currentTimeMillis()
+        val ended = events.filter { it.endAt <= now }
+        if (ended.isEmpty()) return
+        events.removeAll(ended.toSet())
+        ended.forEach { event -> lastUse.keys.removeAll { it.endsWith(":${event.id}") } }
+        save()
+        ended.forEach { announceEnd(server, it) }
+    }
+
+    private fun announceEnd(server: MinecraftServer, event: WtEvent) {
+        broadcast(server, ConfigManager.string("messages.eventEnded", "&d★ El evento «{name}» ha terminado."),
+            mapOf("name" to event.title))
+    }
+
+    private fun broadcast(server: MinecraftServer, template: String, values: Map<String, Any>) {
+        val text = WonderTradeService.format(template, values)
+        server.playerList.broadcastSystemMessage(
+            WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + text), false
+        )
+    }
+
+    // ------------------------------------------------------------ textos
+
+    fun describe(event: WtEvent): List<String> {
+        val value = valueText(event.value)
+        val cooldown = formatDuration(event.cooldownSeconds)
+        val first = when (event.type) {
+            EventType.RISK -> WonderTradeService.format(
+                ConfigManager.string("messages.eventRiskDescription", "&7Cada Pokémon &f{category}&7 que ofrezcas suma &d+{value}%&7 extra a tu probabilidad de especial."),
+                mapOf("value" to value, "category" to event.category.label)
+            )
+            EventType.RECEIVE -> WonderTradeService.format(
+                ConfigManager.string("messages.eventReceiveDescription", "&7Probabilidad extra de recibir un Pokémon &f{category}&7: &d+{value}%&7 en cada intercambio."),
+                mapOf("value" to value, "category" to event.category.label)
+            )
+        }
+        val second = WonderTradeService.format(
+            ConfigManager.string("messages.eventCooldownDescription", "&7Puedes intercambiar una vez cada &f{cooldown}&7 sin gastar tu tiempo normal."),
+            mapOf("cooldown" to cooldown)
+        )
+        return listOf(first, second)
+    }
+
+    /** Descripción con los valores por defecto, para el menú de creación. */
+    fun describeDefault(type: EventType, category: EventCategory): List<String> {
+        val sample = WtEvent(0, type, category, 0L, 0L, defaultValue(type), defaultCooldownSeconds(type), "")
+        return describe(sample)
+    }
+
+    /** Respuesta de /wt eventos. */
+    fun eventsComponent(player: ServerPlayer?): Component {
+        val now = System.currentTimeMillis()
+        val list = active(now)
+        val lines = mutableListOf<String>()
+        if (list.isEmpty()) {
+            lines += ConfigManager.string("messages.eventNone", "&7No hay ningún evento activo ahora mismo.")
+        } else {
+            lines += ConfigManager.string("messages.eventsHeader", "&d&lEventos activos:")
+            list.forEach { event ->
+                lines += "&d★ &f${event.title} &7— termina en &f${formatDuration((event.endAt - now + 999L) / 1000L)}"
+                describe(event).forEach { lines += "  $it" }
+                if (player != null) {
+                    val left = remainingSeconds(player, event, now)
+                    val state = if (left <= 0L) "&aDisponible" else "&f${formatDuration(left)}"
+                    lines += "  " + WonderTradeService.format(
+                        ConfigManager.string("messages.eventYourCooldown", "&7Tu próximo intercambio de evento: {state}"),
+                        mapOf("state" to state)
+                    )
+                }
+            }
+        }
+        return WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
+    }
+
+    /** Lista para administradores, con el id de cada evento. */
+    fun adminListComponent(): Component {
+        val now = System.currentTimeMillis()
+        val list = active(now)
+        val lines = mutableListOf<String>()
+        if (list.isEmpty()) lines += "&7No hay eventos activos."
+        else {
+            lines += "&d&lEventos activos:"
+            list.forEach { event ->
+                lines += "&8#${event.id} &d${event.title} &7valor &f${valueText(event.value)}% &7espera &f${formatDuration(event.cooldownSeconds)} &7termina en &f${formatDuration((event.endAt - now + 999L) / 1000L)} &8(${event.createdBy})"
+            }
+            lines += "&7Finalizar: &e/wt admin eventos parar <id>"
+        }
+        return WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
+    }
+
+    /** Líneas para el reloj del menú principal. */
+    fun clockLines(player: ServerPlayer): List<String> {
+        val now = System.currentTimeMillis()
+        return active(now).map { event ->
+            val left = remainingSeconds(player, event, now)
+            val state = if (left <= 0L) "&aDisponible" else "&f${formatDuration(left)}"
+            "&d★ ${event.title} &8— $state"
+        }
+    }
+
+    // ------------------------------------------------------------ utilidades
+
+    /** Acepta 30s, 5m, 2h, 1d y combinaciones como 1h30m. */
+    fun parseDuration(text: String): Long? {
+        val clean = text.trim().lowercase()
+        if (!Regex("^(\\d+[smhd])+$").matches(clean)) return null
+        var total = 0L
+        for (match in Regex("(\\d+)([smhd])").findAll(clean)) {
+            val amount = match.groupValues[1].toLongOrNull() ?: return null
+            total += amount * when (match.groupValues[2]) {
+                "s" -> 1L
+                "m" -> 60L
+                "h" -> 3600L
+                else -> 86400L
+            }
+        }
+        return if (total > 0L) total else null
+    }
+
+    fun formatDuration(totalSeconds: Long): String {
+        val seconds = totalSeconds.coerceAtLeast(0L)
+        val days = seconds / 86400L
+        val hours = (seconds % 86400L) / 3600L
+        val minutes = (seconds % 3600L) / 60L
+        val rest = seconds % 60L
+        return when {
+            days > 0 -> "${days}d ${hours}h"
+            hours > 0 -> "${hours}h ${minutes}m"
+            minutes > 0 -> if (rest > 0) "${minutes}m ${rest}s" else "${minutes}m"
+            else -> "${rest}s"
+        }
+    }
+
+    fun valueText(value: Double): String =
+        if (value == Math.floor(value)) value.toInt().toString() else value.toString()
+}

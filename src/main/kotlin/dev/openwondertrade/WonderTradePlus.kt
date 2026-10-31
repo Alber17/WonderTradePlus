@@ -156,6 +156,15 @@ class WonderTradePlus : ModInitializer {
                 WonderTradeGui.openTop(context.source.playerOrException)
                 1
             })
+            // PERMISO: público; muestra los eventos activos.
+            .then(literal("eventos").executes { context ->
+                context.source.sendSuccess({ WonderTradeEvents.eventsComponent(context.source.player) }, false)
+                1
+            })
+            .then(literal("events").executes { context ->
+                context.source.sendSuccess({ WonderTradeEvents.eventsComponent(context.source.player) }, false)
+                1
+            })
             // PERMISO: público; cancela el intercambio pendiente.
             .then(literal("cancel").executes { context ->
                 WonderTradeService.cancel(context.source.playerOrException)
@@ -286,6 +295,8 @@ class WonderTradePlus : ModInitializer {
             1
         })
         // PERMISO: admin.permissionLevel.
+        .then(eventAdminCommands())
+        // PERMISO: admin.permissionLevel.
         .then(literal("maintenance").executes { context ->
             val (expired, generated) = WonderTradeService.maintainPool(context.source.server)
             context.source.sendSuccess({ WonderTradeService.info("&aMantenimiento hecho: &f$expired &acaducados, &f$generated &agenerados.") }, true)
@@ -330,6 +341,69 @@ class WonderTradePlus : ModInitializer {
             context.source.sendSuccess({ WonderTradeService.configuredMessage("poolCleared", "&aPool vaciado.") }, true)
             1
         })
+
+    // PERMISO: admin.permissionLevel, heredado de /wt admin.
+    private fun eventAdminCommands() = literal("eventos")
+        .executes { context ->
+            context.source.sendSuccess({ WonderTradeEvents.adminListComponent() }, false)
+            1
+        }
+        .then(literal("lista").executes { context ->
+            context.source.sendSuccess({ WonderTradeEvents.adminListComponent() }, false)
+            1
+        })
+        // /wt admin eventos crear <tipo> <categoría> <duración> [valor] [espera]
+        .then(literal("crear").then(argument("tipo", StringArgumentType.word())
+            .suggests { _, builder -> SharedSuggestionProvider.suggest(EventType.values().map { it.key }, builder) }
+            .then(argument("categoria", StringArgumentType.word())
+            .suggests { _, builder -> SharedSuggestionProvider.suggest(EventCategory.values().map { it.key }, builder) }
+            .then(argument("duracion", StringArgumentType.word())
+                .suggests { _, builder -> SharedSuggestionProvider.suggest(listOf("5m", "30m", "1h", "3h", "1d"), builder) }
+                .executes { context -> createEvent(context, null, null) }
+                .then(argument("valor", DoubleArgumentType.doubleArg(0.0, 100.0))
+                    .executes { context -> createEvent(context, DoubleArgumentType.getDouble(context, "valor"), null) }
+                    .then(argument("espera", StringArgumentType.word())
+                        .suggests { _, builder -> SharedSuggestionProvider.suggest(listOf("30s", "1m", "5m"), builder) }
+                        .executes { context ->
+                            createEvent(context, DoubleArgumentType.getDouble(context, "valor"), StringArgumentType.getString(context, "espera"))
+                        }))))))
+        .then(literal("parar").then(argument("id", IntegerArgumentType.integer(1)).executes { context ->
+            val event = WonderTradeEvents.stop(context.source.server, IntegerArgumentType.getInteger(context, "id"))
+            if (event == null) context.source.sendFailure(WonderTradeService.info("&cNo existe ningún evento activo con ese id."))
+            else context.source.sendSuccess({ WonderTradeService.info("&aEvento &f${event.title} &afinalizado.") }, true)
+            1
+        }))
+
+    private fun createEvent(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>, value: Double?, cooldownText: String?): Int {
+        val source = context.source
+        val type = EventType.parse(StringArgumentType.getString(context, "tipo")) ?: run {
+            source.sendFailure(WonderTradeService.info("&cTipo no válido. Usa: &farriesgar &co &frecibir&c."))
+            return 0
+        }
+        val category = EventCategory.parse(StringArgumentType.getString(context, "categoria")) ?: run {
+            source.sendFailure(WonderTradeService.info("&cCategoría no válida. Usa: &fshiny&c, &flegendario&c, &fmitico&c, &fultraente &co &fparadoja&c."))
+            return 0
+        }
+        val duration = WonderTradeEvents.parseDuration(StringArgumentType.getString(context, "duracion")) ?: run {
+            source.sendFailure(WonderTradeService.info("&cDuración no válida. Ejemplos: &f30s, 5m, 2h, 1d, 1h30m&c."))
+            return 0
+        }
+        if (duration > WonderTradeEvents.maximumDurationSeconds()) {
+            source.sendFailure(WonderTradeService.info("&cLa duración máxima es &f${WonderTradeEvents.formatDuration(WonderTradeEvents.maximumDurationSeconds())}&c (events.maximumDurationHours)."))
+            return 0
+        }
+        val cooldown = if (cooldownText == null) null else (WonderTradeEvents.parseDuration(cooldownText) ?: run {
+            source.sendFailure(WonderTradeService.info("&cEspera no válida. Ejemplos: &f30s, 1m, 5m&c."))
+            return 0
+        })
+        val event = WonderTradeEvents.create(source.server, type, category, duration, value, cooldown, source.textName)
+        if (event == null) {
+            source.sendFailure(WonderTradeService.info("&cLos eventos están desactivados (events.enabled)."))
+            return 0
+        }
+        source.sendSuccess({ WonderTradeService.info("&aEvento &f${event.title} &acreado con id &f#${event.id}&a.") }, true)
+        return 1
+    }
 
     private fun setChance(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>, value: Double): Int {
         val name = StringArgumentType.getString(context, "player")
@@ -435,7 +509,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.9.0"
+        const val MOD_VERSION = "0.11.1"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

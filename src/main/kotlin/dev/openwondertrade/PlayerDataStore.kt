@@ -48,13 +48,16 @@ class PlayerDataStore(private val file: Path) {
         return TradeCheck(cooldownLeft, dailyLimit > 0 && used >= dailyLimit)
     }
 
-    fun recordTrade(uuid: UUID, now: Long, offeredSpecial: Boolean = false, receivedSpecial: Boolean = false) {
+    /** [affectCooldown] = false para intercambios de evento: cuentan en las estadísticas, pero no en el tiempo normal ni en el límite diario. */
+    fun recordTrade(uuid: UUID, now: Long, offeredSpecial: Boolean = false, receivedSpecial: Boolean = false, affectCooldown: Boolean = true) {
         val data = playerNode(uuid, create = true)!!
-        val today = LocalDate.now().toString()
-        val oldCount = if (data.get("dailyDate")?.asString == today) data.get("dailyCount")?.asInt ?: 0 else 0
-        data.addProperty("lastTradeAt", now)
-        data.addProperty("dailyDate", today)
-        data.addProperty("dailyCount", oldCount + 1)
+        if (affectCooldown) {
+            val today = LocalDate.now().toString()
+            val oldCount = if (data.get("dailyDate")?.asString == today) data.get("dailyCount")?.asInt ?: 0 else 0
+            data.addProperty("lastTradeAt", now)
+            data.addProperty("dailyDate", today)
+            data.addProperty("dailyCount", oldCount + 1)
+        }
         data.addProperty("trades", (data.get("trades")?.asInt ?: 0) + 1)
         if (offeredSpecial) data.addProperty("specialsDonated", (data.get("specialsDonated")?.asInt ?: 0) + 1)
         if (receivedSpecial) data.addProperty("specialsReceived", (data.get("specialsReceived")?.asInt ?: 0) + 1)

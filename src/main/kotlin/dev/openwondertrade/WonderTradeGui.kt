@@ -189,7 +189,7 @@ object WonderTradeGui {
             SoundOption("buttonClick", 12, Items.STONE_BUTTON, "&fClic de botones", "&7Sonido al pulsar botones de los menús."),
             SoundOption("pageTurn", 14, Items.WRITABLE_BOOK, "&fCambio de página", "&7Sonido al cambiar de página."),
             SoundOption("specialReceived", 15, Items.EXPERIENCE_BOTTLE, "&fPokémon especial", "&7Sonido al recibir un legendario, mítico, Ultraente o Paradoja."),
-            SoundOption("specialShinyReceived", 16, Items.TOTEM_OF_UNDYING, "&fEspecial shiny", "&7Sonido de tótem al recibir un especial shiny.")
+            SoundOption("specialShinyReceived", 16, Items.TOTEM_OF_UNDYING, "&fEspecial shiny", "&7Sonido de tótem al recibir un legendario, mítico, Ultraente o Paradoja shiny. Un shiny normal usa el sonido de especial.")
         )
         for (option in options) {
             val enabled = WonderTradeService.soundPreference(player, option.key)
@@ -494,41 +494,174 @@ object WonderTradeGui {
             WonderTradeService.send(player, "adminOnly")
             return
         }
-        open(player, ConfigManager.string("messages.adminMenuTitle", "&5Wonder Trade &8- &cAdministración"), 3) { menu ->
-            fill(menu, 27)
-            menu.button(10, named(Items.CHEST, ConfigManager.string("messages.adminMenuPool", "&6Gestionar pool"))) {
+        open(player, ConfigManager.string("messages.adminMenuTitle", "&5Wonder Trade &8- &cAdministración"), 6) { menu ->
+            fill(menu, 54)
+            val on = WonderTradeService.isEnabled()
+            menu.put(4, named(
+                Items.NETHER_STAR, "&cPanel de administración",
+                "&7Wonder Trade: ${if (on) "&aactivado" else "&cdesactivado"}"
+            ))
+
+            // Fila 1: pool
+            menu.put(9, named(Items.ORANGE_STAINED_GLASS_PANE, "&6Pool"))
+            menu.button(10, named(Items.CHEST, ConfigManager.string("messages.adminMenuPool", "&6Gestionar pool"), "&7Ver y administrar los Pokémon.")) {
                 openPool(it, 0, true)
             }
             if (ConfigManager.bool("admin.fillMenu.enabled", true)) {
-                menu.button(12, named(Items.HOPPER, "&aRellenar pool", "&7Generar Pokémon automáticamente.", "&eAbrir opciones")) {
+                menu.button(11, named(Items.HOPPER, "&aRellenar pool", "&7Generar Pokémon automáticamente.", "&eAbrir opciones")) {
                     openAdminFill(it)
                 }
             }
-            menu.button(14, named(Items.WRITABLE_BOOK, ConfigManager.string("messages.adminMenuHistory", "&eHistorial"))) {
+            menu.button(12, named(Items.BARRIER, "&cEliminar Pokémon", "&7Selecciona las entradas que quieras borrar.")) {
+                openPool(it, 0, true, deleteMode = true)
+            }
+            menu.button(13, named(Items.PLAYER_HEAD, "&cEliminar aportaciones", "&7Borrar de la pool los Pokémon de un donante.")) {
+                openAdminDonors(it)
+            }
+            menu.button(14, named(Items.TNT, ConfigManager.string("messages.adminMenuClear", "&cVaciar pool"), "&7Elimina todos los Pokémon.", "&cPide confirmación.")) {
+                openClearPoolConfirm(it)
+            }
+
+            // Fila 2: servidor
+            menu.put(18, named(Items.MAGENTA_STAINED_GLASS_PANE, "&dServidor"))
+            menu.button(19, named(Items.NETHER_STAR, "&dGestionar eventos", "&7Crea eventos temporales para todos.", "&eClic para abrir")) {
+                openAdminEvents(it)
+            }
+            val toggleStack = if (on) named(Items.LIME_DYE, "&aWonder Trade: ACTIVADO", "&7Los jugadores pueden intercambiar y donar.", "&eClic para desactivar")
+            else named(Items.RED_DYE, "&cWonder Trade: DESACTIVADO", "&7Los jugadores no pueden intercambiar ni donar.", "&eClic para activar")
+            menu.button(20, toggleStack) {
+                WonderTradeService.setEnabled(!WonderTradeService.isEnabled())
+                openAdmin(it)
+            }
+            menu.button(21, named(Items.WRITABLE_BOOK, ConfigManager.string("messages.adminMenuHistory", "&eHistorial"), "&7Últimos intercambios.")) {
                 openHistory(it)
             }
-            menu.button(19, named(Items.COMPARATOR, ConfigManager.string("messages.adminMenuReload", "&bRecargar configuración"))) {
+            menu.button(22, named(Items.BOOK, "&eReiniciar estadísticas", "&7Reinicia todos los rankings y estadísticas.", "&cNo se puede deshacer.")) {
+                openResetStatsConfirm(it)
+            }
+
+            // Fila 3: sistema
+            menu.put(27, named(Items.LIGHT_BLUE_STAINED_GLASS_PANE, "&bSistema"))
+            menu.button(28, named(Items.COMPARATOR, ConfigManager.string("messages.adminMenuReload", "&bRecargar configuración"))) {
                 WonderTradeService.reload()
                 WonderTradeService.send(it, "reload")
                 openAdmin(it)
             }
-            menu.button(21, named(Items.HOPPER, ConfigManager.string("messages.adminMenuMaintenance", "&aEjecutar mantenimiento"))) {
-                val (expired, _) = WonderTradeService.maintainPool(it.server)
-                it.sendSystemMessage(WonderTradeService.info("&aMantenimiento: &f$expired &aPokémon caducados eliminados."))
+            menu.button(29, named(Items.HOPPER, ConfigManager.string("messages.adminMenuMaintenance", "&aEjecutar mantenimiento"), "&7Caducidad y purga de la pool.")) {
+                val (expired, generated) = WonderTradeService.maintainPool(it.server)
+                it.sendSystemMessage(WonderTradeService.info("&aMantenimiento: &f$expired &aPokémon eliminados, &f$generated &agenerados."))
                 openAdmin(it)
             }
-            menu.button(23, named(Items.PAPER, ConfigManager.string("messages.adminMenuBackup", "&dCrear copia de seguridad"))) {
+            menu.button(30, named(Items.PAPER, ConfigManager.string("messages.adminMenuBackup", "&dCrear copia de seguridad"))) {
                 val backup = WonderTradeService.backupNow()
                 if (backup == null) it.sendSystemMessage(WonderTradeService.info("&cNo se pudo crear la copia."))
                 else it.sendSystemMessage(WonderTradeService.info("&aCopia creada: &f$backup"))
                 openAdmin(it)
             }
-            menu.button(25, named(Items.ANVIL, "&eMás herramientas", "&7Eliminar aportaciones, reiniciar estadísticas", "&7y probar la conexión con Discord.")) {
-                openAdminTools(it)
+            menu.button(31, named(Items.NOTE_BLOCK, "&9Probar Discord", "&7Enviar un mensaje de prueba al webhook.")) { p ->
+                WonderTradeService.discordTest { ok, message ->
+                    p.server.execute {
+                        p.sendSystemMessage(WonderTradeService.info(if (ok) "&a$message" else "&c$message"))
+                    }
+                }
+                p.sendSystemMessage(WonderTradeService.info("&7Enviando mensaje de prueba a Discord…"))
             }
-            menu.button(16, named(Items.TNT, ConfigManager.string("messages.adminMenuClear", "&cVaciar pool"))) {
-                openClearPoolConfirm(it)
+
+            menu.button(49, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        }
+    }
+
+    private fun openAdminEvents(player: ServerPlayer) {
+        if (!player.hasPermissions(WonderTradeService.adminLevel())) {
+            WonderTradeService.send(player, "adminOnly")
+            return
+        }
+        open(player, "&5Administración &8- &dEventos", 3) { menu ->
+            fill(menu, 27)
+            menu.put(4, named(
+                Items.NETHER_STAR, "&dEventos de Wonder Trade",
+                "&7Eventos temporales para todos los jugadores.",
+                "&7Valores personalizados:",
+                "&e/wt admin eventos crear <tipo> <duración> [valor] [espera]"
+            ))
+            if (!WonderTradeEvents.enabled()) {
+                menu.put(13, named(Items.BARRIER, "&cLos eventos están desactivados", "&7Activa events.enabled en config.json."))
+            } else {
+                val icons = mapOf(EventType.RISK to Items.GOLD_NUGGET, EventType.RECEIVE to Items.AMETHYST_SHARD)
+                val types = EventType.values()
+                types.forEachIndexed { index, type ->
+                    menu.button(if (index == 0) 10 else 12, named(
+                        icons[type] ?: Items.PAPER, "&d${type.title}",
+                        *eventTypeDescription(type).toTypedArray(), "&eClic para elegir la categoría"
+                    )) { openEventCategory(it, type) }
+                }
+                val now = System.currentTimeMillis()
+                WonderTradeEvents.active(now).take(3).forEachIndexed { index, event ->
+                    menu.button(14 + index, named(
+                        Items.CLOCK, "&d★ #${event.id} ${event.title}",
+                        "&7Termina en &f${WonderTradeEvents.formatDuration((event.endAt - now + 999L) / 1000L)}",
+                        "&cClic para finalizar"
+                    )) { p ->
+                        WonderTradeEvents.stop(p.server, event.id)
+                        openAdminEvents(p)
+                    }
+                }
             }
+            menu.button(22, named(Items.ARROW, "&aVolver al panel admin")) { openAdmin(it) }
+            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        }
+    }
+
+    private fun eventTypeDescription(type: EventType): List<String> = when (type) {
+        EventType.RISK -> listOf("&7Ofrecer Pokémon de la categoría elegida", "&7suma un % extra a tu probabilidad.")
+        EventType.RECEIVE -> listOf("&7Aumenta la probabilidad de recibir", "&7Pokémon de la categoría elegida.")
+    }
+
+    private fun openEventCategory(player: ServerPlayer, type: EventType) {
+        open(player, "&5Eventos &8- &d${type.title}", 3) { menu ->
+            fill(menu, 27)
+            menu.put(4, named(Items.NETHER_STAR, "&d${type.title}", *eventTypeDescription(type).toTypedArray(), "&7Elige la categoría."))
+            val icons = mapOf(
+                EventCategory.SHINY to Items.GLOWSTONE_DUST,
+                EventCategory.LEGENDARY to Items.GOLD_INGOT,
+                EventCategory.MYTHICAL to Items.AMETHYST_SHARD,
+                EventCategory.ULTRABEAST to Items.ECHO_SHARD,
+                EventCategory.PARADOX to Items.ENDER_PEARL
+            )
+            val slots = listOf(11, 12, 13, 14, 15)
+            EventCategory.values().forEachIndexed { index, category ->
+                menu.button(slots[index], named(
+                    icons[category] ?: Items.PAPER, "&d${type.title} ${category.label}",
+                    *WonderTradeEvents.describeDefault(type, category).toTypedArray(), "&eClic para elegir la duración"
+                )) { openEventDuration(it, type, category) }
+            }
+            menu.button(22, named(Items.ARROW, "&aVolver")) { openAdminEvents(it) }
+            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        }
+    }
+
+    private fun openEventDuration(player: ServerPlayer, type: EventType, category: EventCategory) {
+        val title = "${type.title} ${category.label}"
+        open(player, "&5Eventos &8- &d$title", 3) { menu ->
+            fill(menu, 27)
+            menu.put(4, named(Items.NETHER_STAR, "&d$title", *WonderTradeEvents.describeDefault(type, category).toTypedArray(), "&7Elige cuánto debe durar."))
+            val maximum = WonderTradeEvents.maximumDurationSeconds()
+            val options = ConfigManager.strings("events.menuDurations")
+                .mapNotNull { text -> WonderTradeEvents.parseDuration(text)?.takeIf { it <= maximum } }
+                .distinct()
+                .take(7)
+            val slots = listOf(9, 10, 11, 12, 14, 15, 16)
+            options.forEachIndexed { index, seconds ->
+                menu.button(slots[index], named(
+                    Items.CLOCK, "&e${WonderTradeEvents.formatDuration(seconds)}",
+                    "&7Iniciar «$title» durante este tiempo.", "&eClic para iniciar"
+                )) { p ->
+                    val event = WonderTradeEvents.create(p.server, type, category, seconds, null, null, p.gameProfile.name)
+                    if (event == null) p.sendSystemMessage(WonderTradeService.info("&cLos eventos están desactivados."))
+                    openAdminEvents(p)
+                }
+            }
+            menu.button(22, named(Items.ARROW, "&aVolver")) { openEventCategory(it, type) }
             menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
         }
     }
@@ -576,31 +709,6 @@ object WonderTradeGui {
         }
     }
 
-    private fun openAdminTools(player: ServerPlayer) {
-        open(player, "&5Administración &8- &eHerramientas", 3) { menu ->
-            fill(menu, 27)
-            menu.button(10, named(Items.BARRIER, "&cEliminar Pokémon de la pool", "&7Selecciona las entradas que quieras borrar.")) {
-                openPool(it, 0, true, deleteMode = true)
-            }
-            menu.button(12, named(Items.PLAYER_HEAD, "&cEliminar aportaciones", "&7Borrar de la pool los Pokémon de un donante.")) {
-                openAdminDonors(it)
-            }
-            menu.button(14, named(Items.WRITABLE_BOOK, "&eReiniciar estadísticas", "&7Reinicia todos los rankings y estadísticas.", "&cNo se puede deshacer.")) {
-                openResetStatsConfirm(it)
-            }
-            menu.button(16, named(Items.NOTE_BLOCK, "&9Probar Discord", "&7Enviar un mensaje de prueba al webhook.")) { p ->
-                WonderTradeService.discordTest { ok, message ->
-                    p.server.execute {
-                        p.sendSystemMessage(WonderTradeService.info(if (ok) "&a$message" else "&c$message"))
-                    }
-                }
-                p.sendSystemMessage(WonderTradeService.info("&7Enviando mensaje de prueba a Discord…"))
-            }
-            menu.button(22, named(Items.ARROW, "&aVolver al panel admin")) { openAdmin(it) }
-            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
-        }
-    }
-
     private fun openAdminDonors(player: ServerPlayer, page: Int = 0) {
         val donors = WonderTradeService.poolDonors().sortedBy { it.lowercase() }
         val pages = maxOf(1, (donors.size + 44) / 45)
@@ -618,7 +726,7 @@ object WonderTradeGui {
                 }
             }
             if (current > 0) menu.button(45, named(Items.ARROW, "&ePágina anterior")) { openAdminDonors(it, current - 1) }
-            menu.button(49, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver a herramientas")) { openAdminTools(it) }
+            menu.button(49, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver al panel admin")) { openAdmin(it) }
             if (current < pages - 1) menu.button(53, named(Items.ARROW, "&ePágina siguiente")) { openAdminDonors(it, current + 1) }
         }
     }
@@ -629,9 +737,9 @@ object WonderTradeGui {
             menu.button(11, named(Items.TNT, "&cSí, reiniciar todo", "&7Se reiniciarán los tres rankings.")) { p ->
                 val affected = WonderTradeService.adminResetAllStats()
                 p.sendSystemMessage(WonderTradeService.info("&aEstadísticas reiniciadas para &f$affected &ajugadores."))
-                openAdminTools(p)
+                openAdmin(p)
             }
-            menu.button(15, named(Items.ARROW, "&aCancelar")) { openAdminTools(it) }
+            menu.button(15, named(Items.ARROW, "&aCancelar")) { openAdmin(it) }
         }
     }
 
@@ -651,7 +759,8 @@ object WonderTradeGui {
         val remaining = WonderTradeService.cooldownDisplayText(player)
         val lore = ConfigManager.string("messages.cooldownMenuLore", "&7Tiempo restante: &f{time}")
             .replace("{time}", remaining)
-        return named(Items.CLOCK, ConfigManager.string("messages.cooldownMenuTitle", "&bSiguiente Wonder Trade"), lore)
+        val eventLines = WonderTradeEvents.clockLines(player)
+        return named(Items.CLOCK, ConfigManager.string("messages.cooldownMenuTitle", "&bSiguiente Wonder Trade"), lore, *eventLines.toTypedArray())
     }
 
     fun refreshCooldown(player: ServerPlayer) {
