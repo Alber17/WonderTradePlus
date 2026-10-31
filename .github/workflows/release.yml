@@ -1,0 +1,37 @@
+
+name: Automatic Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Compilar WonderTradePlus
+        working-directory: ./WonderTradePlus
+        run: chmod +x gradlew && ./gradlew build
+
+      - name: Publicar Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: WonderTradePlus/build/libs/*.jar
+          generate_release_notes: true
