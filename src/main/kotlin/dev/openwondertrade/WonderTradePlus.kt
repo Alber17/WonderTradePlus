@@ -20,6 +20,10 @@ class WonderTradePlus : ModInitializer {
         // La inicialización y todas las funciones se ejecutan en el servidor.
         ServerLifecycleEvents.SERVER_STARTED.register { WonderTradeService.initialize() }
         ServerTickEvents.END_SERVER_TICK.register { server -> WonderTradeService.tick(server) }
+        // Aviso de eventos activos al entrar (todo en el servidor).
+        net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register { handler, _, _ ->
+            WonderTradeEventDisplay.onJoin(handler.player)
+        }
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
             registerCommands(dispatcher, "wt")
             registerCommands(dispatcher, "wondertrade")
@@ -367,12 +371,63 @@ class WonderTradePlus : ModInitializer {
                         .executes { context ->
                             createEvent(context, DoubleArgumentType.getDouble(context, "valor"), StringArgumentType.getString(context, "espera"))
                         }))))))
+        // /wt admin eventos programar <tipo> <categoría> <duración> <cuándo...>
+        // Ejemplos de «cuándo»: 20:00 | sabado 20:00 semanal | 15/11 18:30 | 20:00 diario valor=25 espera=2m
+        .then(literal("programar").then(argument("tipo", StringArgumentType.word())
+            .suggests { _, builder -> SharedSuggestionProvider.suggest(EventType.values().map { it.key }, builder) }
+            .then(argument("categoria", StringArgumentType.word())
+                .suggests { _, builder -> SharedSuggestionProvider.suggest(EventCategory.values().map { it.key }, builder) }
+                .then(argument("duracion", StringArgumentType.word())
+                    .suggests { _, builder -> SharedSuggestionProvider.suggest(listOf("30m", "1h", "3h", "1d"), builder) }
+                    .then(argument("cuando", StringArgumentType.greedyString())
+                        .suggests { _, builder -> SharedSuggestionProvider.suggest(listOf("20:00", "sabado 20:00 semanal", "20:00 diario", "15/11 18:30"), builder) }
+                        .executes { context -> scheduleEvent(context) })))))
+        .then(literal("programados").executes { context ->
+            context.source.sendSuccess({ WonderTradeEvents.adminListComponent() }, false)
+            1
+        })
+        .then(literal("desprogramar").then(argument("id", IntegerArgumentType.integer(1)).executes { context ->
+            val item = WonderTradeSchedule.remove(IntegerArgumentType.getInteger(context, "id"))
+            if (item == null) context.source.sendFailure(WonderTradeService.info("&cNo existe ningún evento programado con ese id."))
+            else context.source.sendSuccess({ WonderTradeService.info("&aEvento programado &f${item.title} &acancelado.") }, true)
+            1
+        }))
         .then(literal("parar").then(argument("id", IntegerArgumentType.integer(1)).executes { context ->
             val event = WonderTradeEvents.stop(context.source.server, IntegerArgumentType.getInteger(context, "id"))
             if (event == null) context.source.sendFailure(WonderTradeService.info("&cNo existe ningún evento activo con ese id."))
             else context.source.sendSuccess({ WonderTradeService.info("&aEvento &f${event.title} &afinalizado.") }, true)
             1
         }))
+
+    private fun scheduleEvent(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>): Int {
+        val source = context.source
+        val type = EventType.parse(StringArgumentType.getString(context, "tipo")) ?: run {
+            source.sendFailure(WonderTradeService.info("&cTipo no válido. Usa: &farriesgar &co &frecibir&c."))
+            return 0
+        }
+        val category = EventCategory.parse(StringArgumentType.getString(context, "categoria")) ?: run {
+            source.sendFailure(WonderTradeService.info("&cCategoría no válida. Usa: &fshiny&c, &fultraente&c, &fparadoja&c, &fmitico &co &flegendario&c."))
+            return 0
+        }
+        val duration = WonderTradeEvents.parseDuration(StringArgumentType.getString(context, "duracion")) ?: run {
+            source.sendFailure(WonderTradeService.info("&cDuración no válida. Ejemplos: &f30s, 5m, 2h, 1d, 1h30m&c."))
+            return 0
+        }
+        if (duration > WonderTradeEvents.maximumDurationSeconds()) {
+            source.sendFailure(WonderTradeService.info("&cLa duración máxima es &f${WonderTradeEvents.formatDuration(WonderTradeEvents.maximumDurationSeconds())}&c (events.maximumDurationHours)."))
+            return 0
+        }
+        val parsed = WonderTradeSchedule.parse(StringArgumentType.getString(context, "cuando"))
+        val spec = parsed.spec ?: run {
+            source.sendFailure(WonderTradeService.info("&c${parsed.error}"))
+            return 0
+        }
+        val item = WonderTradeSchedule.add(type, category, duration, spec, source.textName)
+        source.sendSuccess({
+            WonderTradeService.info("&aEvento &f${item.title} &aprogramado (&f#P${item.id}&a): &f${WonderTradeSchedule.describeWhen(item)}&a.")
+        }, true)
+        return 1
+    }
 
     private fun createEvent(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>, value: Double?, cooldownText: String?): Int {
         val source = context.source
@@ -381,7 +436,7 @@ class WonderTradePlus : ModInitializer {
             return 0
         }
         val category = EventCategory.parse(StringArgumentType.getString(context, "categoria")) ?: run {
-            source.sendFailure(WonderTradeService.info("&cCategoría no válida. Usa: &fshiny&c, &flegendario&c, &fmitico&c, &fultraente &co &fparadoja&c."))
+            source.sendFailure(WonderTradeService.info("&cCategoría no válida. Usa: &fshiny&c, &fultraente&c, &fparadoja&c, &fmitico &co &flegendario&c."))
             return 0
         }
         val duration = WonderTradeEvents.parseDuration(StringArgumentType.getString(context, "duracion")) ?: run {
@@ -509,7 +564,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.11.1"
+        const val MOD_VERSION = "0.12.0"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

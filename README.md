@@ -61,7 +61,10 @@ Los comandos de jugador son públicos salvo que se indique otra cosa. Los nivele
 | `/wt reload` | `admin.permissionLevel` | Recarga configuración y archivos. |
 | `/wt eventos` | Todos | Muestra los eventos activos, qué hacen y cuándo puedes usar el intercambio de evento. |
 | `/wt admin eventos` | `admin.permissionLevel` | Lista los eventos activos con su id. |
-| `/wt admin eventos crear <arriesgar\|recibir> <shiny\|legendario\|mitico\|ultraente\|paradoja> <duración> [valor] [espera]` | `admin.permissionLevel` | Crea un evento. Duración: `30s`, `5m`, `2h`, `1d`, `1h30m`. El valor y la espera son opcionales. |
+| `/wt admin eventos crear <arriesgar\|recibir> <shiny\|ultraente\|paradoja\|mitico\|legendario> <duración> [valor] [espera]` | `admin.permissionLevel` | Crea un evento. Duración: `30s`, `5m`, `2h`, `1d`, `1h30m`. El valor y la espera son opcionales. |
+| `/wt admin eventos programar <tipo> <categoría> <duración> <cuándo>` | `admin.permissionLevel` | Programa un evento para que empiece solo. «Cuándo» admite una hora (`20:00`), un día de la semana (`sabado 20:00`), una fecha (`15/11 18:30`), `diario` o `semanal` para repetirlo, y `valor=N` y `espera=2m` para personalizarlo. Ejemplo: `programar recibir shiny 3h sabado 20:00 semanal`. |
+| `/wt admin eventos programados` | `admin.permissionLevel` | Lista los eventos activos y los programados. |
+| `/wt admin eventos desprogramar <id>` | `admin.permissionLevel` | Cancela un evento programado (el id sale como `P1`, `P2`…). |
 | `/wt admin eventos parar <id>` | `admin.permissionLevel` | Finaliza un evento. |
 | `/wt on` / `/wt off` | `admin.permissionLevel` | Activa o desactiva Wonder Trade sin quitar el mod. |
 | `/wt clearpool` | `admin.permissionLevel` | Vacía la pool. |
@@ -253,3 +256,14 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 ### 0.11.1
 - Panel `/wt admin` ampliado a 6 filas: pool, servidor (eventos, on/off, historial, estadísticas) y sistema (recarga, mantenimiento, copia, Discord) en una sola página.
 - Corregido el sonido del tótem: solo suena con un legendario, mítico, Ultraente o Paradoja shiny; un shiny normal usa el sonido de especial.
+
+### 0.11.2
+- Menú de eventos: botón «Tiempo personalizado» para elegir una duración exacta sumando o restando minutos, horas y días.
+- Las categorías aparecen en el orden Shiny, Ultraente, Paradoja, Mítico y Legendario.
+
+### 0.12.0
+- **Eventos programados** (`event-schedule.json`): empiezan solos a una hora, día o fecha concretos y pueden repetirse cada día o cada semana. Avisos previos configurables (`events.schedule.announceBeforeMinutes`, por defecto 10 y 1 minuto antes), zona horaria (`events.schedule.timezone`, vacía = la del servidor) y tolerancia si el servidor estaba apagado (`events.schedule.maxLateMinutes`). Se pueden ver y cancelar desde el panel (Gestionar eventos → Eventos programados). `/wt eventos` muestra también los próximos (`events.showUpcoming`).
+- **Aviso al entrar:** quien se conecta con un evento activo recibe un mensaje corto (`events.joinNotice.*`: activar, retraso y si muestra detalles).
+- **Barra de tiempo:** una bossbar con el nombre del evento y el tiempo que queda (`events.bossbar.*`: activar, formato, estilo y color distinto para Arriesgar y Recibir). Es solo de servidor.
+- **Pokémon del evento en la pool:** al empezar un evento, si hay menos Pokémon de su categoría que `events.ensurePool.minimum` (3 por defecto), se generan los que falten (máximo `maxGenerate`) y se retiran los normales más antiguos para hacer sitio (`replaceOldest`). Los especiales nunca se retiran. Se puede limitar a un tipo de evento con `events.ensurePool.types`.
+- **Anuncio al empezar:** el chat indica qué Pokémon de la categoría hay en la pool (`events.announcePokemon.*`: activar, cuántos listar y si muestra el nivel).

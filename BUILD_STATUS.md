@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.11.1**.
+- Versión actual: **0.12.0**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -165,3 +165,13 @@
 - Panel de administración ampliado a 6 filas con todas las funciones en una sola página (incluye interruptor on/off y eventos).
 - Sonido del tótem solo para especial de categoría + shiny; un shiny normal usa el sonido de especial.
 - Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.11.2
+- Eventos: nuevo botón «Tiempo personalizado» con selector de duración (±1 min, 10 min, 1 h, 1 día).
+- Categorías de evento en el menú en este orden: Shiny, Ultraente, Paradoja, Mítico, Legendario.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.12.0
+- Eventos programados (WonderTradeSchedule.kt), aviso al entrar y bossbar (WonderTradeEventDisplay.kt).
+- Generación de Pokémon de la categoría al iniciar un evento y anuncio en el chat de los que hay.
+- Gradle no se ha ejecutado en el entorno de edición. Puntos a validar al compilar: ServerBossEvent/BossEvent y ServerPlayConnectionEvents.JOIN.

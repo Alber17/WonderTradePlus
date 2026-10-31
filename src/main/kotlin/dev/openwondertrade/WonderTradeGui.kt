@@ -607,9 +607,54 @@ object WonderTradeGui {
                     }
                 }
             }
+            val scheduledCount = WonderTradeSchedule.all().size
+            menu.button(20, named(
+                Items.COMPASS, "&6Eventos programados",
+                "&7Programados: &f$scheduledCount",
+                "&7Para programar usa el comando:",
+                "&e/wt admin eventos programar <tipo> <categoría> <duración> <cuándo>",
+                "&eClic para ver y cancelar"
+            )) { openAdminScheduled(it) }
             menu.button(22, named(Items.ARROW, "&aVolver al panel admin")) { openAdmin(it) }
             menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
         }
+    }
+
+    private fun openAdminScheduled(player: ServerPlayer) {
+        if (!player.hasPermissions(WonderTradeService.adminLevel())) {
+            WonderTradeService.send(player, "adminOnly")
+            return
+        }
+        open(player, "&5Eventos &8- &6Programados", 6) { renderAdminScheduled(it) }
+    }
+
+    private fun renderAdminScheduled(menu: GuiMenu) {
+        menu.wipe()
+        fill(menu, 54)
+        val list = WonderTradeSchedule.all().take(45)
+        if (list.isEmpty()) {
+            menu.put(22, named(
+                Items.BARRIER, "&cNo hay eventos programados",
+                "&7Prográmalos con:", "&e/wt admin eventos programar <tipo> <categoría> <duración> <cuándo>",
+                "&7Ejemplo: &fprogramar recibir shiny 3h sabado 20:00 semanal"
+            ))
+        }
+        list.forEachIndexed { index, item ->
+            val details = mutableListOf(
+                "&7Cuándo: &f${WonderTradeSchedule.describeWhen(item)}",
+                "&7Duración: &f${WonderTradeEvents.formatDuration(item.durationSeconds)}"
+            )
+            item.value?.let { details += "&7Valor: &f${WonderTradeEvents.valueText(it)}%" }
+            item.cooldownSeconds?.let { details += "&7Espera: &f${WonderTradeEvents.formatDuration(it)}" }
+            details += "&7Creado por: &f${item.createdBy}"
+            details += "&cClic para cancelar"
+            menu.button(index, named(Items.CLOCK, "&d#P${item.id} ${item.title}", *details.toTypedArray())) {
+                WonderTradeSchedule.remove(item.id)
+                renderAdminScheduled(menu)
+            }
+        }
+        menu.button(48, named(Items.ARROW, "&aVolver")) { openAdminEvents(it) }
+        menu.button(50, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
     private fun eventTypeDescription(type: EventType): List<String> = when (type) {
@@ -661,9 +706,54 @@ object WonderTradeGui {
                     openAdminEvents(p)
                 }
             }
+            menu.button(13, named(
+                Items.CLOCK, "&6Tiempo personalizado",
+                "&7Ajusta la duración exacta con botones", "&7de minutos, horas y días.", "&eClic para elegir"
+            )) { openEventCustomDuration(it, type, category) }
             menu.button(22, named(Items.ARROW, "&aVolver")) { openEventCategory(it, type) }
             menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
         }
+    }
+
+    private fun openEventCustomDuration(player: ServerPlayer, type: EventType, category: EventCategory) {
+        open(player, "&5Eventos &8- &6Tiempo", 3) { renderEventCustomDuration(it, type, category, 3600L) }
+    }
+
+    /** Selector de duración: los botones suman o restan tiempo y el menú se actualiza sin cerrarse. */
+    private fun renderEventCustomDuration(menu: GuiMenu, type: EventType, category: EventCategory, seconds: Long) {
+        val title = "${type.title} ${category.label}"
+        val maximum = WonderTradeEvents.maximumDurationSeconds()
+        val minimum = 60L
+        val current = seconds.coerceIn(minimum, maximum)
+        menu.wipe()
+        fill(menu, 27)
+        menu.put(4, named(Items.NETHER_STAR, "&d$title", *WonderTradeEvents.describeDefault(type, category).toTypedArray()))
+        val steps = listOf(
+            9 to -86_400L, 10 to -3_600L, 11 to -600L, 12 to -60L,
+            14 to 60L, 15 to 600L, 16 to 3_600L, 17 to 86_400L
+        )
+        for ((slot, delta) in steps) {
+            val label = WonderTradeEvents.formatDuration(kotlin.math.abs(delta))
+            val sign = if (delta < 0) "-" else "+"
+            val item = if (delta < 0) Items.RED_STAINED_GLASS_PANE else Items.LIME_STAINED_GLASS_PANE
+            menu.button(slot, named(item, (if (delta < 0) "&c" else "&a") + "$sign$label", "&7Duración actual: &f${WonderTradeEvents.formatDuration(current)}")) {
+                renderEventCustomDuration(menu, type, category, current + delta)
+            }
+        }
+        menu.put(13, named(
+            Items.CLOCK, "&6Duración: &f${WonderTradeEvents.formatDuration(current)}",
+            "&7Mínimo: &f${WonderTradeEvents.formatDuration(minimum)}&7  Máximo: &f${WonderTradeEvents.formatDuration(maximum)}"
+        ))
+        menu.button(22, named(
+            Items.LIME_CONCRETE, "&aIniciar «$title»",
+            "&7Durante &f${WonderTradeEvents.formatDuration(current)}&7.", "&eClic para iniciar"
+        )) { p ->
+            val event = WonderTradeEvents.create(p.server, type, category, current, null, null, p.gameProfile.name)
+            if (event == null) p.sendSystemMessage(WonderTradeService.info("&cLos eventos están desactivados."))
+            openAdminEvents(p)
+        }
+        menu.button(18, named(Items.ARROW, "&aVolver")) { openEventDuration(it, type, category) }
+        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
     private fun openAdminFill(player: ServerPlayer) {

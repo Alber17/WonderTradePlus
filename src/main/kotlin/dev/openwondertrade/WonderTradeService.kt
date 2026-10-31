@@ -30,6 +30,7 @@ object WonderTradeService {
         playerData = PlayerDataStore(directory.resolve("player-data.json"))
         history = HistoryStore(directory.resolve("history.json"))
         WonderTradeEvents.load(directory)
+        WonderTradeSchedule.load(directory)
         pool.load()
         trimAndSave()
         playerData.load()
@@ -41,6 +42,7 @@ object WonderTradeService {
         ConfigManager.load()
         entryCategoryCache.clear()
         WonderTradeEvents.load()
+        WonderTradeSchedule.load()
         pool.load()
         trimAndSave()
         playerData.load()
@@ -146,6 +148,7 @@ object WonderTradeService {
             lines += ConfigManager.string("messages.helpAdminHistoryCommand", "&e/wt admin history [jugador] &7Consultar historial")
             lines += ConfigManager.string("messages.helpAdminResetStatsCommand", "&e/wt admin resetstats <jugador|all> &7Reiniciar estadísticas")
             lines += ConfigManager.string("messages.helpAdminChanceCommand", "&e/wt chance <jugador> set <porcentaje> | reset &7Editar el bonus")
+            lines += ConfigManager.string("messages.helpAdminScheduleCommand", "&e/wt admin eventos programar <tipo> <categoría> <duración> <cuándo> &7Programar un evento")
             lines += ConfigManager.string("messages.helpAdminEventsCommand", "&e/wt admin eventos [crear <tipo> <categoría> <duración> [valor] [espera] | parar <id>] &7Gestionar eventos")
             lines += ConfigManager.string("messages.helpAdminToggleCommand", "&e/wt on | off &7Activar o desactivar Wonder Trade")
             lines += ConfigManager.string("messages.helpAdminReloadCommand", "&e/wt reload &7Recargar configuración y datos")
@@ -795,6 +798,92 @@ object WonderTradeService {
             if (!WonderTradeRules.isSpeciesAllowed(entry.species)) return@filter false
             true
         }
+    }
+
+    // ------------------------------------------------------------ preparación de eventos
+
+    /** Genera un Pokémon de la categoría indicada (shiny o de especie), o null si no se encuentra. */
+    private fun generateForCategory(player: ServerPlayer, category: EventCategory, low: Int, high: Int, attempts: Int): Pokemon? =
+        if (category == EventCategory.SHINY) generateRandom(player, low, high, attempts, true) { fillAllowed(it) }
+        else generateRandom(player, low, high, attempts, null) { fillAllowed(it) && category.matches(it) }
+
+    /**
+     * Prepara un evento recién iniciado: asegura que la pool tenga Pokémon de su categoría (retirando los normales
+     * más antiguos para generar otros nuevos) y anuncia en el chat cuáles hay. Devuelve false si todavía no se puede
+     * hacer porque no hay ningún jugador conectado (se reintentará).
+     */
+    fun prepareEvent(server: MinecraftServer, event: WtEvent): Boolean {
+        val player = server.playerList.players.firstOrNull() ?: return false
+        val types = ConfigManager.strings("events.ensurePool.types").map { it.lowercase() }
+        if (ConfigManager.bool("events.ensurePool.enabled", true) && event.type.key in types) {
+            runCatching { ensureEventPool(server, player, event) }
+                .onFailure { WonderTradePlus.LOGGER.error("No se pudo preparar la pool para el evento {}.", event.title, it) }
+        }
+        if (ConfigManager.bool("events.announcePokemon.enabled", true)) {
+            runCatching { announceEventPokemon(server, event) }
+                .onFailure { WonderTradePlus.LOGGER.error("No se pudo anunciar los Pokémon del evento {}.", event.title, it) }
+        }
+        return true
+    }
+
+    private fun ensureEventPool(server: MinecraftServer, player: ServerPlayer, event: WtEvent) {
+        val registryAccess = server.registryAccess()
+        val minimum = ConfigManager.int("events.ensurePool.minimum", 3).coerceAtLeast(0)
+        val maxGenerate = ConfigManager.int("events.ensurePool.maxGenerate", 10).coerceAtLeast(0)
+        val existing = pool.all().count { entryMatches(it, event.category, registryAccess) }
+        val needed = minOf((minimum - existing).coerceAtLeast(0), maxGenerate)
+        if (needed <= 0) return
+        val low = ConfigManager.int("fallback.minimumLevel", 1).coerceIn(1, 100)
+        val high = ConfigManager.int("fallback.maximumLevel", 100).coerceIn(low, 100)
+        val attempts = ConfigManager.int("events.ensurePool.attempts", 3000).coerceIn(1, 20000)
+        val replaceOldest = ConfigManager.bool("events.ensurePool.replaceOldest", true)
+        var generated = 0
+        repeat(needed) {
+            val fresh = generateForCategory(player, event.category, low, high, attempts) ?: return@repeat
+            if (replaceOldest) {
+                // Se retira el normal más antiguo; los especiales nunca se sacrifican.
+                val oldest = pool.all().filter { !WonderTradeRules.isRareEntry(it) }.minByOrNull { it.addedAt }
+                if (oldest != null) pool.remove(oldest.id)
+            }
+            addAdminEntry(fresh, registryAccess)
+            generated++
+        }
+        if (generated > 0) {
+            trimAndSave()
+            WonderTradePlus.LOGGER.info("Evento {}: se han generado {} Pokémon de la categoría {}.", event.title, generated, event.category.label)
+        }
+    }
+
+    private fun announceEventPokemon(server: MinecraftServer, event: WtEvent) {
+        val registryAccess = server.registryAccess()
+        val matching = pool.all().filter { entryMatches(it, event.category, registryAccess) }
+        val lines = mutableListOf<String>()
+        if (matching.isEmpty()) {
+            lines += ConfigManager.string("messages.eventPoolNone", "&7Ahora mismo no hay ningún Pokémon &f{category}&7 en la pool.")
+                .replace("{category}", event.category.label)
+        } else {
+            val maxListed = ConfigManager.int("events.announcePokemon.maxListed", 10).coerceAtLeast(1)
+            val showLevel = ConfigManager.bool("events.announcePokemon.showLevel", true)
+            lines += format(
+                ConfigManager.string("messages.eventPoolHeader", "&d★ Pokémon &f{category}&d en la pool ({count}):"),
+                mapOf("category" to event.category.label, "count" to matching.size)
+            )
+            val names = matching.take(maxListed).map { entry ->
+                val loaded = runCatching { Pokemon.loadFromJSON(registryAccess, entry.pokemonJson.deepCopy()) }.getOrNull()
+                val name = loaded?.getDisplayName()?.string ?: entry.species.substringAfter(':')
+                val star = if (entry.shiny && event.category != EventCategory.SHINY) "&e★" else ""
+                val level = if (showLevel) " &7Nv.${entry.level}" else ""
+                "$star&f$name$level"
+            }
+            lines += names.joinToString("&7, ")
+            if (matching.size > maxListed) {
+                lines += format(
+                    ConfigManager.string("messages.eventPoolMore", "&7…y &f{more}&7 más. Míralos todos en &e/wt pool&7."),
+                    mapOf("more" to matching.size - maxListed)
+                )
+            }
+        }
+        WonderTradeEvents.broadcast(server, lines.joinToString("\n"), emptyMap())
     }
 
     // ------------------------------------------------------------ categorías de entradas (eventos)

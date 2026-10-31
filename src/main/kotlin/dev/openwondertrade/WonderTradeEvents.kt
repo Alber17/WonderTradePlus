@@ -26,11 +26,12 @@ enum class EventType(val key: String, val title: String) {
 
 /** Categoría a la que afecta un evento. */
 enum class EventCategory(val key: String, val label: String, private val speciesKey: String?) {
+    // El orden de esta lista es el orden en que aparecen en el menú.
     SHINY("shiny", "Shiny", null),
-    LEGENDARY("legendario", "Legendario", "legendary"),
-    MYTHICAL("mitico", "Mítico", "mythical"),
     ULTRABEAST("ultraente", "Ultraente", "ultraBeast"),
-    PARADOX("paradoja", "Paradoja", "paradox");
+    PARADOX("paradoja", "Paradoja", "paradox"),
+    MYTHICAL("mitico", "Mítico", "mythical"),
+    LEGENDARY("legendario", "Legendario", "legendary");
 
     fun matches(pokemon: com.cobblemon.mod.common.pokemon.Pokemon): Boolean =
         if (this == SHINY) pokemon.shiny else WonderTradeRules.speciesCategoryKey(pokemon) == speciesKey
@@ -237,6 +238,8 @@ object WonderTradeEvents {
         save()
         broadcast(server, ConfigManager.string("messages.eventStarted", "&d★ ¡Evento «{name}» activo durante {duration}! &7Usa &e/wt eventos &7para ver los detalles."),
             mapOf("name" to event.title, "duration" to formatDuration(durationSeconds)))
+        // Asegura Pokémon de la categoría en la pool y anuncia cuáles hay; si no hay jugadores, se hace al entrar el primero.
+        if (!runCatching { WonderTradeService.prepareEvent(server, event) }.getOrDefault(true)) pendingSetup.add(event.id)
         return event
     }
 
@@ -244,20 +247,40 @@ object WonderTradeEvents {
         val event = events.firstOrNull { it.id == id } ?: return null
         events.remove(event)
         lastUse.keys.removeAll { it.endsWith(":${event.id}") }
+        pendingSetup.remove(event.id)
         save()
         announceEnd(server, event)
         return event
     }
 
-    /** Se llama una vez por segundo: termina los eventos caducados. */
+    /** Eventos recién creados a los que aún les falta preparar la pool y anunciar sus Pokémon (no había jugadores). */
+    private val pendingSetup = mutableSetOf<Int>()
+
+    /** Se llama una vez por segundo: termina los eventos caducados, inicia los programados y actualiza barras y avisos. */
     fun tick(server: MinecraftServer) {
         val now = System.currentTimeMillis()
         val ended = events.filter { it.endAt <= now }
-        if (ended.isEmpty()) return
-        events.removeAll(ended.toSet())
-        ended.forEach { event -> lastUse.keys.removeAll { it.endsWith(":${event.id}") } }
-        save()
-        ended.forEach { announceEnd(server, it) }
+        if (ended.isNotEmpty()) {
+            events.removeAll(ended.toSet())
+            ended.forEach { event -> lastUse.keys.removeAll { it.endsWith(":${event.id}") } }
+            save()
+            ended.forEach { announceEnd(server, it) }
+        }
+        runCatching { WonderTradeSchedule.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el control de eventos programados.", it) }
+        runCatching { processPendingSetup(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló la preparación de un evento.", it) }
+        runCatching { WonderTradeEventDisplay.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló la barra de eventos.", it) }
+    }
+
+    private fun processPendingSetup(server: MinecraftServer) {
+        if (pendingSetup.isEmpty()) return
+        for (id in pendingSetup.toList()) {
+            val event = active().firstOrNull { it.id == id }
+            if (event == null) {
+                pendingSetup.remove(id)
+                continue
+            }
+            if (WonderTradeService.prepareEvent(server, event)) pendingSetup.remove(id)
+        }
     }
 
     private fun announceEnd(server: MinecraftServer, event: WtEvent) {
@@ -265,7 +288,7 @@ object WonderTradeEvents {
             mapOf("name" to event.title))
     }
 
-    private fun broadcast(server: MinecraftServer, template: String, values: Map<String, Any>) {
+    fun broadcast(server: MinecraftServer, template: String, values: Map<String, Any>) {
         val text = WonderTradeService.format(template, values)
         server.playerList.broadcastSystemMessage(
             WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + text), false
@@ -322,6 +345,7 @@ object WonderTradeEvents {
                 }
             }
         }
+        lines += WonderTradeSchedule.upcomingLines()
         return WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
     }
 
@@ -337,6 +361,14 @@ object WonderTradeEvents {
                 lines += "&8#${event.id} &d${event.title} &7valor &f${valueText(event.value)}% &7espera &f${formatDuration(event.cooldownSeconds)} &7termina en &f${formatDuration((event.endAt - now + 999L) / 1000L)} &8(${event.createdBy})"
             }
             lines += "&7Finalizar: &e/wt admin eventos parar <id>"
+        }
+        val scheduled = WonderTradeSchedule.all()
+        if (scheduled.isNotEmpty()) {
+            lines += "&d&lProgramados:"
+            scheduled.forEach { item ->
+                lines += "&8P${item.id} &d${item.title} &7dura &f${formatDuration(item.durationSeconds)} &7— &f${WonderTradeSchedule.describeWhen(item)} &8(${item.createdBy})"
+            }
+            lines += "&7Cancelar: &e/wt admin eventos desprogramar <id>"
         }
         return WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
     }
