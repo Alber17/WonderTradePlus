@@ -301,7 +301,7 @@ object WonderTradeGui {
                 openPool(it, 0, false)
             }
         }
-        menu.button(24, named(Items.ENCHANTED_BOOK, "&dVer especiales", "&7Qué Pokémon son míticos, legendarios,", "&7Ultraentes y Paradoja.", "&eClic para ver")) { openSpecials(it) }
+        menu.button(18, named(Items.ENCHANTED_BOOK, "&dVer especiales", "&7Qué Pokémon son míticos, legendarios,", "&7Ultraentes y Paradoja.", "&eClic para ver")) { openSpecials(it) }
         menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
@@ -624,12 +624,6 @@ object WonderTradeGui {
             }
             menu.button(12, named(Items.BARRIER, "&cEliminar Pokémon", "&7Elige qué origen quieres eliminar.", "&eAbrir opciones")) {
                 openAdminPoolDeleteOptions(it)
-            }
-            menu.button(13, named(Items.PLAYER_HEAD, "&cEliminar aportaciones", "&7Borrar de la pool los Pokémon de un donante.")) {
-                openAdminDonors(it)
-            }
-            menu.button(14, named(Items.TNT, ConfigManager.string("messages.adminMenuClear", "&cVaciar pool"), "&7Elimina todos los Pokémon.", "&cPide confirmación.")) {
-                openClearPoolConfirm(it)
             }
 
             // Fila 2: servidor
@@ -1174,6 +1168,9 @@ object WonderTradeGui {
                 openAdmin(p)
             }
             menu.button(15, named(Items.TNT, "&4Toda la pool", "&7Elimina todas las entradas, sin importar su origen.", "&cPide confirmación.")) { openClearPoolConfirm(it) }
+            menu.button(17, named(Items.PLAYER_HEAD, "&cEliminar aportaciones", "&7Elige un donante y elimina", "&7sus Pokémon de la pool.")) {
+                openAdminDonors(it)
+            }
             menu.button(22, named(Items.ARROW, "&aVolver al panel admin")) { openAdmin(it) }
         }
     }

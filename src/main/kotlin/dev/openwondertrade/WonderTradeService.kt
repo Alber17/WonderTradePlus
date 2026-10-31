@@ -133,7 +133,6 @@ object WonderTradeService {
             ConfigManager.string("messages.helpDonateCommand", "&e/wt donar &7Donar un Pokémon a la pool"),
             ConfigManager.string("messages.helpStatsCommand", "&e/wt stats [jugador] &7Consultar estadísticas"),
             ConfigManager.string("messages.helpTopCommand", "&e/wt top &7Abrir el menú de rankings"),
-            ConfigManager.string("messages.helpChanceCommand", "&e/wt chance &7Consultar tu probabilidad de especial"),
             ConfigManager.string("messages.helpEventsCommand", "&e/wt eventos &7Ver los eventos activos"),
             ConfigManager.string("messages.helpSpecialsCommand", "&e/wt especiales &7Ver qué Pokémon son míticos, legendarios, Ultraentes y Paradoja"),
             ConfigManager.string("messages.helpRankCommand", "&e/wt rango &7Ver tu rango y sus ventajas"),
@@ -156,7 +155,6 @@ object WonderTradeService {
             lines += ConfigManager.string("messages.helpAdminRemovePlayersCommand", "&e/wt admin removeplayers &7Eliminar solo Pokémon aportados por jugadores")
             lines += ConfigManager.string("messages.helpAdminHistoryCommand", "&e/wt admin history [jugador] &7Consultar historial")
             lines += ConfigManager.string("messages.helpAdminResetStatsCommand", "&e/wt admin resetstats <jugador|all> &7Reiniciar estadísticas")
-            lines += ConfigManager.string("messages.helpAdminChanceCommand", "&e/wt chance <jugador> set <porcentaje> | reset &7Editar el bonus")
             lines += ConfigManager.string("messages.helpAdminEventsCommand", "&e/wt admin eventos &7Ver eventos activos y programados")
             lines += ConfigManager.string("messages.helpAdminEventCreateCommand", "&e/wt admin eventos crear <arriesgar|recibir> <categorías> <duración> [valor] [espera] &7Crear un evento (varias categorías con +)")
             lines += ConfigManager.string("messages.helpAdminEventStopCommand", "&e/wt admin eventos parar <id> &7Finalizar un evento")

@@ -90,42 +90,6 @@ class WonderTradePlus : ModInitializer {
                 WonderTradeService.confirm(context.source.playerOrException)
                 1
             })
-            // PERMISO: /wt chance es público; consultar/modificar el bonus de otro jugador requiere admin.permissionLevel.
-            .then(literal("chance")
-                .executes { context ->
-                    WonderTradeService.showBonus(context.source.playerOrException)
-                    1
-                }
-                .then(argument("player", StringArgumentType.word())
-                    .requires { it.hasPermission(WonderTradeService.adminLevel()) }
-                    .suggests { context, builder ->
-                        SharedSuggestionProvider.suggest(
-                            (context.source.onlinePlayerNames + WonderTradeService.knownPlayerNames()).distinct(),
-                            builder
-                        )
-                    }
-                    .executes { context ->
-                        val name = StringArgumentType.getString(context, "player")
-                        val result = WonderTradeService.lookupBonus(context.source.server, name)
-                        if (result == null) {
-                            context.source.sendFailure(WonderTradeService.info("&cNo hay datos de &f$name&c: no está conectado ni ha usado Wonder Trade todavía."))
-                        } else {
-                            val (shownName, value) = result
-                            context.source.sendSuccess({
-                                WonderTradeService.info(
-                                    "&7Probabilidad acumulada de especial de &f$shownName&7: &d${WonderTradeService.bonusPercentText(value)}% &8(máx. ${WonderTradeService.bonusMaximum()}%)"
-                                )
-                            }, false)
-                        }
-                        1
-                    }
-                    // PERMISO: admin.permissionLevel, heredado del argumento "player".
-                    .then(literal("set")
-                        .then(argument("value", DoubleArgumentType.doubleArg(0.0, 100.0)).executes { context ->
-                            setChance(context, DoubleArgumentType.getDouble(context, "value"))
-                        }))
-                    // PERMISO: admin.permissionLevel, heredado del argumento "player".
-                    .then(literal("reset").executes { context -> setChance(context, 0.0) })))
             // PERMISO: público; estadísticas propias y públicas visibles sin OP.
             .then(literal("stats")
                 .executes { context ->
@@ -518,19 +482,6 @@ class WonderTradePlus : ModInitializer {
             return 0
         }
         source.sendSuccess({ WonderTradeService.info("&aEvento &f${event.title} &acreado con id &f#${event.id}&a.") }, true)
-        return 1
-    }
-
-    private fun setChance(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>, value: Double): Int {
-        val name = StringArgumentType.getString(context, "player")
-        val result = WonderTradeService.adminSetBonus(context.source.server, name, value)
-        if (result == null) {
-            context.source.sendFailure(WonderTradeService.info("&cNo hay datos de &f$name&c: no está conectado ni ha usado Wonder Trade todavía."))
-        } else {
-            context.source.sendSuccess({
-                WonderTradeService.info("&aLa probabilidad acumulada de &f${result.first} &aahora es &d${WonderTradeService.bonusPercentText(result.second)}%&a.")
-            }, true)
-        }
         return 1
     }
 

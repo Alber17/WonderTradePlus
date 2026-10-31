@@ -49,9 +49,6 @@ Los comandos de jugador son públicos salvo que se indique otra cosa. Los nivele
 | `/wt <slot>` | Todos | Elige un Pokémon del equipo (slot 1–6) y pide confirmación. |
 | `/wt confirm` | Todos | Confirma el intercambio pendiente. |
 | `/wt <slot> confirm` | Todos | Intercambia ese slot al instante, sin confirmación aparte. |
-| `/wt chance` | Todos | Muestra tu probabilidad acumulada de recibir un Pokémon especial. |
-| `/wt chance <jugador>` | `admin.permissionLevel` | Muestra la probabilidad acumulada de otro jugador. |
-| `/wt chance <jugador> set <valor>` o `reset` | `admin.permissionLevel` | Fija su bonus (0–100) o lo pone a 0. |
 | `/wt stats [jugador]` | Todos | Muestra intercambios, donaciones directas, especiales recibidos/aportados y bonus. |
 | `/wt top` | Todos | Abre un menú para elegir entre los tres rankings. |
 | `/wt cancel` | Todos | Cancela el intercambio pendiente. |
@@ -114,7 +111,7 @@ Los Pokémon que no se pueden ofrecer (debilitados, fuera del rango de nivel, co
 
 Cada jugador tiene un porcentaje propio que aumenta con cada intercambio. Los incrementos actuales se muestran dentro del libro del menú `/wt` y se pueden cambiar en `bonus.*`. Por defecto: **+0,1 puntos porcentuales al ofrecer un Pokémon normal** y **+0,5 puntos porcentuales al ofrecer un Pokémon especial** (shiny, legendario, mítico, Ultraente o Paradoja), hasta el máximo configurado (60% por defecto). Si el Pokémon ofrecido es shiny y además es legendario, mítico, Ultraente o Paradoja, suma **+0,2 puntos porcentuales extra**: aporta +0,7% en total por defecto. Los tres valores se pueden configurar por separado con `bonus.normalTradeGain`, `bonus.specialTradeGain` y `bonus.specialShinyExtraGain`. Un shiny de especie normal conserva el incremento especial existente (+0,5%), pero no recibe el extra de +0,2%.
 
-Al ofrecer un Pokémon **normal**, el incremento normal se suma primero y el porcentaje acumulado se utiliza para la tirada de ese mismo intercambio: si se activa, se intenta entregar un Pokémon especial que ya exista en el pool. Si no hay ninguno disponible, recibe cualquier Pokémon válido del pool y conserva el bonus acumulado. Al recibir un especial, su porcentaje vuelve a 0. Ofrecer un Pokémon especial suma el incremento especial y ese nuevo porcentaje se aplica en el siguiente intercambio normal. Se consulta con `/wt chance` (los admins pueden ver el de otro jugador con `/wt chance <jugador>`).
+Al ofrecer un Pokémon **normal**, el incremento normal se suma primero y el porcentaje acumulado se utiliza para la tirada de ese mismo intercambio: si se activa, se intenta entregar un Pokémon especial que ya exista en el pool. Si no hay ninguno disponible, recibe cualquier Pokémon válido del pool y conserva el bonus acumulado. Al recibir un especial, su porcentaje vuelve a 0. Ofrecer un Pokémon especial suma el incremento especial y ese nuevo porcentaje se aplica en el siguiente intercambio normal. El libro del menú principal muestra los incrementos del bonus.
 
 ## Protección contra abusos
 
@@ -284,7 +281,7 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
   - Por defecto hay 5 rangos, del más alto al más bajo: Leyenda (`baseBonus` 1.0), Maestro, Élite, Experto y Dominguero (estos cuatro con 0.0 para que pongas tú los valores).
   - Un jugador pertenece a un rango si tiene el permiso del rango (por ejemplo `wondertradeplus.rank.leyenda` o `group.leyenda` con LuckPerms) o la etiqueta del rango (`/tag <jugador> add wt_leyenda`). Cambia `id`, `name`, `permission` y `tag` por los de tu servidor.
   - Con LuckPerms basta con dar el permiso al grupo: `/lp group leyenda permission set wondertradeplus.rank.leyenda true`.
-  - `/wt chance` y el libro del menú muestran el rango.
+  - El libro del menú muestra los incrementos del bonus.
 
 ### 0.13.1
 - Los rangos por defecto son los del servidor: Leyenda, Maestro, Élite, Experto y Dominguero. Permisos `wondertradeplus.rank.<id>` y etiquetas `wt_<id>`. Si tu `config.json` tenía la lista genérica sin tocar, se actualiza sola.
