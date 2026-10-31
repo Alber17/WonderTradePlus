@@ -614,33 +614,33 @@ object WonderTradeGui {
 
             // Fila 1: pool
             menu.put(9, named(Items.ORANGE_STAINED_GLASS_PANE, "&6Pool"))
-            menu.button(10, named(Items.CHEST, ConfigManager.string("messages.adminMenuPool", "&6Gestionar pool"), "&7Ver y administrar los Pokémon.")) {
+            menu.button(11, named(Items.CHEST, ConfigManager.string("messages.adminMenuPool", "&6Gestionar pool"), "&7Ver y administrar los Pokémon.")) {
                 openPool(it, 0, true)
             }
             if (ConfigManager.bool("admin.fillMenu.enabled", true)) {
-                menu.button(11, named(Items.HOPPER, "&aRellenar pool", "&7Generar Pokémon automáticamente.", "&eAbrir opciones")) {
+                menu.button(13, named(Items.HOPPER, "&aRellenar pool", "&7Generar Pokémon automáticamente.", "&eAbrir opciones")) {
                     openAdminFill(it)
                 }
             }
-            menu.button(12, named(Items.BARRIER, "&cEliminar Pokémon", "&7Elige qué origen quieres eliminar.", "&eAbrir opciones")) {
+            menu.button(15, named(Items.BARRIER, "&cEliminar pool", "&7Elige qué origen quieres eliminar.", "&eAbrir opciones")) {
                 openAdminPoolDeleteOptions(it)
             }
 
             // Fila 2: servidor
             menu.put(18, named(Items.MAGENTA_STAINED_GLASS_PANE, "&dServidor"))
-            menu.button(19, named(Items.NETHER_STAR, "&dGestionar eventos", "&7Crea eventos temporales para todos.", "&eClic para abrir")) {
+            menu.button(20, named(Items.NETHER_STAR, "&dGestionar eventos", "&7Crea eventos temporales para todos.", "&eClic para abrir")) {
                 openAdminEvents(it)
             }
             val toggleStack = if (on) named(Items.LIME_DYE, "&aWonder Trade: ACTIVADO", "&7Los jugadores pueden intercambiar y donar.", "&eClic para desactivar")
             else named(Items.RED_DYE, "&cWonder Trade: DESACTIVADO", "&7Los jugadores no pueden intercambiar ni donar.", "&eClic para activar")
-            menu.button(20, toggleStack) {
+            menu.button(22, toggleStack) {
                 WonderTradeService.setEnabled(!WonderTradeService.isEnabled())
                 openAdmin(it)
             }
-            menu.button(21, named(Items.WRITABLE_BOOK, ConfigManager.string("messages.adminMenuHistory", "&eHistorial"), "&7Últimos intercambios.")) {
+            menu.button(24, named(Items.WRITABLE_BOOK, ConfigManager.string("messages.adminMenuHistory", "&eHistorial"), "&7Últimos intercambios.")) {
                 openHistory(it)
             }
-            menu.button(22, named(Items.BOOK, "&eReiniciar estadísticas", "&7Reinicia todos los rankings y estadísticas.", "&cNo se puede deshacer.")) {
+            menu.button(26, named(Items.BOOK, "&eReiniciar estadísticas", "&7Reinicia todos los rankings y estadísticas.", "&cNo se puede deshacer.")) {
                 openResetStatsConfirm(it)
             }
 
@@ -651,18 +651,18 @@ object WonderTradeGui {
                 WonderTradeService.send(it, "reload")
                 openAdmin(it)
             }
-            menu.button(29, named(Items.HOPPER, ConfigManager.string("messages.adminMenuMaintenance", "&aEjecutar mantenimiento"), "&7Caducidad y purga de la pool.")) {
+            menu.button(30, named(Items.HOPPER, ConfigManager.string("messages.adminMenuMaintenance", "&aEjecutar mantenimiento"), "&7Caducidad y purga de la pool.")) {
                 val (expired, generated) = WonderTradeService.maintainPool(it.server)
                 it.sendSystemMessage(WonderTradeService.info("&aMantenimiento: &f$expired &aPokémon eliminados, &f$generated &agenerados."))
                 openAdmin(it)
             }
-            menu.button(30, named(Items.PAPER, ConfigManager.string("messages.adminMenuBackup", "&dCrear copia de seguridad"))) {
+            menu.button(32, named(Items.PAPER, ConfigManager.string("messages.adminMenuBackup", "&dCrear copia de seguridad"))) {
                 val backup = WonderTradeService.backupNow()
                 if (backup == null) it.sendSystemMessage(WonderTradeService.info("&cNo se pudo crear la copia."))
                 else it.sendSystemMessage(WonderTradeService.info("&aCopia creada: &f$backup"))
                 openAdmin(it)
             }
-            menu.button(31, named(Items.NOTE_BLOCK, "&9Probar Discord", "&7Enviar un mensaje de prueba al webhook.")) { p ->
+            menu.button(34, named(Items.NOTE_BLOCK, "&9Probar Discord", "&7Enviar un mensaje de prueba al webhook.")) { p ->
                 WonderTradeDiscord.test { ok, message ->
                     p.server.execute {
                         p.sendSystemMessage(WonderTradeService.info(if (ok) "&a$message" else "&c$message"))
@@ -1157,20 +1157,15 @@ object WonderTradeGui {
             val generated = WonderTradeService.poolEntries().count { it.donorName.equals("Servidor", ignoreCase = true) }
             val playerEntries = WonderTradeService.poolEntries().count { !it.donorName.equals("Servidor", ignoreCase = true) }
             menu.put(4, named(Items.BARRIER, "&cEliminar por origen", "&7Elige qué Pokémon retirar de la pool.", "&7Generados por servidor: &f$generated", "&7Aportados por jugadores: &f$playerEntries"))
-            menu.button(11, named(Items.COMMAND_BLOCK, "&cSolo generados por servidor", "&7Elimina los Pokémon creados automáticamente", "&7por el servidor. No toca donaciones.")) { p ->
+            menu.button(11, named(Items.COMMAND_BLOCK, "&cSolo generados por la pool", "&7Elimina únicamente los Pokémon", "&7generados automáticamente por el servidor.")) { p ->
                 val removed = WonderTradeService.removeGeneratedPoolEntries()
-                p.sendSystemMessage(WonderTradeService.info("&aSe han eliminado &f$removed &aPokémon generados por el servidor."))
-                openAdmin(p)
+                p.sendSystemMessage(WonderTradeService.info("&aSe han eliminado &f$removed &aPokémon generados por la pool."))
+                openAdminPoolDeleteOptions(p)
             }
-            menu.button(13, named(Items.PLAYER_HEAD, "&cSolo aportados por jugadores", "&7Elimina los Pokémon donados o aportados", "&7por jugadores. Conserva los generados.")) { p ->
-                val removed = WonderTradeService.removePlayerPoolEntries()
-                p.sendSystemMessage(WonderTradeService.info("&aSe han eliminado &f$removed &aPokémon aportados por jugadores."))
-                openAdmin(p)
+            menu.button(13, named(Items.PLAYER_HEAD, "&cSolo generados por jugadores", "&7Abre la lista de jugadores que han aportado.", "&7Selecciona uno para eliminar sus Pokémon.")) { p ->
+                openAdminDonors(p)
             }
-            menu.button(15, named(Items.TNT, "&4Toda la pool", "&7Elimina todas las entradas, sin importar su origen.", "&cPide confirmación.")) { openClearPoolConfirm(it) }
-            menu.button(17, named(Items.PLAYER_HEAD, "&cEliminar aportaciones", "&7Elige un donante y elimina", "&7sus Pokémon de la pool.")) {
-                openAdminDonors(it)
-            }
+            menu.button(15, named(Items.TNT, "&4Eliminar toda la pool", "&7Elimina todas las entradas, sin importar su origen.", "&cPide confirmación.")) { openClearPoolConfirm(it) }
             menu.button(22, named(Items.ARROW, "&aVolver al panel admin")) { openAdmin(it) }
         }
     }
@@ -1192,7 +1187,7 @@ object WonderTradeGui {
                 }
             }
             if (current > 0) menu.button(45, named(Items.ARROW, "&ePágina anterior")) { openAdminDonors(it, current - 1) }
-            menu.button(49, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver al panel admin")) { openAdmin(it) }
+            menu.button(49, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver a eliminar pool")) { openAdminPoolDeleteOptions(it) }
             if (current < pages - 1) menu.button(53, named(Items.ARROW, "&ePágina siguiente")) { openAdminDonors(it, current + 1) }
         }
     }
@@ -1215,9 +1210,9 @@ object WonderTradeGui {
             menu.button(11, named(Items.TNT, ConfigManager.string("messages.adminMenuClearConfirm", "&cConfirmar vaciado"))) {
                 WonderTradeService.clearPool()
                 WonderTradeService.send(it, "poolCleared")
-                openAdmin(it)
+                openAdminPoolDeleteOptions(it)
             }
-            menu.button(15, named(Items.LIME_STAINED_GLASS_PANE, ConfigManager.string("messages.adminMenuBack", "&aVolver"))) { openAdmin(it) }
+            menu.button(15, named(Items.LIME_STAINED_GLASS_PANE, ConfigManager.string("messages.adminMenuBack", "&aVolver"))) { openAdminPoolDeleteOptions(it) }
         }
     }
 
