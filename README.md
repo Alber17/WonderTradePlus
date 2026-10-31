@@ -296,3 +296,8 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 
 ### 0.14.2
 - `/wt especiales` muestra también las formas regionales (Alola, Galar, Hisui, Paldea) de los Pokémon de cada categoría: Articuno, Zapdos y Moltres de Galar aparecen como legendarios.
+
+### 0.15.0
+- **Aviso de fin de cooldown:** cuando termina el tiempo normal de un jugador conectado recibe un mensaje y un sonido suave (campana de amatista). Se desactiva con `cooldownNotice.enabled` o `sounds.cooldownReady`, y cada jugador puede silenciarlo en `/wt sonidos`.
+- **Cooldown con evento:** si hay un evento activo y estás en espera, el chat muestra el tiempo del evento en lugar del normal (`messages.eventCooldown`).
+- **Reposición de especiales del evento:** el objetivo de cada categoría es lo que había en la pool al empezar el evento (como mínimo `events.ensurePool.minimum`). Si había 10 y alguien se lleva uno, se retira el normal más antiguo y se genera otro de la categoría, al instante tras el intercambio. Con `events.ensurePool.target` > 0 se fija una cantidad concreta.

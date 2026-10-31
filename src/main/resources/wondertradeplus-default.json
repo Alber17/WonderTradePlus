@@ -109,6 +109,9 @@
       { "id": "dominguero", "name": "&eDominguero", "permission": "wondertradeplus.rank.dominguero", "tag": "wt_dominguero", "baseBonus": 0.0, "gainMultiplier": 1.0 }
     ]
   },
+  "cooldownNotice": {
+    "enabled": true
+  },
   "events": {
     "enabled": true,
     "maximumDurationHours": 720,
@@ -135,6 +138,7 @@
       "enabled": true,
       "types": ["arriesgar", "recibir"],
       "minimum": 3,
+      "target": 0,
       "maxGenerate": 10,
       "replaceOldest": true,
       "keepDuringEvent": true,
@@ -256,6 +260,8 @@
     "rankDisabled": "&7Los rangos están desactivados.",
     "helpSpecialsCommand": "&e/wt especiales &7Ver qué Pokémon son míticos, legendarios, Ultraentes y Paradoja",
     "helpRankCommand": "&e/wt rango &7Ver tu rango y sus ventajas",
+    "cooldownFinished": "&a¡Ya puedes hacer Wonder Trade otra vez! Usa &e/wt&a.",
+    "eventCooldown": "&cTu próximo intercambio de evento estará disponible en &f{time}&c.",
     "tradeDisabled": "&cWonder Trade está desactivado temporalmente.",
     "previewTitle": "&dProbabilidades de este intercambio",
     "previewPool": "&7Especiales disponibles en la pool: &f{specials}&7/&f{total}",
@@ -339,6 +345,7 @@
     "pageTurn": true,
     "specialReceived": true,
     "specialShinyReceived": true,
+    "cooldownReady": true,
     "volume": 0.45,
     "pitch": 1.0
   }

@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.14.2**.
+- Versión actual: **0.15.0**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -200,4 +200,10 @@
 
 ## 0.14.2
 - /wt especiales incluye las formas regionales (Alola, Galar, Hisui, Paldea) de las especies de cada categoría, por ejemplo Articuno, Zapdos y Moltres de Galar.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.15.0
+- Aviso con mensaje y sonido suave cuando termina el cooldown normal (cooldownNotice, sounds.cooldownReady).
+- Con evento activo, el chat muestra la espera del evento en lugar de la normal.
+- Reposición de la pool por objetivo: se mantiene la cantidad que había al empezar el evento (events.ensurePool.target) y se repone al instante tras cada intercambio.
 - Gradle no se ha ejecutado en el entorno de edición.

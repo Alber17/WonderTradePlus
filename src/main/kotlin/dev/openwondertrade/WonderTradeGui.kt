@@ -187,6 +187,7 @@ object WonderTradeGui {
             SoundOption("menuOpen", 10, Items.CHEST, "&fApertura de menús", "&7Sonido al abrir los menús y cofres."),
             SoundOption("pcOpen", 11, Items.ENDER_CHEST, "&fApertura del PC", "&7Sonido del cofre de Ender al abrir el PC."),
             SoundOption("buttonClick", 12, Items.STONE_BUTTON, "&fClic de botones", "&7Sonido al pulsar botones de los menús."),
+            SoundOption("cooldownReady", 13, Items.BELL, "&fAviso de cooldown", "&7Sonido suave cuando vuelves a poder hacer Wonder Trade."),
             SoundOption("pageTurn", 14, Items.WRITABLE_BOOK, "&fCambio de página", "&7Sonido al cambiar de página."),
             SoundOption("specialReceived", 15, Items.EXPERIENCE_BOTTLE, "&fPokémon especial", "&7Sonido al recibir un legendario, mítico, Ultraente o Paradoja."),
             SoundOption("specialShinyReceived", 16, Items.TOTEM_OF_UNDYING, "&fEspecial shiny", "&7Sonido de tótem al recibir un legendario, mítico, Ultraente o Paradoja shiny. Un shiny normal usa el sonido de especial.")
@@ -961,6 +962,7 @@ object WonderTradeGui {
                 "buttonClick" -> "ui.button.click"
                 "pageTurn" -> "item.book.page_turn"
                 "specialReceived" -> "entity.experience_orb.pickup"
+                "cooldownReady" -> "block.amethyst_block.chime"
                 "specialShinyReceived" -> "item.totem.use"
                 else -> return
             }

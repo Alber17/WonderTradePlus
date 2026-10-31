@@ -771,6 +771,8 @@ object WonderTradeService {
             announceDonation(player, donation)
             recordHistory(player, offered, incoming, fromPool, now)
             notifyDiscord(player, offered, incoming)
+            // Con un evento activo, repone enseguida el Pokémon de la categoría que se acaba de llevar el jugador.
+            runCatching { maintainEventPools(player.server) }.onFailure { WonderTradePlus.LOGGER.error("No se pudo reponer la pool del evento.", it) }
         } catch (exception: Exception) {
             WonderTradePlus.LOGGER.error("Ha fallado el intercambio de Wonder Trade para {}. Se intentará revertirlo.", player.gameProfile.name, exception)
             runCatching { party.remove(incoming) }
@@ -847,6 +849,8 @@ object WonderTradeService {
         // Olvida las categorías cacheadas de entradas que ya no están en la pool.
         val ids = pool.all().map { it.id }.toHashSet()
         entryCategoryCache.keys.retainAll(ids)
+        val activeIds = active.map { "${it.id}:" }
+        eventTargets.keys.removeAll { key -> activeIds.none { key.startsWith(it) } }
         for (event in active.filter { it.type.key in types }) {
             ensureEventPool(server, player, event)
         }
@@ -854,12 +858,23 @@ object WonderTradeService {
 
     private val warnedEvents = mutableSetOf<Int>()
 
+    /** Cantidad de Pokémon de cada categoría que se mantiene durante un evento: «idEvento:categoría» -> objetivo. */
+    private val eventTargets = HashMap<String, Int>()
+
     private fun ensureEventPool(server: MinecraftServer, player: ServerPlayer, event: WtEvent) {
         val registryAccess = server.registryAccess()
         val minimum = ConfigManager.int("events.ensurePool.minimum", 3).coerceAtLeast(0)
         val maxGenerate = ConfigManager.int("events.ensurePool.maxGenerate", 10).coerceAtLeast(0)
-        // Se asegura el mínimo por cada categoría del evento (por ejemplo, Míticos y Legendarios por separado).
-        for (category in event.categories) ensureCategory(server, player, event, category, minimum, maxGenerate)
+        val configuredTarget = ConfigManager.int("events.ensurePool.target", 0).coerceAtLeast(0)
+        // El objetivo de cada categoría es lo que había al empezar el evento (mínimo `minimum`): si había 10
+        // y alguien se lleva uno, se repone hasta 10. Con `target` > 0 se fija una cantidad concreta.
+        for (category in event.categories) {
+            val existing = pool.all().count { entryMatches(it, category, registryAccess) }
+            val target = eventTargets.getOrPut("${event.id}:${category.key}") {
+                if (configuredTarget > 0) configuredTarget else maxOf(minimum, existing)
+            }
+            ensureCategory(server, player, event, category, target, maxGenerate)
+        }
     }
 
     private fun ensureCategory(server: MinecraftServer, player: ServerPlayer, event: WtEvent, category: EventCategory, minimum: Int, maxGenerate: Int) {
@@ -1038,6 +1053,7 @@ object WonderTradeService {
         secondCounter++
         runCatching { WonderTradeEvents.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el control de eventos.", it) }
         server.playerList.players.forEach { WonderTradeGui.refreshCooldown(it) }
+        runCatching { checkCooldownNotices(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el aviso de fin de cooldown.", it) }
 
 
         val interval = ConfigManager.int("maintenance.intervalMinutes", 30).coerceAtLeast(1) * 60L
@@ -1377,6 +1393,27 @@ object WonderTradeService {
         return result.also { categoryCache = it }
     }
 
+    /** Jugadores conectados y si estaban en cooldown la última vez que se comprobó. */
+    private val cooldownWatch = HashMap<UUID, Boolean>()
+
+    /** Cuando termina el cooldown normal de un jugador conectado, le avisa con un mensaje y un sonido suave. */
+    private fun checkCooldownNotices(server: MinecraftServer) {
+        val online = server.playerList.players
+        cooldownWatch.keys.retainAll(online.map { it.uuid }.toSet())
+        if (!ConfigManager.bool("cooldownNotice.enabled", true)) {
+            cooldownWatch.clear()
+            return
+        }
+        for (player in online) {
+            val onCooldown = cooldownRemainingSeconds(player) > 0L
+            val was = cooldownWatch.put(player.uuid, onCooldown)
+            if (was == true && !onCooldown && isEnabled()) {
+                send(player, "cooldownFinished")
+                WonderTradeGui.playSound(player, "cooldownReady")
+            }
+        }
+    }
+
     fun cooldownRemainingSeconds(player: ServerPlayer): Long {
         val bypassLevel = ConfigManager.int("trade.adminBypassPermissionLevel", 2).coerceIn(0, 4)
         val bypass = player.hasPermissions(bypassLevel)
@@ -1396,7 +1433,16 @@ object WonderTradeService {
         val limit = ConfigManager.int("trade.dailyLimit", 0).coerceAtLeast(0)
         val check = playerData.check(player.uuid, System.currentTimeMillis(), cooldown, limit, bypass)
         if (check.cooldownSeconds > 0L) {
-            send(player, "cooldown", mapOf("time" to formatDuration(check.cooldownSeconds)))
+            // Con un evento activo se muestra la espera del evento, no la normal.
+            val eventLeft = WonderTradeEvents.cooldownRemaining(player)
+            if (eventLeft != null && eventLeft > 0L) {
+                player.sendSystemMessage(info(format(
+                    ConfigManager.string("messages.eventCooldown", "&cTu próximo intercambio de evento estará disponible en &f{time}&c."),
+                    mapOf("time" to formatDuration(eventLeft))
+                )))
+            } else {
+                send(player, "cooldown", mapOf("time" to formatDuration(check.cooldownSeconds)))
+            }
             return true
         }
         if (check.dailyLimitReached) {
@@ -1525,6 +1571,7 @@ object WonderTradeService {
 
     private fun defaultMessage(key: String): String = when (key) {
         "tradeDisabled" -> "&cWonder Trade está desactivado temporalmente."
+        "cooldownFinished" -> "&a¡Ya puedes hacer Wonder Trade otra vez! Usa &e/wt&a."
         "emptySlot" -> "&cNo tienes ningún Pokémon en ese slot."
         "invalidSlot" -> "&cEl slot debe estar entre 1 y 6."
         "confirmationExpired" -> "&cLa confirmación ha caducado."
