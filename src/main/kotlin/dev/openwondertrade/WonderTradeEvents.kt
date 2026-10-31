@@ -144,10 +144,10 @@ object WonderTradeEvents {
     fun load(directory: Path? = null) {
         if (directory != null) {
             file = directory.resolve("event.json")
-            lastUse.clear()
         }
         val path = file ?: return
         events.clear()
+        lastUse.clear()
         nextId = 1
         Files.createDirectories(path.parent)
         if (!Files.exists(path)) {
@@ -162,6 +162,16 @@ object WonderTradeEvents {
                 val event = runCatching { WtEvent.fromJson(node.asJsonObject) }.getOrNull() ?: continue
                 if (event.endAt > now) events.add(event)
                 if (event.id >= nextId) nextId = event.id + 1
+            }
+            // Esperas por jugador guardadas: solo las de eventos que siguen activos y que aún no han terminado.
+            val saved = root.getAsJsonObject("lastUse")
+            if (saved != null) {
+                val alive = events.associateBy { it.id.toString() }
+                for ((key, value) in saved.entrySet()) {
+                    val event = alive[key.substringAfterLast(':')] ?: continue
+                    val moment = runCatching { value.asLong }.getOrNull() ?: continue
+                    if (moment + event.cooldownSeconds * 1000L > now) lastUse[key] = moment
+                }
             }
         } catch (exception: Exception) {
             WonderTradePlus.LOGGER.error("No se pudo cargar event.json. Se empieza sin eventos.", exception)
@@ -178,6 +188,7 @@ object WonderTradeEvents {
             addProperty("schemaVersion", 1)
             addProperty("nextId", nextId)
             add("events", JsonArray().also { array -> events.forEach { array.add(it.toJson()) } })
+            add("lastUse", JsonObject().also { node -> lastUse.forEach { (key, moment) -> node.addProperty(key, moment) } })
         }
         val temporary = path.resolveSibling(path.fileName.toString() + ".tmp")
         Files.newBufferedWriter(temporary).use { gson.toJson(root, it) }
@@ -226,10 +237,12 @@ object WonderTradeEvents {
 
     fun markUsed(player: ServerPlayer, event: WtEvent) {
         lastUse[key(player, event)] = System.currentTimeMillis()
+        runCatching { save() }.onFailure { WonderTradePlus.LOGGER.error("No se pudo guardar la espera del evento.", it) }
     }
 
     fun unmark(player: ServerPlayer, event: WtEvent) {
         lastUse.remove(key(player, event))
+        runCatching { save() }.onFailure { WonderTradePlus.LOGGER.error("No se pudo guardar la espera del evento.", it) }
     }
 
     // ------------------------------------------------------------ creación y fin

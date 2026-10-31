@@ -180,7 +180,7 @@ object WonderTradeGui {
         menu.wipe()
         fill(menu, 27)
         menu.put(4, named(
-            Items.NOTE_BLOCK,
+            Items.JUKEBOX,
             "&dPreferencias de sonido",
             "&7Configura qué sonidos escuchas tú.",
             "&8Tus cambios se guardan automáticamente."
@@ -628,7 +628,7 @@ object WonderTradeGui {
                 openAdmin(it)
             }
             menu.button(31, named(Items.NOTE_BLOCK, "&9Probar Discord", "&7Enviar un mensaje de prueba al webhook.")) { p ->
-                WonderTradeService.discordTest { ok, message ->
+                WonderTradeDiscord.test { ok, message ->
                     p.server.execute {
                         p.sendSystemMessage(WonderTradeService.info(if (ok) "&a$message" else "&c$message"))
                     }
@@ -810,80 +810,70 @@ object WonderTradeGui {
         }
     }
 
+    /** Asistente de programación: un único menú que cambia de contenido (duración → día → hora → repetición). */
     private fun openEventScheduleDuration(player: ServerPlayer, type: EventType, categories: List<EventCategory>) {
-        open(player, "&5Eventos &8- &6Duración programada", 3) { menu ->
-            menu.wipe()
-            fill(menu, 27)
-            menu.put(4, named(Items.CLOCK, "&6Duración del evento", "&7Cuánto durará cada ejecución.", "&7Después elegirás día y horario."))
-            val maximum = WonderTradeEvents.maximumDurationSeconds()
-            val options = ConfigManager.strings("events.menuDurations")
-                .mapNotNull { WonderTradeEvents.parseDuration(it)?.takeIf { value -> value <= maximum } }
-                .distinct().take(7)
-            val slots = listOf(9, 10, 11, 12, 14, 15, 16)
-            options.forEachIndexed { index, seconds ->
-                menu.button(slots[index], named(Items.CLOCK, "&e${WonderTradeEvents.formatDuration(seconds)}", "&7Duración de cada ejecución.", "&eClic para continuar")) {
-                    openEventScheduleDay(it, type, categories, seconds)
-                }
-            }
-            menu.button(13, named(Items.REPEATER, "&6Tiempo personalizado", "&7Ajusta la duración con botones + y -.", "&eClic para personalizar")) {
-                openEventScheduleCustomDuration(it, type, categories, 3600L)
-            }
-            menu.button(22, named(Items.ARROW, "&aVolver")) { openEventDuration(it, type, categories) }
-            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
-        }
+        open(player, "&5Programar evento", 3) { menu -> renderScheduleDuration(menu, type, categories) }
     }
 
-    private fun openEventScheduleCustomDuration(player: ServerPlayer, type: EventType, categories: List<EventCategory>, seconds: Long) {
-        open(player, "&5Programar evento &8- &6Tiempo", 3) { menu ->
-            val maximum = WonderTradeEvents.maximumDurationSeconds()
-            val current = seconds.coerceIn(60L, maximum)
-            menu.wipe()
-            fill(menu, 27)
-            menu.put(4, named(Items.CLOCK, "&6Duración personalizada", "&7Duración actual: &f${WonderTradeEvents.formatDuration(current)}"))
-            val steps = listOf(9 to -86_400L, 10 to -3_600L, 11 to -600L, 12 to -60L, 14 to 60L, 15 to 600L, 16 to 3_600L, 17 to 86_400L)
-            for ((slot, delta) in steps) {
-                val sign = if (delta < 0) "-" else "+"
-                val icon = if (delta < 0) Items.RED_STAINED_GLASS_PANE else Items.LIME_STAINED_GLASS_PANE
-                val label = WonderTradeEvents.formatDuration(kotlin.math.abs(delta))
-                menu.button(slot, named(icon, (if (delta < 0) "&c" else "&a") + "$sign$label", "&7Actual: &f${WonderTradeEvents.formatDuration(current)}")) {
-                    openEventScheduleCustomDuration(it, type, categories, (current + delta).coerceIn(60L, maximum))
-                }
+    private fun renderScheduleDuration(menu: GuiMenu, type: EventType, categories: List<EventCategory>) {
+        menu.wipe()
+        fill(menu, 27)
+        menu.put(4, named(Items.CLOCK, "&6Duración del evento", "&7Cuánto durará cada ejecución.", "&7Después elegirás día y horario."))
+        val maximum = WonderTradeEvents.maximumDurationSeconds()
+        val options = ConfigManager.strings("events.menuDurations")
+            .mapNotNull { WonderTradeEvents.parseDuration(it)?.takeIf { value -> value <= maximum } }
+            .distinct().take(7)
+        val slots = listOf(9, 10, 11, 12, 14, 15, 16)
+        options.forEachIndexed { index, seconds ->
+            menu.button(slots[index], named(Items.CLOCK, "&e${WonderTradeEvents.formatDuration(seconds)}", "&7Duración de cada ejecución.", "&eClic para continuar")) {
+                renderScheduleDay(menu, type, categories, seconds)
             }
-            menu.put(13, named(Items.CLOCK, "&b${WonderTradeEvents.formatDuration(current)}", "&7Esta será la duración de cada repetición."))
-            menu.button(22, named(Items.LIME_CONCRETE, "&aContinuar", "&7Duración: &f${WonderTradeEvents.formatDuration(current)}")) {
-                openEventScheduleDay(it, type, categories, current)
-            }
-            menu.button(18, named(Items.ARROW, "&aVolver")) { openEventScheduleDuration(it, type, categories) }
-            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
         }
+        menu.button(13, named(Items.REPEATER, "&6Tiempo personalizado", "&7Ajusta la duración con botones + y -.", "&eClic para personalizar")) {
+            renderScheduleCustomDuration(menu, type, categories, 3600L)
+        }
+        menu.button(22, named(Items.ARROW, "&aVolver")) { openEventDuration(it, type, categories) }
+        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
-    private fun openEventScheduleDay(player: ServerPlayer, type: EventType, categories: List<EventCategory>, durationSeconds: Long) {
-        open(player, "&5Programar evento &8- &eDía", 3) { menu ->
-            menu.wipe()
-            fill(menu, 27)
-            menu.put(4, named(Items.CLOCK, "&6Elegir día de la semana", "&7Selecciona el día de la primera ejecución.", "&7Duración: &f${WonderTradeEvents.formatDuration(durationSeconds)}"))
-            val days = listOf(
-                DayOfWeek.MONDAY to "Lunes", DayOfWeek.TUESDAY to "Martes", DayOfWeek.WEDNESDAY to "Miércoles",
-                DayOfWeek.THURSDAY to "Jueves", DayOfWeek.FRIDAY to "Viernes", DayOfWeek.SATURDAY to "Sábado", DayOfWeek.SUNDAY to "Domingo"
-            )
-            days.forEachIndexed { index, (day, label) ->
-                menu.button(10 + index, named(Items.PAPER, "&e$label", "&7Próximo $label a la hora elegida.", "&eClic para continuar")) {
-                    openEventScheduleTime(it, type, categories, durationSeconds, day, LocalTime.of(20, 0))
-                }
+    private fun renderScheduleCustomDuration(menu: GuiMenu, type: EventType, categories: List<EventCategory>, seconds: Long) {
+        val maximum = WonderTradeEvents.maximumDurationSeconds()
+        val current = seconds.coerceIn(60L, maximum)
+        menu.wipe()
+        fill(menu, 27)
+        menu.put(4, named(Items.CLOCK, "&6Duración personalizada", "&7Duración actual: &f${WonderTradeEvents.formatDuration(current)}"))
+        val steps = listOf(9 to -86_400L, 10 to -3_600L, 11 to -600L, 12 to -60L, 14 to 60L, 15 to 600L, 16 to 3_600L, 17 to 86_400L)
+        for ((slot, delta) in steps) {
+            val sign = if (delta < 0) "-" else "+"
+            val icon = if (delta < 0) Items.RED_STAINED_GLASS_PANE else Items.LIME_STAINED_GLASS_PANE
+            val label = WonderTradeEvents.formatDuration(kotlin.math.abs(delta))
+            menu.button(slot, named(icon, (if (delta < 0) "&c" else "&a") + "$sign$label", "&7Actual: &f${WonderTradeEvents.formatDuration(current)}")) {
+                renderScheduleCustomDuration(menu, type, categories, (current + delta).coerceIn(60L, maximum))
             }
-            menu.button(22, named(Items.ARROW, "&aVolver")) { openEventScheduleDuration(it, type, categories) }
-            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
         }
+        menu.put(13, named(Items.CLOCK, "&b${WonderTradeEvents.formatDuration(current)}", "&7Esta será la duración de cada repetición."))
+        menu.button(22, named(Items.LIME_CONCRETE, "&aContinuar", "&7Duración: &f${WonderTradeEvents.formatDuration(current)}")) {
+            renderScheduleDay(menu, type, categories, current)
+        }
+        menu.button(18, named(Items.ARROW, "&aVolver")) { renderScheduleDuration(menu, type, categories) }
+        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
-    private fun openEventScheduleTime(
-        player: ServerPlayer, type: EventType, categories: List<EventCategory>, durationSeconds: Long,
-        day: DayOfWeek, time: LocalTime
-    ) {
-        open(player, "&5Programar evento &8- &bHorario", 3) { menu ->
-            renderEventScheduleTime(menu, type, categories, durationSeconds, day, time)
+    private fun renderScheduleDay(menu: GuiMenu, type: EventType, categories: List<EventCategory>, durationSeconds: Long) {
+        menu.wipe()
+        fill(menu, 27)
+        menu.put(4, named(Items.CLOCK, "&6Elegir día de la semana", "&7Selecciona el día de la primera ejecución.", "&7Duración: &f${WonderTradeEvents.formatDuration(durationSeconds)}"))
+        val days = listOf(
+            DayOfWeek.MONDAY to "Lunes", DayOfWeek.TUESDAY to "Martes", DayOfWeek.WEDNESDAY to "Miércoles",
+            DayOfWeek.THURSDAY to "Jueves", DayOfWeek.FRIDAY to "Viernes", DayOfWeek.SATURDAY to "Sábado", DayOfWeek.SUNDAY to "Domingo"
+        )
+        days.forEachIndexed { index, (day, label) ->
+            menu.button(10 + index, named(Items.PAPER, "&e$label", "&7Próximo $label a la hora elegida.", "&eClic para continuar")) {
+                renderEventScheduleTime(menu, type, categories, durationSeconds, day, LocalTime.of(20, 0))
+            }
         }
+        menu.button(22, named(Items.ARROW, "&aVolver")) { renderScheduleDuration(menu, type, categories) }
+        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
     /** Selector de horario: suma o resta minutos/horas sin salir del menú. */
@@ -893,8 +883,7 @@ object WonderTradeGui {
     ) {
         menu.wipe()
         fill(menu, 27)
-        val dayLabel = day.getDisplayName(java.time.format.TextStyle.FULL, Locale("es", "ES"))
-            .replaceFirstChar { it.uppercase(Locale("es", "ES")) }
+        val dayLabel = WonderTradeSchedule.dayName(day)
         val formatted = time.format(DateTimeFormatter.ofPattern("HH:mm"))
         menu.put(4, named(Items.CLOCK, "&6Horario del evento", "&7Día: &f$dayLabel", "&7Hora: &b$formatted", "&7Duración: &f${WonderTradeEvents.formatDuration(durationSeconds)}"))
         val steps = listOf(9 to -60L, 10 to -15L, 11 to -5L, 12 to -1L, 14 to 1L, 15 to 5L, 16 to 15L, 17 to 60L)
@@ -909,42 +898,64 @@ object WonderTradeGui {
         }
         menu.put(13, named(Items.CLOCK, "&bHora: &f$formatted", "&7Usa los botones para ajustar el horario.", "&8Zona horaria del servidor."))
         menu.button(22, named(Items.LIME_CONCRETE, "&aContinuar", "&7Día: &f$dayLabel", "&7Hora: &f$formatted", "&eElegir repetición")) {
-            openEventScheduleRepeat(it, type, categories, durationSeconds, day, time)
+            renderScheduleRepeat(menu, type, categories, durationSeconds, day, time)
         }
-        menu.button(18, named(Items.ARROW, "&aVolver")) { openEventScheduleDay(it, type, categories, durationSeconds) }
+        menu.button(18, named(Items.ARROW, "&aVolver")) { renderScheduleDay(menu, type, categories, durationSeconds) }
         menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
-    private fun openEventScheduleRepeat(
-        player: ServerPlayer, type: EventType, categories: List<EventCategory>, durationSeconds: Long,
+    private fun finishSchedule(p: ServerPlayer, type: EventType, categories: List<EventCategory>, durationSeconds: Long, spec: ScheduleSpec) {
+        val scheduled = WonderTradeSchedule.add(type, categories, durationSeconds, spec, p.gameProfile.name)
+        p.sendSystemMessage(WonderTradeService.info("&aEvento &f${scheduled.title} &aprogramado: &f${WonderTradeSchedule.describeWhen(scheduled)}&a."))
+        openAdminScheduled(p)
+    }
+
+    private fun renderScheduleRepeat(
+        menu: GuiMenu, type: EventType, categories: List<EventCategory>, durationSeconds: Long,
         day: DayOfWeek, time: LocalTime
     ) {
-        open(player, "&5Programar evento &8- &dRepetición", 3) { menu ->
-            menu.wipe()
-            fill(menu, 27)
-            val dayLabel = day.getDisplayName(java.time.format.TextStyle.FULL, Locale("es", "ES"))
-                .replaceFirstChar { it.uppercase(Locale("es", "ES")) }
-            val formatted = time.format(DateTimeFormatter.ofPattern("HH:mm"))
-            menu.put(4, named(Items.REPEATER, "&dRepetición del evento", "&7Primer inicio: &f$dayLabel $formatted", "&7Duración: &f${WonderTradeEvents.formatDuration(durationSeconds)}", "&8Mensual/anual: se conserva el día del mes inicial."))
-            val choices = listOf(
-                Triple(ScheduleRepeat.NONE, Items.CLOCK, "Una sola vez"),
-                Triple(ScheduleRepeat.DAILY, Items.SUNFLOWER, "Diario"),
-                Triple(ScheduleRepeat.WEEKLY, Items.COMPASS, "Semanal"),
-                Triple(ScheduleRepeat.MONTHLY, Items.CLOCK, "Mensual"),
-                Triple(ScheduleRepeat.YEARLY, Items.FIREWORK_ROCKET, "Anual")
-            )
-            val slots = listOf(10, 11, 13, 15, 16)
-            choices.forEachIndexed { index, (repeat, icon, label) ->
-                menu.button(slots[index], named(icon, "&e$label", "&7${repeat.label}", "&eClic para programar")) { p ->
-                    val spec = WonderTradeSchedule.fromMenu(day, time.hour, time.minute, repeat)
-                    val scheduled = WonderTradeSchedule.add(type, categories, durationSeconds, spec, p.gameProfile.name)
-                    p.sendSystemMessage(WonderTradeService.info("&aEvento &f${scheduled.title} &aprogramado: &f${WonderTradeSchedule.describeWhen(scheduled)}&a."))
-                    openAdminScheduled(p)
-                }
+        menu.wipe()
+        fill(menu, 27)
+        val dayLabel = WonderTradeSchedule.dayName(day)
+        val formatted = time.format(DateTimeFormatter.ofPattern("HH:mm"))
+        menu.put(4, named(Items.REPEATER, "&dRepetición del evento", "&7Primer inicio: &f$dayLabel $formatted", "&7Duración: &f${WonderTradeEvents.formatDuration(durationSeconds)}", "&8Mensual: se elige qué $dayLabel del mes."))
+        val choices = listOf(
+            Triple(ScheduleRepeat.NONE, Items.CLOCK, "Una sola vez"),
+            Triple(ScheduleRepeat.DAILY, Items.SUNFLOWER, "Diario"),
+            Triple(ScheduleRepeat.WEEKLY, Items.COMPASS, "Semanal"),
+            Triple(ScheduleRepeat.MONTHLY, Items.CLOCK, "Mensual"),
+            Triple(ScheduleRepeat.YEARLY, Items.FIREWORK_ROCKET, "Anual")
+        )
+        val slots = listOf(10, 11, 13, 15, 16)
+        choices.forEachIndexed { index, (repeat, icon, label) ->
+            val hint = if (repeat == ScheduleRepeat.MONTHLY) "&eClic para elegir la semana" else "&eClic para programar"
+            menu.button(slots[index], named(icon, "&e$label", "&7${repeat.label}", hint)) { p ->
+                if (repeat == ScheduleRepeat.MONTHLY) renderScheduleMonthly(menu, type, categories, durationSeconds, day, time)
+                else finishSchedule(p, type, categories, durationSeconds, WonderTradeSchedule.fromMenu(day, time.hour, time.minute, repeat))
             }
-            menu.button(22, named(Items.ARROW, "&aVolver")) { openEventScheduleTime(it, type, categories, durationSeconds, day, time) }
-            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
         }
+        menu.button(22, named(Items.ARROW, "&aVolver")) { renderEventScheduleTime(menu, type, categories, durationSeconds, day, time) }
+        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+    }
+
+    /** Repetición mensual por día de la semana: primer, segundo, tercer, cuarto o último. */
+    private fun renderScheduleMonthly(
+        menu: GuiMenu, type: EventType, categories: List<EventCategory>, durationSeconds: Long,
+        day: DayOfWeek, time: LocalTime
+    ) {
+        menu.wipe()
+        fill(menu, 27)
+        val formatted = time.format(DateTimeFormatter.ofPattern("HH:mm"))
+        menu.put(4, named(Items.CLOCK, "&dMensual: ¿qué ${WonderTradeSchedule.dayName(day)}?", "&7Hora: &f$formatted", "&7Duración: &f${WonderTradeEvents.formatDuration(durationSeconds)}"))
+        val slots = listOf(1 to 10, 2 to 11, 3 to 13, 4 to 15, 5 to 16)
+        for ((ordinal, slot) in slots) {
+            val text = WonderTradeSchedule.ordinalText(ordinal, day)
+            menu.button(slot, named(Items.PAPER, "&e${text.replaceFirstChar { it.uppercase() }}", "&7Cada $text del mes", "&eClic para programar")) { p ->
+                finishSchedule(p, type, categories, durationSeconds, WonderTradeSchedule.fromMenu(day, time.hour, time.minute, ScheduleRepeat.MONTHLY, ordinal))
+            }
+        }
+        menu.button(22, named(Items.ARROW, "&aVolver")) { renderScheduleRepeat(menu, type, categories, durationSeconds, day, time) }
+        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
     private fun openEventCustomDuration(player: ServerPlayer, type: EventType, categories: List<EventCategory>) {
@@ -1246,6 +1257,26 @@ object WonderTradeGui {
         for (i in 0 until size) menu.put(i, named(Items.BLACK_STAINED_GLASS_PANE, " "))
     }
 
+    /** IVs con un color por estadística; si hay chapa (plateada u oro) el IV efectivo aparece entre paréntesis. */
+    private fun ivLines(pokemon: Pokemon): List<String> = runCatching {
+        val stats = listOf(
+            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.HP, "HP", "&c"),
+            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.ATTACK, "ATK", "&6"),
+            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.DEFENCE, "DEF", "&e"),
+            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.SPECIAL_ATTACK, "SPATK", "&9"),
+            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.SPECIAL_DEFENCE, "SPDEF", "&a"),
+            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.SPEED, "SPD", "&d")
+        )
+        val parts = stats.map { (stat, label, color) ->
+            val base = pokemon.ivs[stat] ?: 0
+            val effective = pokemon.ivs.getEffectiveBattleIV(stat)
+            val value = if (base >= 31) "&f&l$base" else "&f$base"
+            val bonus = if (effective != base) " &7(&b$effective&7)" else ""
+            "$color$label &r$value$bonus"
+        }
+        listOf("&7IVs:", "  " + parts.take(3).joinToString(" &8| "), "  " + parts.drop(3).joinToString(" &8| "))
+    }.getOrDefault(emptyList())
+
     private fun pokemonStack(pokemon: Pokemon, showOfferHint: Boolean, extra: List<String> = emptyList()): ItemStack {
         val stack = runCatching { PokemonItem.from(pokemon) }.getOrElse { ItemStack(Items.PAPER) }
         val name = pokemon.getDisplayName().string
@@ -1259,6 +1290,7 @@ object WonderTradeGui {
         if (pokemon.shiny) labels += "&eShiny"
         if (labels.isNotEmpty()) lines += "&7Categoría: " + labels.joinToString(" &7· ")
         if (pokemon.isAlpha) lines += "&cAlfa"
+        if (ConfigManager.bool("menu.showIvs", true)) lines += ivLines(pokemon)
         lines += extra
         if (showOfferHint) {
             lines += if (WonderTradeRules.validateOffer(pokemon) != null) "&c✖ No se puede ofrecer ahora" else "&a▶ Clic para ofrecer"

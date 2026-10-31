@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.16.1**.
+- Versión actual: **0.16.6**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -225,3 +225,20 @@
 - Añadida persistencia de ancla de día y mes para que las repeticiones mensuales y anuales no se desplacen en meses cortos o años bisiestos.
 - Se mantiene compatibilidad con programaciones anteriores y con el comando de consola.
 - No se ha ejecutado Gradle en esta revisión.
+
+
+## 0.16.5
+
+- Asistente «Programar evento»: ahora es un único menú que cambia de contenido (duración → día → hora → repetición) sin cerrarse ni reabrirse.
+- Repetición mensual por día de la semana: tras elegir «Mensual» se escoge primer, segundo, tercer, cuarto o último (p. ej. «cada último viernes del mes»). Las programaciones mensuales antiguas siguen usando el mismo día del mes. En consola, «mensual» con un día de la semana usa la ocurrencia de la primera fecha.
+- Menú de sonidos: el título usa un tocadiscos y el aviso de cooldown conserva el bloque musical.
+- Los Pokémon de los menús (pool, equipo, PC) muestran sus IVs con un color por estadística (HP, ATK, DEF, SPATK, SPDEF, SPD); si una chapa plateada o dorada cambia un IV, el valor efectivo aparece al lado entre paréntesis. Se puede ocultar con `menu.showIvs: false`.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.16.6
+
+- Las esperas de los eventos por jugador ya no se pierden al reiniciar: se guardan en `event.json` (`lastUse`) y solo se descartan cuando el evento termina o su espera caduca.
+- La integración con Discord pasa a su propio archivo (`WonderTradeDiscord.kt`), con lo que `WonderTradeService.kt` queda más corto.
+- Comandos duplicados unificados internamente (un solo código para `sonidos`/`sounds`, `especiales`/`categorias`, `eventos`/`events`, `clearpool`/`admin clear`, `admin eventos`/`lista`/`programados`). Todos los nombres siguen funcionando como alias.
+- Gradle no se ha ejecutado en el entorno de edición.

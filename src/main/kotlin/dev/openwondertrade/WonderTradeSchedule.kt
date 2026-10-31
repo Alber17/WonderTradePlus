@@ -48,7 +48,9 @@ data class ScheduledEvent(
     val repeat: ScheduleRepeat,
     val createdBy: String,
     val anchorDayOfMonth: Int = 0,
-    val anchorMonth: Int = 0
+    val anchorMonth: Int = 0,
+    /** Mensual por día de la semana: 1-4 = primer…cuarto, 5 = último; 0 = método antiguo (mismo día del mes). */
+    val weekOrdinal: Int = 0
 ) {
     val title: String get() = "${type.title} ${categoriesTitle(categories)}"
 
@@ -64,6 +66,7 @@ data class ScheduledEvent(
         addProperty("createdBy", createdBy)
         addProperty("anchorDayOfMonth", anchorDayOfMonth)
         addProperty("anchorMonth", anchorMonth)
+        addProperty("weekOrdinal", weekOrdinal)
     }
 
     companion object {
@@ -81,7 +84,8 @@ data class ScheduledEvent(
                 repeat = ScheduleRepeat.parse(json.get("repeat")?.asString ?: "none"),
                 createdBy = json.get("createdBy")?.asString ?: "?",
                 anchorDayOfMonth = json.get("anchorDayOfMonth")?.asInt ?: 0,
-                anchorMonth = json.get("anchorMonth")?.asInt ?: 0
+                anchorMonth = json.get("anchorMonth")?.asInt ?: 0,
+                weekOrdinal = json.get("weekOrdinal")?.asInt ?: 0
             )
         }
     }
@@ -92,7 +96,8 @@ data class ScheduleSpec(
     val firstRunAt: Long,
     val repeat: ScheduleRepeat,
     val value: Double?,
-    val cooldownSeconds: Long?
+    val cooldownSeconds: Long?,
+    val weekOrdinal: Int = 0
 )
 
 data class ScheduleParseResult(val spec: ScheduleSpec?, val error: String?)
@@ -169,7 +174,8 @@ object WonderTradeSchedule {
         val anchorDate = Instant.ofEpochMilli(spec.firstRunAt).atZone(zone()).toLocalDate()
         val item = ScheduledEvent(
             nextId++, type, normalizeCategories(categories), durationSeconds, spec.value, spec.cooldownSeconds,
-            spec.firstRunAt, spec.repeat, createdBy, anchorDate.dayOfMonth, anchorDate.monthValue
+            spec.firstRunAt, spec.repeat, createdBy, anchorDate.dayOfMonth, anchorDate.monthValue,
+            if (spec.repeat == ScheduleRepeat.MONTHLY) spec.weekOrdinal else 0
         )
         items.add(item)
         save()
@@ -188,14 +194,43 @@ object WonderTradeSchedule {
     fun describeWhen(item: ScheduledEvent): String {
         val formatter = DateTimeFormatter.ofPattern("EEE dd/MM HH:mm", Locale("es", "ES"))
         val moment = ZonedDateTime.ofInstant(Instant.ofEpochMilli(item.nextRunAt), zone()).format(formatter)
-        return if (item.repeat == ScheduleRepeat.NONE) moment else "$moment (${item.repeat.label})"
+        if (item.repeat == ScheduleRepeat.NONE) return moment
+        val day = ZonedDateTime.ofInstant(Instant.ofEpochMilli(item.nextRunAt), zone()).dayOfWeek
+        val label = if (item.repeat == ScheduleRepeat.MONTHLY && item.weekOrdinal in 1..5) "cada ${ordinalText(item.weekOrdinal, day)} del mes" else item.repeat.label
+        return "$moment ($label)"
+    }
+
+    fun dayName(day: DayOfWeek): String =
+        day.getDisplayName(java.time.format.TextStyle.FULL, Locale("es", "ES")).replaceFirstChar { it.uppercase(Locale("es", "ES")) }
+
+    /** «primer viernes», «último domingo»… */
+    fun ordinalText(ordinal: Int, day: DayOfWeek): String {
+        val word = when (ordinal) { 1 -> "primer"; 2 -> "segundo"; 3 -> "tercer"; 4 -> "cuarto"; else -> "último" }
+        return "$word ${dayName(day).lowercase(Locale("es", "ES"))}"
+    }
+
+    /** Número de ocurrencia del día de la semana dentro de su mes (5 = último). */
+    fun ordinalOf(date: LocalDate): Int = ((date.dayOfMonth - 1) / 7 + 1).coerceAtMost(5)
+
+    private fun nthWeekday(year: Int, month: Int, day: DayOfWeek, ordinal: Int): LocalDate {
+        val first = LocalDate.of(year, month, 1)
+        return if (ordinal >= 5) first.with(java.time.temporal.TemporalAdjusters.lastInMonth(day))
+        else first.with(java.time.temporal.TemporalAdjusters.dayOfWeekInMonth(ordinal.coerceAtLeast(1), day))
     }
 
     /** Crea la primera ejecución a partir del día y la hora elegidos en el menú. */
-    fun fromMenu(day: DayOfWeek, hour: Int, minute: Int, repeat: ScheduleRepeat): ScheduleSpec {
+    fun fromMenu(day: DayOfWeek, hour: Int, minute: Int, repeat: ScheduleRepeat, weekOrdinal: Int = 0): ScheduleSpec {
         val zone = zone()
         val now = ZonedDateTime.now(zone)
         val time = LocalTime.of(hour.coerceIn(0, 23), minute.coerceIn(0, 59))
+        if (repeat == ScheduleRepeat.MONTHLY && weekOrdinal in 1..5) {
+            var cursor = now.toLocalDate().withDayOfMonth(1)
+            for (attempt in 0 until 3) {
+                val candidate = ZonedDateTime.of(nthWeekday(cursor.year, cursor.monthValue, day, weekOrdinal), time, zone)
+                if (candidate.isAfter(now)) return ScheduleSpec(candidate.toInstant().toEpochMilli(), repeat, null, null, weekOrdinal)
+                cursor = cursor.plusMonths(1)
+            }
+        }
         var date = now.toLocalDate()
         while (date.dayOfWeek != day) date = date.plusDays(1)
         var first = ZonedDateTime.of(date, time, zone)
@@ -256,7 +291,10 @@ object WonderTradeSchedule {
                 ScheduleRepeat.NONE -> moment
                 ScheduleRepeat.DAILY -> moment.plusDays(1)
                 ScheduleRepeat.WEEKLY -> moment.plusWeeks(1)
-                ScheduleRepeat.MONTHLY -> {
+                ScheduleRepeat.MONTHLY -> if (item.weekOrdinal in 1..5) {
+                    val next = moment.toLocalDate().withDayOfMonth(1).plusMonths(1)
+                    ZonedDateTime.of(nthWeekday(next.year, next.monthValue, moment.dayOfWeek, item.weekOrdinal), moment.toLocalTime(), zone())
+                } else {
                     val firstOfNextMonth = moment.toLocalDate().withDayOfMonth(1).plusMonths(1)
                     val date = firstOfNextMonth.withDayOfMonth(minOf(anchorDay, firstOfNextMonth.lengthOfMonth()))
                     ZonedDateTime.of(date, moment.toLocalTime(), zone())
@@ -372,6 +410,7 @@ object WonderTradeSchedule {
             if (!moment.isAfter(now)) moment = moment.plusDays(1)
             first = moment
         }
-        return ScheduleParseResult(ScheduleSpec(first.toInstant().toEpochMilli(), repeat, value, cooldown), null)
+        return ScheduleParseResult(ScheduleSpec(first.toInstant().toEpochMilli(), repeat, value, cooldown,
+            if (repeat == ScheduleRepeat.MONTHLY && dateParts == null) ordinalOf(first.toLocalDate()) else 0), null)
     }
 }

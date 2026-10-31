@@ -324,3 +324,20 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 
 - El porcentaje predeterminado para el intervalo de Wonder Trades durante eventos pasa del 10 % al 20 % (`events.tradeIntervalPercent`). Esto permite 5 WT por jugador durante cada evento.
 - Se aplica tanto a eventos iniciados desde el menú como a eventos programados. Los eventos ya creados mantienen su intervalo guardado.
+
+
+## 0.16.5
+
+- Asistente «Programar evento»: ahora es un único menú que cambia de contenido (duración → día → hora → repetición) sin cerrarse ni reabrirse.
+- Repetición mensual por día de la semana: tras elegir «Mensual» se escoge primer, segundo, tercer, cuarto o último (p. ej. «cada último viernes del mes»). Las programaciones mensuales antiguas siguen usando el mismo día del mes. En consola, «mensual» con un día de la semana usa la ocurrencia de la primera fecha.
+- Menú de sonidos: el título usa un tocadiscos y el aviso de cooldown conserva el bloque musical.
+- Los Pokémon de los menús (pool, equipo, PC) muestran sus IVs con un color por estadística (HP, ATK, DEF, SPATK, SPDEF, SPD); si una chapa plateada o dorada cambia un IV, el valor efectivo aparece al lado entre paréntesis. Se puede ocultar con `menu.showIvs: false`.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.16.6
+
+- Las esperas de los eventos por jugador ya no se pierden al reiniciar: se guardan en `event.json` (`lastUse`) y solo se descartan cuando el evento termina o su espera caduca.
+- La integración con Discord pasa a su propio archivo (`WonderTradeDiscord.kt`), con lo que `WonderTradeService.kt` queda más corto.
+- Comandos duplicados unificados internamente (un solo código para `sonidos`/`sounds`, `especiales`/`categorias`, `eventos`/`events`, `clearpool`/`admin clear`, `admin eventos`/`lista`/`programados`). Todos los nombres siguen funcionando como alias.
+- Gradle no se ha ejecutado en el entorno de edición.

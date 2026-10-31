@@ -59,14 +59,9 @@ class WonderTradePlus : ModInitializer {
                 1
             })
             // Preferencias individuales de sonido; no requiere permisos ni instalación en el cliente.
-            .then(literal("sonidos").executes { context ->
-                WonderTradeGui.openSounds(context.source.playerOrException)
-                1
-            })
-            .then(literal("sounds").executes { context ->
-                WonderTradeGui.openSounds(context.source.playerOrException)
-                1
-            })
+            // «sounds» es alias de «sonidos».
+            .then(literal("sonidos").executes { openSoundsCommand(it) })
+            .then(literal("sounds").executes { openSoundsCommand(it) })
             // PERMISO: público; cualquier jugador puede donar si las donaciones están habilitadas y hay espacio.
             // La capacidad se vuelve a comprobar al confirmar la donación.
             .then(literal("donar").executes { context ->
@@ -161,14 +156,9 @@ class WonderTradePlus : ModInitializer {
                 1
             })
             // PERMISO: público; qué Pokémon cuentan como míticos, legendarios, Ultraentes y Paradoja.
-            .then(literal("especiales").executes { context ->
-                WonderTradeGui.openSpecials(context.source.playerOrException)
-                1
-            })
-            .then(literal("categorias").executes { context ->
-                WonderTradeGui.openSpecials(context.source.playerOrException)
-                1
-            })
+            // «categorias» es alias de «especiales».
+            .then(literal("especiales").executes { openSpecialsCommand(it) })
+            .then(literal("categorias").executes { openSpecialsCommand(it) })
             // PERMISO: público; muestra tu rango y sus ventajas.
             .then(literal("rango").executes { context ->
                 val player = context.source.playerOrException
@@ -176,14 +166,9 @@ class WonderTradePlus : ModInitializer {
                 1
             })
             // PERMISO: público; muestra los eventos activos.
-            .then(literal("eventos").executes { context ->
-                context.source.sendSuccess({ WonderTradeEvents.eventsComponent(context.source.player) }, false)
-                1
-            })
-            .then(literal("events").executes { context ->
-                context.source.sendSuccess({ WonderTradeEvents.eventsComponent(context.source.player) }, false)
-                1
-            })
+            // «events» es alias de «eventos».
+            .then(literal("eventos").executes { showEventsCommand(it) })
+            .then(literal("events").executes { showEventsCommand(it) })
             // PERMISO: público; cancela el intercambio pendiente.
             .then(literal("cancel").executes { context ->
                 WonderTradeService.cancel(context.source.playerOrException)
@@ -218,12 +203,35 @@ class WonderTradePlus : ModInitializer {
             })
             .then(adminCommands())
             // PERMISO: admin.permissionLevel (configurable; por defecto OP nivel 2).
-            .then(literal("clearpool").requires { it.hasPermission(WonderTradeService.adminLevel()) }.executes { context ->
-                WonderTradeService.clearPool()
-                context.source.sendSuccess({ WonderTradeService.configuredMessage("poolCleared", "&aPool vaciado.") }, true)
-                1
-            })
+            // Alias antiguo de «/wt admin clear».
+            .then(literal("clearpool").requires { it.hasPermission(WonderTradeService.adminLevel()) }.executes { clearPoolCommand(it) })
         dispatcher.register(command)
+    }
+
+    private fun openSoundsCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>): Int {
+        WonderTradeGui.openSounds(context.source.playerOrException)
+        return 1
+    }
+
+    private fun openSpecialsCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>): Int {
+        WonderTradeGui.openSpecials(context.source.playerOrException)
+        return 1
+    }
+
+    private fun showEventsCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>): Int {
+        context.source.sendSuccess({ WonderTradeEvents.eventsComponent(context.source.player) }, false)
+        return 1
+    }
+
+    private fun listEventsCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>): Int {
+        context.source.sendSuccess({ WonderTradeEvents.adminListComponent() }, false)
+        return 1
+    }
+
+    private fun clearPoolCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>): Int {
+        WonderTradeService.clearPool()
+        context.source.sendSuccess({ WonderTradeService.configuredMessage("poolCleared", "&aPool vaciado.") }, true)
+        return 1
     }
 
     // PERMISO: /wt admin y cada subcomando hijo requieren admin.permissionLevel (OP 2 por defecto).
@@ -330,7 +338,7 @@ class WonderTradePlus : ModInitializer {
         // PERMISO: admin.permissionLevel.
         .then(literal("discord").then(literal("test").executes { context ->
             val source = context.source
-            WonderTradeService.discordTest { ok, text ->
+            WonderTradeDiscord.test { ok, text ->
                 source.server.execute {
                     if (ok) source.sendSuccess({ WonderTradeService.info("&a$text") }, false)
                     else source.sendFailure(WonderTradeService.info("&c$text"))
@@ -387,22 +395,13 @@ class WonderTradePlus : ModInitializer {
             1
         })
         // PERMISO: admin.permissionLevel.
-        .then(literal("clear").executes { context ->
-            WonderTradeService.clearPool()
-            context.source.sendSuccess({ WonderTradeService.configuredMessage("poolCleared", "&aPool vaciado.") }, true)
-            1
-        })
+        .then(literal("clear").executes { clearPoolCommand(it) })
 
     // PERMISO: admin.permissionLevel, heredado de /wt admin.
     private fun eventAdminCommands() = literal("eventos")
-        .executes { context ->
-            context.source.sendSuccess({ WonderTradeEvents.adminListComponent() }, false)
-            1
-        }
-        .then(literal("lista").executes { context ->
-            context.source.sendSuccess({ WonderTradeEvents.adminListComponent() }, false)
-            1
-        })
+        .executes { listEventsCommand(it) }
+        // «lista» y «programados» hacen lo mismo que «/wt admin eventos»; se conservan como alias.
+        .then(literal("lista").executes { listEventsCommand(it) })
         // /wt admin eventos crear <tipo> <categorías> <duración> [valor] [espera]
         .then(literal("crear").then(argument("tipo", StringArgumentType.word())
             .suggests { _, builder -> SharedSuggestionProvider.suggest(EventType.values().map { it.key }, builder) }
@@ -429,10 +428,7 @@ class WonderTradePlus : ModInitializer {
                     .then(argument("cuando", StringArgumentType.greedyString())
                         .suggests { _, builder -> SharedSuggestionProvider.suggest(listOf("20:00", "sabado 20:00 semanal", "20:00 diario", "20:00 mensual", "20:00 anual", "15/11 18:30"), builder) }
                         .executes { context -> scheduleEvent(context) })))))
-        .then(literal("programados").executes { context ->
-            context.source.sendSuccess({ WonderTradeEvents.adminListComponent() }, false)
-            1
-        })
+        .then(literal("programados").executes { listEventsCommand(it) })
         .then(literal("desprogramar").then(argument("id", IntegerArgumentType.integer(1)).executes { context ->
             val item = WonderTradeSchedule.remove(IntegerArgumentType.getInteger(context, "id"))
             if (item == null) context.source.sendFailure(WonderTradeService.info("&cNo existe ningún evento programado con ese id."))
@@ -619,7 +615,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.16.0"
+        const val MOD_VERSION = "0.16.6"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }
