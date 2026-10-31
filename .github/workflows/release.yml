@@ -1,5 +1,4 @@
-
-name: Automatic Release
+name: Release
 
 on:
   push:
@@ -11,27 +10,35 @@ permissions:
 
 jobs:
   release:
+    name: Build and publish release
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: ./WonderTradePlus
+
     steps:
-      - name: Descargar codigo
+      - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Configurar Java 21
+      - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
+          distribution: temurin
           java-version: '21'
-          distribution: 'temurin'
 
-      - name: Configurar Gradle
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14'
 
-      - name: Compilar WonderTradePlus
-        working-directory: ./WonderTradePlus
-        run: chmod +x gradlew && ./gradlew build
+      - name: Build mod
+        run: gradle build
 
-      - name: Publicar Release
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: WonderTradePlus/build/libs/*.jar
+          name: WonderTradePlus ${{ github.ref_name }}
           generate_release_notes: true
+          files: WonderTradePlus/build/libs/*.jar
+          fail_on_unmatched_files: true
