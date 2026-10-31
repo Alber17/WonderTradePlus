@@ -237,7 +237,11 @@ class WonderTradePlus : ModInitializer {
         }
         // PERMISO: admin.permissionLevel.
         .then(literal("add").then(argument("slot", IntegerArgumentType.integer(1, 6)).executes { context ->
-            val player = context.source.playerOrException
+            val player = context.source.player
+            if (player == null) {
+                context.source.sendFailure(WonderTradeService.info("&c/wt admin add requiere un jugador dentro del juego porque copia un Pokémon de su equipo."))
+                return@executes 0
+            }
             val name = WonderTradeService.adminAddFromParty(player, IntegerArgumentType.getInteger(context, "slot"))
             if (name == null) {
                 context.source.sendFailure(WonderTradeService.info("&cNo hay ningún Pokémon en ese slot o no se pudo copiar."))
@@ -273,7 +277,9 @@ class WonderTradePlus : ModInitializer {
                     })))))
         // PERMISO: admin.permissionLevel.
         .then(literal("remove").executes { context ->
-            WonderTradeGui.openPool(context.source.playerOrException, 0, true, deleteMode = true)
+            val player = context.source.player
+            if (player == null) context.source.sendFailure(WonderTradeService.info("&cEste comando abre un menú y solo puede usarse dentro del juego."))
+            else WonderTradeGui.openPool(player, 0, true, deleteMode = true)
             1
         })
         // PERMISO: admin.permissionLevel.
@@ -336,13 +342,28 @@ class WonderTradePlus : ModInitializer {
         // PERMISO: admin.permissionLevel.
         .then(literal("history")
             .executes { context ->
-                WonderTradeGui.openHistory(context.source.playerOrException)
+                val player = context.source.player
+                if (player == null) {
+                    val entries = WonderTradeService.historyEntries().take(15)
+                    context.source.sendSuccess({ WonderTradeService.info("&eÚltimos ${entries.size} intercambios del historial:") }, false)
+                    entries.forEach { entry ->
+                        context.source.sendSuccess({ WonderTradeService.info("&7${java.time.Instant.ofEpochMilli(entry.time)} &f${entry.player}&7: ${entry.sentName} → ${entry.receivedName}") }, false)
+                    }
+                } else WonderTradeGui.openHistory(player)
                 1
             }
             .then(argument("player", StringArgumentType.word())
                 .suggests { _, builder -> SharedSuggestionProvider.suggest(WonderTradeService.historyPlayers(), builder) }
                 .executes { context ->
-                    WonderTradeGui.openHistory(context.source.playerOrException, StringArgumentType.getString(context, "player"))
+                    val player = context.source.player
+                    val filter = StringArgumentType.getString(context, "player")
+                    if (player == null) {
+                        val entries = WonderTradeService.historyEntries(filter).take(15)
+                        context.source.sendSuccess({ WonderTradeService.info("&eÚltimos ${entries.size} intercambios de &f$filter&e:") }, false)
+                        entries.forEach { entry ->
+                            context.source.sendSuccess({ WonderTradeService.info("&7${java.time.Instant.ofEpochMilli(entry.time)} &f${entry.player}&7: ${entry.sentName} → ${entry.receivedName}") }, false)
+                        }
+                    } else WonderTradeGui.openHistory(player, filter)
                     1
                 }))
         // PERMISO: admin.permissionLevel.
@@ -354,6 +375,17 @@ class WonderTradePlus : ModInitializer {
             context.source.sendSuccess({ WonderTradeService.info("&aSe han eliminado &f$removed &aPokémon aportados por &f$donor&a.") }, true)
             1
         }))
+        // PERMISO: admin.permissionLevel. Estos dos comandos también funcionan desde consola.
+        .then(literal("removegenerated").executes { context ->
+            val removed = WonderTradeService.removeGeneratedPoolEntries()
+            context.source.sendSuccess({ WonderTradeService.info("&aSe han eliminado &f$removed &aPokémon generados por el servidor. Las aportaciones de jugadores se conservan.") }, true)
+            1
+        })
+        .then(literal("removeplayers").executes { context ->
+            val removed = WonderTradeService.removePlayerPoolEntries()
+            context.source.sendSuccess({ WonderTradeService.info("&aSe han eliminado &f$removed &aPokémon aportados por jugadores. Los generados por el servidor se conservan.") }, true)
+            1
+        })
         // PERMISO: admin.permissionLevel.
         .then(literal("clear").executes { context ->
             WonderTradeService.clearPool()
@@ -540,7 +572,11 @@ class WonderTradePlus : ModInitializer {
         shiny: Boolean,
         regionalForm: String?
     ): Int {
-        val player = context.source.playerOrException
+        val player = context.source.player ?: context.source.server.playerList.players.firstOrNull()
+        if (player == null) {
+            context.source.sendFailure(WonderTradeService.info("&cPara generar Pokémon desde consola debe haber al menos un jugador conectado."))
+            return 0
+        }
         val species = StringArgumentType.getString(context, "species")
         val result = try {
             WonderTradeService.adminAddSpecies(player, species, shiny, regionalForm)
@@ -565,7 +601,11 @@ class WonderTradePlus : ModInitializer {
     }
 
     private fun fill(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>, chance: Double?, minLevel: Int, maxLevel: Int): Int {
-        val player = context.source.playerOrException
+        val player = context.source.player ?: context.source.server.playerList.players.firstOrNull()
+        if (player == null) {
+            context.source.sendFailure(WonderTradeService.info("&cPara rellenar la pool desde consola debe haber al menos un jugador conectado."))
+            return 0
+        }
         val amount = IntegerArgumentType.getInteger(context, "amount")
         val result = WonderTradeService.adminFill(player, amount, chance, minOf(minLevel, maxLevel), maxOf(minLevel, maxLevel))
         val chanceText = String.format("%.2f", result.chancePercent)
@@ -579,7 +619,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.15.0"
+        const val MOD_VERSION = "0.16.0"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

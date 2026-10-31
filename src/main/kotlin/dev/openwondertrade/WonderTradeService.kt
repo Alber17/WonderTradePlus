@@ -21,6 +21,7 @@ object WonderTradeService {
     private lateinit var history: HistoryStore
     private var tickCounter = 0
     private var secondCounter = 0L
+    private var lastHistoryCleanupAt = 0L
 
     fun initialize() {
         pending.clear()
@@ -35,6 +36,8 @@ object WonderTradeService {
         trimAndSave()
         playerData.load()
         history.load()
+        val historyRemoved = history.pruneOlderThanDays(ConfigManager.int("history.autoDeleteAfterDays", 30))
+        if (historyRemoved > 0) WonderTradePlus.LOGGER.info("Historial: {} entradas antiguas eliminadas automáticamente.", historyRemoved)
         WonderTradePlus.LOGGER.info("WonderTrade Plus {} preparado.", WonderTradePlus.MOD_VERSION)
     }
 
@@ -47,6 +50,8 @@ object WonderTradeService {
         trimAndSave()
         playerData.load()
         history.load()
+        val historyRemoved = history.pruneOlderThanDays(ConfigManager.int("history.autoDeleteAfterDays", 30))
+        if (historyRemoved > 0) WonderTradePlus.LOGGER.info("Historial: {} entradas antiguas eliminadas al recargar.", historyRemoved)
         pending.clear()
     }
 
@@ -147,6 +152,8 @@ object WonderTradeService {
             lines += ConfigManager.string("messages.helpAdminAddCommand", "&e/wt admin add <slot> &7Añadir una copia desde tu equipo")
             lines += ConfigManager.string("messages.helpAdminRemoveCommand", "&e/wt admin remove &7Eliminar Pokémon de la pool")
             lines += ConfigManager.string("messages.helpAdminRemovePlayerCommand", "&e/wt admin removeplayer <jugador> &7Eliminar sus aportaciones")
+            lines += ConfigManager.string("messages.helpAdminRemoveGeneratedCommand", "&e/wt admin removegenerated &7Eliminar solo Pokémon generados por el servidor")
+            lines += ConfigManager.string("messages.helpAdminRemovePlayersCommand", "&e/wt admin removeplayers &7Eliminar solo Pokémon aportados por jugadores")
             lines += ConfigManager.string("messages.helpAdminHistoryCommand", "&e/wt admin history [jugador] &7Consultar historial")
             lines += ConfigManager.string("messages.helpAdminResetStatsCommand", "&e/wt admin resetstats <jugador|all> &7Reiniciar estadísticas")
             lines += ConfigManager.string("messages.helpAdminChanceCommand", "&e/wt chance <jugador> set <porcentaje> | reset &7Editar el bonus")
@@ -577,6 +584,20 @@ object WonderTradeService {
     fun removeFromPool(id: String): Boolean {
         val removed = pool.remove(id)
         if (removed) pool.save()
+        return removed
+    }
+
+    /** Elimina únicamente entradas generadas por el servidor (sin UUID de donante). */
+    fun removeGeneratedPoolEntries(): Int {
+        val removed = pool.removeWhere { it.donorName.equals("Servidor", ignoreCase = true) }
+        if (removed > 0) pool.save()
+        return removed
+    }
+
+    /** Elimina únicamente entradas aportadas por jugadores (con UUID de donante). */
+    fun removePlayerPoolEntries(): Int {
+        val removed = pool.removeWhere { !it.donorName.equals("Servidor", ignoreCase = true) }
+        if (removed > 0) pool.save()
         return removed
     }
 
@@ -1053,8 +1074,13 @@ object WonderTradeService {
         secondCounter++
         runCatching { WonderTradeEvents.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el control de eventos.", it) }
         server.playerList.players.forEach { WonderTradeGui.refreshCooldown(it) }
-        runCatching { checkCooldownNotices(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el aviso de fin de cooldown.", it) }
-
+        runCatching { checkCooldownNotices(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el aviso de disponibilidad.", it) }
+        val now = System.currentTimeMillis()
+        if (now - lastHistoryCleanupAt >= 60_000L) {
+            lastHistoryCleanupAt = now
+            val removed = history.pruneOlderThanDays(ConfigManager.int("history.autoDeleteAfterDays", 30), now)
+            if (removed > 0) WonderTradePlus.LOGGER.info("Historial: {} entradas antiguas eliminadas automáticamente.", removed)
+        }
 
         val interval = ConfigManager.int("maintenance.intervalMinutes", 30).coerceAtLeast(1) * 60L
         if (secondCounter == 60L || secondCounter % interval == 0L) {
@@ -1393,23 +1419,39 @@ object WonderTradeService {
         return result.also { categoryCache = it }
     }
 
-    /** Jugadores conectados y si estaban en cooldown la última vez que se comprobó. */
+    /** Estado de cooldown y último aviso de disponibilidad por jugador. */
     private val cooldownWatch = HashMap<UUID, Boolean>()
+    private val lastAvailableNoticeAt = HashMap<UUID, Long>()
 
-    /** Cuando termina el cooldown normal de un jugador conectado, le avisa con un mensaje y un sonido suave. */
+    /** Avisa a todos los jugadores cuando termina su espera y repite el recordatorio cada cierto tiempo. */
     private fun checkCooldownNotices(server: MinecraftServer) {
         val online = server.playerList.players
-        cooldownWatch.keys.retainAll(online.map { it.uuid }.toSet())
-        if (!ConfigManager.bool("cooldownNotice.enabled", true)) {
-            cooldownWatch.clear()
-            return
-        }
+        val onlineIds = online.map { it.uuid }.toSet()
+        cooldownWatch.keys.retainAll(onlineIds)
+        lastAvailableNoticeAt.keys.retainAll(onlineIds)
+        if (!ConfigManager.bool("cooldownNotice.enabled", true) || !isEnabled()) return
+
+        val now = System.currentTimeMillis()
+        val eventInterval = ConfigManager.int("cooldownNotice.eventReminderMinutes", 2).coerceAtLeast(1) * 60_000L
+        val normalInterval = ConfigManager.int("cooldownNotice.normalReminderMinutes", 10).coerceAtLeast(1) * 60_000L
+        val reminderInterval = if (WonderTradeEvents.active(now).isNotEmpty()) eventInterval else normalInterval
+
         for (player in online) {
-            val onCooldown = cooldownRemainingSeconds(player) > 0L
-            val was = cooldownWatch.put(player.uuid, onCooldown)
-            if (was == true && !onCooldown && isEnabled()) {
+            // Un jugador puede intercambiar si acabó el cooldown normal o si tiene disponible un uso de evento.
+            val available = cooldownRemainingSeconds(player) <= 0L || WonderTradeEvents.readyEvent(player) != null
+            if (!available) {
+                cooldownWatch[player.uuid] = true
+                lastAvailableNoticeAt.remove(player.uuid)
+                continue
+            }
+
+            val wasOnCooldown = cooldownWatch.put(player.uuid, false) == true
+            val lastNotice = lastAvailableNoticeAt[player.uuid]
+            val shouldNotify = wasOnCooldown || lastNotice == null || now - lastNotice >= reminderInterval
+            if (shouldNotify) {
                 send(player, "cooldownFinished")
                 WonderTradeGui.playSound(player, "cooldownReady")
+                lastAvailableNoticeAt[player.uuid] = now
             }
         }
     }

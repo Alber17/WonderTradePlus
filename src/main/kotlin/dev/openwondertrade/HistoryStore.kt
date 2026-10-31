@@ -64,6 +64,17 @@ class HistoryStore(private val file: Path) {
 
     fun players(): List<String> = entries.map { it.player }.distinct()
 
+    /** Borra automáticamente las entradas anteriores al número de días configurado. 0 desactiva la limpieza. */
+    fun pruneOlderThanDays(days: Int, now: Long = System.currentTimeMillis()): Int {
+        if (days <= 0) return 0
+        val cutoff = now - days.toLong() * 86_400_000L
+        val before = entries.size
+        entries.removeAll { it.time > 0L && it.time < cutoff }
+        val removed = before - entries.size
+        if (removed > 0) save()
+        return removed
+    }
+
     fun add(entry: HistoryEntry, maximum: Int) {
         entries.add(entry)
         while (maximum > 0 && entries.size > maximum) entries.removeAt(0)

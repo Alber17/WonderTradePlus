@@ -577,8 +577,8 @@ object WonderTradeGui {
                     openAdminFill(it)
                 }
             }
-            menu.button(12, named(Items.BARRIER, "&cEliminar Pokémon", "&7Selecciona las entradas que quieras borrar.")) {
-                openPool(it, 0, true, deleteMode = true)
+            menu.button(12, named(Items.BARRIER, "&cEliminar Pokémon", "&7Elige qué origen quieres eliminar.", "&eAbrir opciones")) {
+                openAdminPoolDeleteOptions(it)
             }
             menu.button(13, named(Items.PLAYER_HEAD, "&cEliminar aportaciones", "&7Borrar de la pool los Pokémon de un donante.")) {
                 openAdminDonors(it)
@@ -801,6 +801,51 @@ object WonderTradeGui {
                 "&7Ajusta la duración exacta con botones", "&7de minutos, horas y días.", "&eClic para elegir"
             )) { openEventCustomDuration(it, type, categories) }
             menu.button(22, named(Items.ARROW, "&aVolver")) { openEventCategory(it, type, categories) }
+            menu.button(26, named(Items.CLOCK, "&6Programar evento", "&7En lugar de iniciarlo ahora, elige", "&7cuándo debe comenzar.", "&eAbrir programación")) { openEventScheduleDuration(it, type, categories) }
+            menu.button(25, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        }
+    }
+
+    private fun openEventScheduleDuration(player: ServerPlayer, type: EventType, categories: List<EventCategory>) {
+        open(player, "&5Eventos &8- &6Duración programada", 3) { menu ->
+            fill(menu, 27)
+            menu.put(4, named(Items.CLOCK, "&6Duración del evento", "&7Selecciona cuánto durará cuando comience."))
+            val maximum = WonderTradeEvents.maximumDurationSeconds()
+            val options = ConfigManager.strings("events.menuDurations").mapNotNull { WonderTradeEvents.parseDuration(it)?.takeIf { value -> value <= maximum } }.distinct().take(7)
+            val slots = listOf(9, 10, 11, 12, 14, 15, 16)
+            options.forEachIndexed { index, seconds ->
+                menu.button(slots[index], named(Items.CLOCK, "&e${WonderTradeEvents.formatDuration(seconds)}", "&7Continuar para elegir cuándo empieza.")) {
+                    openEventScheduleTime(it, type, categories, seconds)
+                }
+            }
+            menu.button(22, named(Items.ARROW, "&aVolver")) { openEventDuration(it, type, categories) }
+            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        }
+    }
+
+    private fun openEventScheduleTime(player: ServerPlayer, type: EventType, categories: List<EventCategory>, durationSeconds: Long) {
+        open(player, "&5Eventos &8- &6Cuándo empieza", 3) { menu ->
+            fill(menu, 27)
+            menu.put(4, named(Items.CLOCK, "&6Programar ${eventTitle(type, categories)}", "&7Duración: &f${WonderTradeEvents.formatDuration(durationSeconds)}", "&7Elige una hora de inicio."))
+            val presets = listOf(
+                Triple(10, "&eEn 10 minutos", 10L * 60L to ScheduleRepeat.NONE),
+                Triple(11, "&eEn 1 hora", 60L * 60L to ScheduleRepeat.NONE),
+                Triple(12, "&eEn 3 horas", 3L * 60L * 60L to ScheduleRepeat.NONE),
+                Triple(14, "&eMañana a la misma hora", 24L * 60L * 60L to ScheduleRepeat.NONE),
+                Triple(15, "&dCada día (en 1 hora)", 60L * 60L to ScheduleRepeat.DAILY),
+                Triple(16, "&dCada semana (en 1 hora)", 60L * 60L to ScheduleRepeat.WEEKLY)
+            )
+            presets.forEach { (slot, label, timing) ->
+                val (delaySeconds, repeat) = timing
+                menu.button(slot, named(Items.CLOCK, label, "&7Se iniciará automáticamente.", "&eClic para programar")) { p ->
+                    val firstRun = System.currentTimeMillis() + delaySeconds * 1000L
+                    val spec = ScheduleSpec(firstRun, repeat, null, null)
+                    val scheduled = WonderTradeSchedule.add(type, categories, durationSeconds, spec, p.gameProfile.name)
+                    p.sendSystemMessage(WonderTradeService.info("&aEvento &f${scheduled.title} &aprogramado: &f${WonderTradeSchedule.describeWhen(scheduled)}&a."))
+                    openAdminScheduled(p)
+                }
+            }
+            menu.button(22, named(Items.ARROW, "&aVolver")) { openEventScheduleDuration(it, type, categories) }
             menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
         }
     }
@@ -889,6 +934,27 @@ object WonderTradeGui {
         }
     }
 
+    private fun openAdminPoolDeleteOptions(player: ServerPlayer) {
+        open(player, "&5Administración &8- &cEliminar pool", 3) { menu ->
+            fill(menu, 27)
+            val generated = WonderTradeService.poolEntries().count { it.donorName.equals("Servidor", ignoreCase = true) }
+            val playerEntries = WonderTradeService.poolEntries().count { !it.donorName.equals("Servidor", ignoreCase = true) }
+            menu.put(4, named(Items.BARRIER, "&cEliminar por origen", "&7Elige qué Pokémon retirar de la pool.", "&7Generados por servidor: &f$generated", "&7Aportados por jugadores: &f$playerEntries"))
+            menu.button(11, named(Items.COMMAND_BLOCK, "&cSolo generados por servidor", "&7Elimina los Pokémon creados automáticamente", "&7por el servidor. No toca donaciones.")) { p ->
+                val removed = WonderTradeService.removeGeneratedPoolEntries()
+                p.sendSystemMessage(WonderTradeService.info("&aSe han eliminado &f$removed &aPokémon generados por el servidor."))
+                openAdmin(p)
+            }
+            menu.button(13, named(Items.PLAYER_HEAD, "&cSolo aportados por jugadores", "&7Elimina los Pokémon donados o aportados", "&7por jugadores. Conserva los generados.")) { p ->
+                val removed = WonderTradeService.removePlayerPoolEntries()
+                p.sendSystemMessage(WonderTradeService.info("&aSe han eliminado &f$removed &aPokémon aportados por jugadores."))
+                openAdmin(p)
+            }
+            menu.button(15, named(Items.TNT, "&4Toda la pool", "&7Elimina todas las entradas, sin importar su origen.", "&cPide confirmación.")) { openClearPoolConfirm(it) }
+            menu.button(22, named(Items.ARROW, "&aVolver al panel admin")) { openAdmin(it) }
+        }
+    }
+
     private fun openAdminDonors(player: ServerPlayer, page: Int = 0) {
         val donors = WonderTradeService.poolDonors().sortedBy { it.lowercase() }
         val pages = maxOf(1, (donors.size + 44) / 45)
@@ -962,7 +1028,7 @@ object WonderTradeGui {
                 "buttonClick" -> "ui.button.click"
                 "pageTurn" -> "item.book.page_turn"
                 "specialReceived" -> "entity.experience_orb.pickup"
-                "cooldownReady" -> "block.amethyst_block.chime"
+                "cooldownReady" -> "entity.experience_orb.pickup"
                 "specialShinyReceived" -> "item.totem.use"
                 else -> return
             }

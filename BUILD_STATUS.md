@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.15.0**.
+- Versión actual: **0.16.0**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -206,4 +206,14 @@
 - Aviso con mensaje y sonido suave cuando termina el cooldown normal (cooldownNotice, sounds.cooldownReady).
 - Con evento activo, el chat muestra la espera del evento en lugar de la normal.
 - Reposición de la pool por objetivo: se mantiene la cantidad que había al empezar el evento (events.ensurePool.target) y se repone al instante tras cada intercambio.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.16.0
+- Comandos administrativos aptos para consola donde no requieren inventario/GUI; fill y addspecies usan un jugador conectado como contexto de generación. Historial muestra texto desde consola.
+- Sonido de cooldown listo cambiado a `entity.experience_orb.pickup`. Aviso a todos los jugadores elegibles al quedar disponible y recordatorios configurables cada 10 minutos (normal) o 2 minutos (evento activo).
+- Panel admin permite eliminar solo entradas de origen Servidor o solo aportaciones de jugadores; comandos `/wt admin removegenerated` y `/wt admin removeplayers`.
+- Programación de eventos desde GUI mediante presets relativos y repeticiones diarias/semanales.
+- Limpieza automática de `history.json` configurable con `history.autoDeleteAfterDays` (30 por defecto; 0 desactiva).
+- README, documentación y `/wt help` actualizados.
 - Gradle no se ha ejecutado en el entorno de edición.

@@ -79,15 +79,17 @@ Todos requieren `admin.permissionLevel` (nivel OP 2 por defecto, configurable en
 | Comando | Permiso | Función |
 |---|---|---|
 | `/wt admin add <slot>` | `admin.permissionLevel` | Añade a la pool una copia del Pokémon del equipo en ese slot. Tú conservas el original. |
-| `/wt admin addspecies <especie> [forma] [shiny]` | `admin.permissionLevel` | Crea un Pokémon con nivel aleatorio y lo añade a la pool. Usa la misma sintaxis visible que `/pokegive`: `alolan`, `galarian`, `hisuian`, `paldean` y `shiny`. El mod resuelve la `FormData` registrada para esa especie para evitar depender de alias internos. Ejemplos: `/wt admin addspecies vulpix alolan`, `/wt admin addspecies vulpix alolan shiny`, `/wt admin addspecies meowth shiny galarian`. No se usa `form=...`. |
-| `/wt admin fill <cantidad> [probabilidad%] [nivelMin nivelMax]` | `admin.permissionLevel` | Genera Pokémon para la pool sin superar su máximo configurado (500 por defecto). Sin probabilidad indicada, se calcula automáticamente; con `probabilidad%`, se usa ese valor. Ejemplos: `/wt admin fill 200 5` o `/wt admin fill 50 0 10 30`. |
-| `/wt admin remove` | `admin.permissionLevel` | Abre la pool en modo administrador con eliminación activada. |
+| `/wt admin addspecies <especie> [forma] [shiny]` | `admin.permissionLevel` | Crea un Pokémon con nivel aleatorio y lo añade a la pool. Desde consola requiere que haya al menos un jugador conectado como contexto de generación. Usa la misma sintaxis visible que `/pokegive`: `alolan`, `galarian`, `hisuian`, `paldean` y `shiny`. El mod resuelve la `FormData` registrada para esa especie para evitar depender de alias internos. Ejemplos: `/wt admin addspecies vulpix alolan`, `/wt admin addspecies vulpix alolan shiny`, `/wt admin addspecies meowth shiny galarian`. No se usa `form=...`. |
+| `/wt admin fill <cantidad> [probabilidad%] [nivelMin nivelMax]` | `admin.permissionLevel` | Genera Pokémon para la pool sin superar su máximo configurado (500 por defecto). Funciona desde consola si hay al menos un jugador conectado para crear las entidades Cobblemon. Sin probabilidad indicada, se calcula automáticamente; con `probabilidad%`, se usa ese valor. Ejemplos: `/wt admin fill 200 5` o `/wt admin fill 50 0 10 30`. |
+| `/wt admin remove` | `admin.permissionLevel` | Abre la pool en modo administrador con eliminación activada (solo en juego); el panel también permite borrar por origen. |
 | `/wt admin resetstats <jugador o all>` | `admin.permissionLevel` | Reinicia contadores y rankings de un jugador o de todos. Conserva bonus, cooldowns y límites diarios. |
 | `/wt admin removeplayer <jugador>` | `admin.permissionLevel` | Elimina de la pool todos los Pokémon aportados por ese jugador. |
+| `/wt admin removegenerated` | `admin.permissionLevel` | Elimina solo Pokémon generados por el servidor y conserva las aportaciones de jugadores. Funciona desde consola. |
+| `/wt admin removeplayers` | `admin.permissionLevel` | Elimina solo Pokémon aportados por jugadores y conserva los generados por el servidor. Funciona desde consola. |
 | `/wt admin backup` | `admin.permissionLevel` | Crea una copia de seguridad manual. |
 | `/wt admin maintenance` | `admin.permissionLevel` | Ejecuta el mantenimiento y elimina entradas caducadas; no genera Pokémon. |
 | `/wt admin discord test` | `admin.permissionLevel` | Envía un mensaje de prueba al webhook de Discord. |
-| `/wt admin history [jugador]` | `admin.permissionLevel` | Abre el historial paginado, opcionalmente filtrado por jugador. |
+| `/wt admin history [jugador]` | `admin.permissionLevel` | Abre el historial paginado en juego; desde consola muestra las últimas 15 entradas, opcionalmente filtradas por jugador. |
 | `/wt admin clear` | `admin.permissionLevel` | Vacía la pool. |
 
 `/wondertrade` es un alias de `/wt`.
@@ -166,6 +168,8 @@ Opciones principales:
 - `antiAbuse.*`, `maintenance.*`, `backup.*`: protección, mantenimiento del pool y copias.
 - `discord.*`: avisos a Discord.
 - `history.enabled` / `history.maxEntries`: registro de intercambios.
+- `history.autoDeleteAfterDays`: elimina automáticamente del historial las entradas con más de 30 días; `0` desactiva el borrado automático.
+- `cooldownNotice.normalReminderMinutes` / `cooldownNotice.eventReminderMinutes`: recordatorios de disponibilidad cada 10 minutos en condiciones normales y cada 2 minutos mientras haya un evento activo. Son configurables y se envían a todos los jugadores elegibles.
 - `admin.permissionLevel`: nivel de operador para los comandos `/wt admin`.
 - `gui.enabled`: si es `false`, `/wt` muestra la ayuda en lugar del menú.
 - `gui.poolViewPermissionLevel`: nivel de operador para ver el pool (`0` = todos, `2` = solo operadores).
@@ -301,3 +305,13 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 - **Aviso de fin de cooldown:** cuando termina el tiempo normal de un jugador conectado recibe un mensaje y un sonido suave (campana de amatista). Se desactiva con `cooldownNotice.enabled` o `sounds.cooldownReady`, y cada jugador puede silenciarlo en `/wt sonidos`.
 - **Cooldown con evento:** si hay un evento activo y estás en espera, el chat muestra el tiempo del evento en lugar del normal (`messages.eventCooldown`).
 - **Reposición de especiales del evento:** el objetivo de cada categoría es lo que había en la pool al empezar el evento (como mínimo `events.ensurePool.minimum`). Si había 10 y alguien se lleva uno, se retira el normal más antiguo y se genera otro de la categoría, al instante tras el intercambio. Con `events.ensurePool.target` > 0 se fija una cantidad concreta.
+
+
+### 0.16.0
+- **Consola:** la mayoría de las operaciones administrativas funcionan también desde consola: activar/desactivar, recargar, rellenar pool, añadir especies (requiere al menos un jugador conectado), borrar por origen, eliminar aportaciones, resetear estadísticas, copias, mantenimiento, Discord y gestión de eventos. Las funciones que necesitan inventario o GUI siguen siendo exclusivas del juego.
+- **Avisos de disponibilidad:** todos los jugadores elegibles reciben el aviso cuando termina su cooldown y recordatorios cada `cooldownNotice.normalReminderMinutes` (10 min por defecto); si hay un evento activo, el intervalo pasa a `cooldownNotice.eventReminderMinutes` (2 min). El sonido de disponibilidad ahora es el orbe de experiencia y respeta los ajustes individuales.
+- **Borrado de pool por origen:** desde el panel admin se puede eliminar solo lo generado por el servidor o solo las aportaciones de jugadores. También hay comandos de consola `/wt admin removegenerated` y `/wt admin removeplayers`. Se clasifica por `donorName` para conservar correctamente aportaciones antiguas que no tengan UUID.
+- **Programación desde menú:** en Gestionar eventos → elegir tipo/categorías → duración aparece «Programar evento», con opciones para iniciar en 10 min, 1 h, 3 h, mañana a la misma hora o repetir a diario/semanalmente.
+- **Caducidad del historial:** `history.autoDeleteAfterDays` borra entradas antiguas (30 días por defecto); `0` lo desactiva. La limpieza se ejecuta al iniciar, recargar y una vez por minuto.
+- README y `/wt help` actualizados.
+- Gradle no se ha ejecutado en el entorno de edición.

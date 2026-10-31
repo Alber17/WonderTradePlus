@@ -113,7 +113,7 @@ Sistema de probabilidad acumulada **por jugador** para recibir un Pokémon espec
 - `specialShinyExtraGain`: puntos porcentuales adicionales cuando el Pokémon ofrecido es **shiny y además** es legendario, mítico, Ultraente o Paradoja. Por defecto `0.2`; por tanto, un especial shiny suma `0.5 + 0.2 = 0.7` puntos porcentuales. Un shiny de especie normal conserva el incremento base `specialTradeGain` (+0,5% por defecto), pero no recibe este extra.
 - `shiny`, `legendary`, `mythical`, `ultraBeast`, `paradox`, `other` y `combineMode`: opciones heredadas que se conservan en archivos antiguos por compatibilidad, pero ya no intervienen en el cálculo.
 
-El libro que aparece al abrir `/wt` muestra estos valores: normal, shiny sin categoría especial, Pokémon legendario/mítico/Ultraente/Paradoja y el total para especial shiny. La línea shiny sin categoría especial usa el mismo `specialTradeGain` que el resto de Pokémon considerados especiales. Todos los incrementos se expresan en puntos porcentuales (`0.1` = +0,1%, no 10%). No hay modo evento ni multiplicadores temporales: se aplican siempre los valores configurados.
+El libro que aparece al abrir `/wt` muestra estos valores: normal, shiny sin categoría especial, Pokémon legendario/mítico/Ultraente/Paradoja y el total para especial shiny. La línea shiny sin categoría especial usa el mismo `specialTradeGain` que el resto de Pokémon considerados especiales. Todos los incrementos se expresan en puntos porcentuales (`0.1` = +0,1%, no 10%). Los eventos activos de tipo «Arriesgar» pueden sumar el extra configurado para las categorías participantes; el resto de los incrementos se rige por estos valores.
 
 Funcionamiento: cuando el jugador ofrece un Pokémon **normal**, primero se suma `normalTradeGain` y después se tira un dado con el porcentaje acumulado actualizado para ese mismo intercambio; si sale, se intenta entregar un especial existente en la pool. Si no hay ninguno disponible, recibe cualquier Pokémon válido de la pool y conserva el bonus acumulado. Al recibir un especial, el porcentaje vuelve a 0. Ofrecer un Pokémon especial suma `specialTradeGain` y, si además es shiny y pertenece a las categorías legendario, mítico, Ultraente o Paradoja, suma también `specialShinyExtraGain`; ese incremento se aplica al siguiente intercambio normal. El jugador puede consultarlo con `/wt chance` y los admins con `/wt chance <jugador>`. El mensaje de intercambio incluye en una sola línea el Pokémon recibido y el estado actualizado del bonus; se personaliza con `messages.success`, `successBonusIncreased`, `successBonusReset` y `successBonusUnchanged`. Los mensajes (`bonusIncreased`, `bonusNormalIncreased`, `bonusReset`, `bonusInfo`) son editables; `bonusInfo` admite `{specialShinyExtraGain}`. Si un `bonusInfo` personalizado de una configuración anterior no incluye ese marcador, se muestra adicionalmente `bonusShinyExtraInfo`, que también es editable.
 
@@ -121,16 +121,19 @@ Funcionamiento: cuando el jugador ofrece un Pokémon **normal**, primero se suma
 
 - `enabled`: guarda un registro de cada intercambio en `history.json`.
 - `maxEntries`: máximo de intercambios guardados; al superarlo se borran los más antiguos.
+- `autoDeleteAfterDays`: borra automáticamente entradas con más de 30 días. Usa `0` para desactivarlo. Se comprueba al iniciar, recargar y durante el funcionamiento del servidor.
 
-Se consulta con `/wt admin history`.
+Se consulta con `/wt admin history`. En juego abre el historial paginado; desde consola muestra las últimas 15 entradas (también admite `/wt admin history <jugador>`).
 
 ## `admin`
 
-El modo evento temporal se ha retirado y ya no hay subcomandos de evento.
+Los eventos temporales y programados están disponibles. Se gestionan desde el panel `/wt admin` → Gestionar eventos o mediante `/wt admin eventos`; el panel permite programar eventos con horas relativas y repetición diaria/semanal.
 
 Todos los subcomandos `/wt admin ...`, además de `/wt reload`, `/wt clearpool` y las consultas/modificaciones de bonus a otros jugadores mediante `/wt chance <jugador>`, requieren el nivel configurado aquí. Los comandos `/wt`, `/wt donar`, `/wt stats`, `/wt top`, `/wt cancel` y `/wt chance` propio son públicos. `/wt pool` usa `gui.poolViewPermissionLevel`.
 
 - `permissionLevel`: nivel de operador (`0–4`) necesario para los comandos `/wt admin ...`. Por defecto `2`.
+- Desde consola funcionan las operaciones administrativas que no requieren inventario/GUI. `/wt admin fill` y `/wt admin addspecies` necesitan al menos un jugador conectado para crear los Pokémon; `/wt admin add`, `/wt admin remove` y el panel gráfico requieren estar dentro del juego.
+- `/wt admin removegenerated` elimina solo entradas cuyo donante sea `Servidor`; `/wt admin removeplayers` elimina las aportaciones de jugadores. Ambos comandos funcionan desde consola.
 - `regionalForms.alolan`, `regionalForms.galarian`, `regionalForms.hisuian`, `regionalForms.paldean`: activa o desactiva cada opción de forma regional para `/wt admin addspecies`. Todas están activadas por defecto. Se aceptan únicamente los atributos de comando `alolan`, `galarian`, `hisuian` y `paldean`, igual que `/pokegive`. Ejemplos: `/wt admin addspecies vulpix alolan`, `/wt admin addspecies vulpix alolan shiny` y `/wt admin addspecies meowth shiny galarian`. No se debe usar `form=alola`. El mod comprueba que la forma exista para esa especie y que Cobblemon la haya aplicado antes de guardarla en el pool.
 
 ## `gui`
@@ -170,3 +173,12 @@ Cada jugador puede usar `/wt sonidos` (o `/wt sounds`) para configurar los sonid
 ## Menú de relleno rápido
 
 `admin.fillMenu.enabled` activa o desactiva el botón del menú de relleno del panel `/wt admin`. `admin.fillMenu.amounts` define las cantidades ofrecidas. Por defecto: `[25, 50, 100, 250, 500]`, adaptadas al máximo predeterminado de 500 entradas. El máximo de la pool se define en `pool.maximumEntries` (500 por defecto). Las configuraciones antiguas que conservaban el valor predeterminado erróneo de 5000 se migran automáticamente a 500. El menú admite hasta siete opciones y cada relleno se limita automáticamente al espacio disponible en la pool.
+
+
+## `cooldownNotice`
+
+- `enabled`: activa los avisos de disponibilidad.
+- `normalReminderMinutes`: intervalo de recordatorio cuando no hay eventos activos (10 minutos por defecto).
+- `eventReminderMinutes`: intervalo mientras haya al menos un evento activo (2 minutos por defecto).
+
+Los avisos se envían a todos los jugadores que puedan intercambiar, no solo a administradores. El sonido de disponibilidad usa el orbe de experiencia y respeta las preferencias de sonido individuales.

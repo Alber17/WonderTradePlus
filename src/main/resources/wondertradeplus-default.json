@@ -78,7 +78,8 @@
   },
   "history": {
     "enabled": true,
-    "maxEntries": 1000
+    "maxEntries": 1000,
+    "autoDeleteAfterDays": 30
   },
   "admin": {
     "permissionLevel": 2,
@@ -110,7 +111,9 @@
     ]
   },
   "cooldownNotice": {
-    "enabled": true
+    "enabled": true,
+    "normalReminderMinutes": 10,
+    "eventReminderMinutes": 2
   },
   "events": {
     "enabled": true,
@@ -331,7 +334,9 @@
     "broadcastReceivedParadox": "&c{player} ha conseguido un Pokémon Paradoja{shinySuffix} en el WonderTrade: &f{pokemon}&c!",
     "helpSlotConfirmCommand": "&e/wt <slot> confirm &7Intercambiar ese slot sin confirmación adicional",
     "helpHelpCommand": "&e/wt help &7Mostrar esta ayuda",
-    "helpAdminClearCommand": "&e/wt admin clear &7Vaciar la pool desde administración"
+    "helpAdminClearCommand": "&e/wt admin clear &7Vaciar la pool desde administración",
+    "helpAdminRemoveGeneratedCommand": "&e/wt admin removegenerated &7Eliminar solo Pokémon generados por el servidor",
+    "helpAdminRemovePlayersCommand": "&e/wt admin removeplayers &7Eliminar solo Pokémon aportados por jugadores"
   },
   "donation": {
     "weeklyLimit": 5,
