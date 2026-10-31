@@ -160,6 +160,21 @@ class WonderTradePlus : ModInitializer {
                 WonderTradeGui.openTop(context.source.playerOrException)
                 1
             })
+            // PERMISO: público; qué Pokémon cuentan como míticos, legendarios, Ultraentes y Paradoja.
+            .then(literal("especiales").executes { context ->
+                WonderTradeGui.openSpecials(context.source.playerOrException)
+                1
+            })
+            .then(literal("categorias").executes { context ->
+                WonderTradeGui.openSpecials(context.source.playerOrException)
+                1
+            })
+            // PERMISO: público; muestra tu rango y sus ventajas.
+            .then(literal("rango").executes { context ->
+                val player = context.source.playerOrException
+                context.source.sendSuccess({ WonderTradeService.rankComponent(player) }, false)
+                1
+            })
             // PERMISO: público; muestra los eventos activos.
             .then(literal("eventos").executes { context ->
                 context.source.sendSuccess({ WonderTradeEvents.eventsComponent(context.source.player) }, false)
@@ -564,7 +579,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.12.0"
+        const val MOD_VERSION = "0.13.1"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

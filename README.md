@@ -66,6 +66,8 @@ Los comandos de jugador son públicos salvo que se indique otra cosa. Los nivele
 | `/wt admin eventos programados` | `admin.permissionLevel` | Lista los eventos activos y los programados. |
 | `/wt admin eventos desprogramar <id>` | `admin.permissionLevel` | Cancela un evento programado (el id sale como `P1`, `P2`…). |
 | `/wt admin eventos parar <id>` | `admin.permissionLevel` | Finaliza un evento. |
+| `/wt especiales` | Todos | Menú con los Pokémon que son Ultraentes, Paradoja, Míticos y Legendarios (los que cuentan en los eventos). También hay un botón en el menú principal. |
+| `/wt rango` | Todos | Muestra tu rango y sus ventajas; a los admins les indica además qué sistema de permisos detecta. |
 | `/wt on` / `/wt off` | `admin.permissionLevel` | Activa o desactiva Wonder Trade sin quitar el mod. |
 | `/wt clearpool` | `admin.permissionLevel` | Vacía la pool. |
 | `/wt admin` | `admin.permissionLevel` | Abre el panel gráfico de administración. |
@@ -267,3 +269,18 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 - **Barra de tiempo:** una bossbar con el nombre del evento y el tiempo que queda (`events.bossbar.*`: activar, formato, estilo y color distinto para Arriesgar y Recibir). Es solo de servidor.
 - **Pokémon del evento en la pool:** al empezar un evento, si hay menos Pokémon de su categoría que `events.ensurePool.minimum` (3 por defecto), se generan los que falten (máximo `maxGenerate`) y se retiran los normales más antiguos para hacer sitio (`replaceOldest`). Los especiales nunca se retiran. Se puede limitar a un tipo de evento con `events.ensurePool.types`.
 - **Anuncio al empezar:** el chat indica qué Pokémon de la categoría hay en la pool (`events.announcePokemon.*`: activar, cuántos listar y si muestra el nivel).
+
+### 0.12.1
+- Los anuncios de «LEGENDARIO/ULTRAENTE/PASADO/FUTURO SHINY» terminan con la exclamación del mismo color que el texto. Si tu `config.json` aún tenía el texto antiguo, se actualiza solo.
+- **Pool de eventos:** mientras un evento está activo, cada pocos segundos (`events.ensurePool.checkIntervalSeconds`, 10 por defecto) se comprueba que haya al menos `minimum` Pokémon de su categoría y se generan los que falten. Antes solo se comprobaba al iniciar el evento. Se puede desactivar con `events.ensurePool.keepDuringEvent: false`.
+
+### 0.13.0
+- **`/wt especiales`:** menú con la lista de Pokémon por categoría (Ultraente, Paradoja, Mítico y Legendario) para saber qué se puede dar en los eventos. Botón nuevo «Ver especiales» en el menú principal.
+- **Rangos de servidor** (`ranks` en `config.json`): cada rango tiene `baseBonus` (mínimo del bonus: al recibir un especial vuelve a ese valor en lugar de a 0, y nunca baja de él) y `gainMultiplier` (multiplica lo que suma cada Pokémon ofrecido). La lista va del rango más alto al más bajo y gana el primero que coincida.
+  - Por defecto hay 5 rangos, del más alto al más bajo: Leyenda (`baseBonus` 1.0), Maestro, Élite, Experto y Dominguero (estos cuatro con 0.0 para que pongas tú los valores).
+  - Un jugador pertenece a un rango si tiene el permiso del rango (por ejemplo `wondertradeplus.rank.leyenda` o `group.leyenda` con LuckPerms) o la etiqueta del rango (`/tag <jugador> add wt_leyenda`). Cambia `id`, `name`, `permission` y `tag` por los de tu servidor.
+  - Con LuckPerms basta con dar el permiso al grupo: `/lp group leyenda permission set wondertradeplus.rank.leyenda true`.
+  - `/wt chance` y el libro del menú muestran el rango.
+
+### 0.13.1
+- Los rangos por defecto son los del servidor: Leyenda, Maestro, Élite, Experto y Dominguero. Permisos `wondertradeplus.rank.<id>` y etiquetas `wt_<id>`. Si tu `config.json` tenía la lista genérica sin tocar, se actualiza sola.

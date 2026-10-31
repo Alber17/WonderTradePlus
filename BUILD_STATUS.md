@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.12.0**.
+- Versión actual: **0.13.1**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -175,3 +175,17 @@
 - Eventos programados (WonderTradeSchedule.kt), aviso al entrar y bossbar (WonderTradeEventDisplay.kt).
 - Generación de Pokémon de la categoría al iniciar un evento y anuncio en el chat de los que hay.
 - Gradle no se ha ejecutado en el entorno de edición. Puntos a validar al compilar: ServerBossEvent/BossEvent y ServerPlayConnectionEvents.JOIN.
+
+## 0.12.1
+- Corregido el color de la exclamación final en los anuncios de shiny + categoría (con migración de config.json).
+- La pool se repone durante todo el evento (events.ensurePool.keepDuringEvent / checkIntervalSeconds).
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.13.0
+- /wt especiales (menú de Pokémon por categoría) y /wt rango.
+- Rangos de servidor con bonus mínimo y multiplicador de ganancias (WonderTradeRanks.kt, detección por permiso vía reflexión o por tag).
+- Gradle no se ha ejecutado en el entorno de edición. A validar: Species/PokemonProperties.create en speciesByCategory y la reflexión de permisos.
+
+## 0.13.1
+- Rangos por defecto del servidor: Leyenda, Maestro, Élite, Experto y Dominguero (con migración desde la lista genérica de 0.13.0).
+- Gradle no se ha ejecutado en el entorno de edición.

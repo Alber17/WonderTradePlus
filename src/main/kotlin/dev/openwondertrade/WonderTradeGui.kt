@@ -270,6 +270,7 @@ object WonderTradeGui {
                 )
             }
         }
+        if (!donationMode) WonderTradeService.rankInfoLine(player)?.let { bookLore += it }
         menu.put(4, named(
             Items.BOOK,
             ConfigManager.string("messages.menuBookTitle", if (donationMode) "&dDonar a Wonder Trade" else "&dWonder Trade"),
@@ -295,6 +296,7 @@ object WonderTradeGui {
                 openPool(it, 0, false)
             }
         }
+        menu.button(24, named(Items.ENCHANTED_BOOK, "&dVer especiales", "&7Qué Pokémon son míticos, legendarios,", "&7Ultraentes y Paradoja.", "&eClic para ver")) { openSpecials(it) }
         menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
@@ -470,6 +472,66 @@ object WonderTradeGui {
             context?.sort ?: PoolSort.NEWEST,
             text.trim()
         )
+    }
+
+    // ---------------------------------------------------------------- categorías especiales
+
+    private val specialCategories = listOf(
+        Triple("ultraBeast", "&3Ultraentes", Items.ECHO_SHARD),
+        Triple("paradox", "&cParadoja", Items.ENDER_PEARL),
+        Triple("mythical", "&dMíticos", Items.AMETHYST_SHARD),
+        Triple("legendary", "&6Legendarios", Items.GOLD_INGOT)
+    )
+
+    fun openSpecials(player: ServerPlayer) {
+        if (!WonderTradeService.ensureEnabled(player)) return
+        open(player, "&5Wonder Trade &8- &dEspeciales", 3) { menu ->
+            fill(menu, 27)
+            menu.put(4, named(
+                Items.ENCHANTED_BOOK, "&dPokémon especiales",
+                "&7Estas categorías son las que cuentan en los",
+                "&7eventos «Arriesgar» y «Recibir» de Wonder Trade.",
+                "&7Un Pokémon shiny cuenta para los eventos Shiny."
+            ))
+            val groups = WonderTradeService.speciesByCategory(player)
+            val slots = listOf(10, 12, 14, 16)
+            specialCategories.forEachIndexed { index, (key, label, icon) ->
+                val count = groups[key]?.size ?: 0
+                menu.button(slots[index], named(icon, label, "&7Pokémon en esta categoría: &f$count", "&eClic para ver la lista")) {
+                    openSpecialList(it, key, 0)
+                }
+            }
+            menu.button(22, named(Items.ARROW, "&aVolver")) { openMain(it) }
+            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        }
+    }
+
+    private fun openSpecialList(player: ServerPlayer, key: String, page: Int) {
+        val label = specialCategories.firstOrNull { it.first == key }?.second ?: key
+        open(player, "&5Especiales &8- $label", 6) { renderSpecialList(it, player, key, page) }
+    }
+
+    private fun renderSpecialList(menu: GuiMenu, player: ServerPlayer, key: String, requestedPage: Int) {
+        menu.wipe()
+        fill(menu, 54)
+        val list = WonderTradeService.speciesByCategory(player)[key].orEmpty()
+        val pages = maxOf(1, (list.size + POOL_PER_PAGE - 1) / POOL_PER_PAGE)
+        val page = requestedPage.coerceIn(0, pages - 1)
+        val categoryLabel = specialCategories.firstOrNull { it.first == key }?.second ?: key
+        list.drop(page * POOL_PER_PAGE).take(POOL_PER_PAGE).forEachIndexed { index, pokemon ->
+            val stack = runCatching { PokemonItem.from(pokemon) }.getOrElse { ItemStack(Items.PAPER) }
+            stack.set(DataComponents.CUSTOM_NAME, lit("&f" + pokemon.getDisplayName().string))
+            val lines = mutableListOf("&7Categoría: $categoryLabel")
+            WonderTradeRules.typesLabel(pokemon)?.let { lines += "&7Tipo: $it" }
+            stack.set(DataComponents.LORE, ItemLore(lines.map<String, Component> { lit(it) }))
+            menu.put(index, stack)
+        }
+        if (list.isEmpty()) menu.put(22, named(Items.BARRIER, "&cNo hay Pokémon en esta categoría"))
+        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior"), "pageTurn") { renderSpecialList(menu, it, key, page - 1) }
+        menu.put(49, named(Items.PAPER, "&7Página ${page + 1}/$pages", "&7$categoryLabel&7: &f${list.size}"))
+        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente"), "pageTurn") { renderSpecialList(menu, it, key, page + 1) }
+        menu.button(45, named(Items.ARROW, "&aVolver")) { openSpecials(it) }
+        menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 
     fun openTop(player: ServerPlayer) {

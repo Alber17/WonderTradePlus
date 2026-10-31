@@ -99,6 +99,16 @@
       ]
     }
   },
+  "ranks": {
+    "enabled": true,
+    "list": [
+      { "id": "leyenda", "name": "&6Leyenda", "permission": "wondertradeplus.rank.leyenda", "tag": "wt_leyenda", "baseBonus": 1.0, "gainMultiplier": 1.0 },
+      { "id": "maestro", "name": "&dMaestro", "permission": "wondertradeplus.rank.maestro", "tag": "wt_maestro", "baseBonus": 0.0, "gainMultiplier": 1.0 },
+      { "id": "elite", "name": "&bÉlite", "permission": "wondertradeplus.rank.elite", "tag": "wt_elite", "baseBonus": 0.0, "gainMultiplier": 1.0 },
+      { "id": "experto", "name": "&aExperto", "permission": "wondertradeplus.rank.experto", "tag": "wt_experto", "baseBonus": 0.0, "gainMultiplier": 1.0 },
+      { "id": "dominguero", "name": "&eDominguero", "permission": "wondertradeplus.rank.dominguero", "tag": "wt_dominguero", "baseBonus": 0.0, "gainMultiplier": 1.0 }
+    ]
+  },
   "events": {
     "enabled": true,
     "maximumDurationHours": 720,
@@ -127,6 +137,8 @@
       "minimum": 3,
       "maxGenerate": 10,
       "replaceOldest": true,
+      "keepDuringEvent": true,
+      "checkIntervalSeconds": 10,
       "attempts": 3000
     },
     "announcePokemon": {
@@ -199,16 +211,16 @@
     "cancelled": "&7Intercambio cancelado.",
     "broadcastNormal": "&7{player} ha añadido un Pokémon al pool de Wonder Trade.",
     "broadcastSpecial": "&6{player} ha añadido un Pokémon legendario al pool de Wonder Trade: &f{pokemon}&6!",
-    "broadcastShinySpecial": "&d&6{player} ha añadido un Pokémon LEGENDARIO SHINY al pool de Wonder Trade: &f{pokemon}&d!",
+    "broadcastShinySpecial": "&6{player} ha añadido un Pokémon LEGENDARIO SHINY al pool de Wonder Trade: &f{pokemon}&6!",
     "bonusIncreased": "&d Tu aportación especial aumenta tu probabilidad en &f+{gain}%&d. Ahora tienes &f{percent}%&d.",
     "bonusReset": "&6¡Has recibido un Pokémon especial! Tu probabilidad acumulada vuelve a &f{percent}%&6.",
     "bonusInfo": "&7Probabilidad acumulada de recibir un especial: &d{percent}%&7. Cada WT normal suma &a+{normalGain}%&7, cada WT especial &d+{specialGain}%&7 y, si también es shiny, añade &d+{specialShinyExtraGain}%&7 extra.",
     "broadcastUltraBeast": "&3◆ {player} ha añadido un Ultraente al pool de Wonder Trade: &f{pokemon}&3!",
-    "broadcastShinyUltraBeast": "&d&3◆ {player} ha añadido un ULTRAENTE SHINY al pool de Wonder Trade: &f{pokemon}&d!",
+    "broadcastShinyUltraBeast": "&3◆ {player} ha añadido un ULTRAENTE SHINY al pool de Wonder Trade: &f{pokemon}&3!",
     "broadcastPastParadox": "&c⌛ {player} ha añadido un Pokémon del pasado al pool de Wonder Trade: &f{pokemon}&c!",
-    "broadcastShinyPastParadox": "&d&c⌛ {player} ha añadido un Pokémon del PASADO SHINY al pool de Wonder Trade: &f{pokemon}&d!",
+    "broadcastShinyPastParadox": "&c⌛ {player} ha añadido un Pokémon del PASADO SHINY al pool de Wonder Trade: &f{pokemon}&c!",
     "broadcastFutureParadox": "&b⚛ {player} ha añadido un Pokémon del futuro al pool de Wonder Trade: &f{pokemon}&b!",
-    "broadcastShinyFutureParadox": "&d&b⚛ {player} ha añadido un Pokémon del FUTURO SHINY al pool de Wonder Trade: &f{pokemon}&d!",
+    "broadcastShinyFutureParadox": "&b⚛ {player} ha añadido un Pokémon del FUTURO SHINY al pool de Wonder Trade: &f{pokemon}&b!",
     "broadcastShiny": "&d{player} ha añadido un Pokémon shiny al pool de Wonder Trade: &f{pokemon}&d!",
     "bonusNormalIncreased": "&d Tu intercambio normal aumenta tu probabilidad en &f+{gain}%&d. Ahora tienes &f{percent}%&d.",
     "bonusShinyExtraInfo": "&7Un shiny que también sea legendario, mítico, Ultraente o Paradoja suma &d+{specialShinyExtraGain}%&7 adicional.",
@@ -236,6 +248,11 @@
     "eventUpcomingHeader": "&d&lPróximos eventos:",
     "eventUpcomingLine": "&7- &f{name} &7— {when} &8({duration})",
     "helpAdminScheduleCommand": "&e/wt admin eventos programar <tipo> <categoría> <duración> <cuándo> &7Programar un evento",
+    "rankInfo": "&7Tu rango: {rank} &8— &7mínimo de probabilidad &d{base}%&7 y ganancias &ax{multiplier}&7.",
+    "rankNone": "&7No tienes ningún rango con ventajas en Wonder Trade.",
+    "rankDisabled": "&7Los rangos están desactivados.",
+    "helpSpecialsCommand": "&e/wt especiales &7Ver qué Pokémon son míticos, legendarios, Ultraentes y Paradoja",
+    "helpRankCommand": "&e/wt rango &7Ver tu rango y sus ventajas",
     "tradeDisabled": "&cWonder Trade está desactivado temporalmente.",
     "previewTitle": "&dProbabilidades de este intercambio",
     "previewPool": "&7Especiales disponibles en la pool: &f{specials}&7/&f{total}",

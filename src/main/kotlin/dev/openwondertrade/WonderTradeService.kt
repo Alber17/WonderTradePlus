@@ -130,6 +130,8 @@ object WonderTradeService {
             ConfigManager.string("messages.helpTopCommand", "&e/wt top &7Abrir el menú de rankings"),
             ConfigManager.string("messages.helpChanceCommand", "&e/wt chance &7Consultar tu probabilidad de especial"),
             ConfigManager.string("messages.helpEventsCommand", "&e/wt eventos &7Ver los eventos activos"),
+            ConfigManager.string("messages.helpSpecialsCommand", "&e/wt especiales &7Ver qué Pokémon son míticos, legendarios, Ultraentes y Paradoja"),
+            ConfigManager.string("messages.helpRankCommand", "&e/wt rango &7Ver tu rango y sus ventajas"),
             ConfigManager.string("messages.helpSoundsCommand", "&e/wt sonidos &7Configurar tus sonidos")
         )
         if (player != null && (WonderTradeGui.canViewPool(player) || player.hasPermissions(adminLevel()))) {
@@ -660,11 +662,13 @@ object WonderTradeService {
         // no limitan el Pokémon recibido. Cada especial ofrecido aumenta el bonus personal.
         val bonusEnabled = ConfigManager.bool("bonus.enabled", true)
         val offeredRare = WonderTradeRules.isRare(offered)
-        val bonusBefore = if (bonusEnabled) playerData.bonus(player.uuid) else 0.0
+        val bonusBefore = if (bonusEnabled) effectiveBonus(player) else 0.0
+        // Mínimo del rango: al recibir un especial el bonus vuelve a este valor en lugar de a 0.
+        val rankBase = if (bonusEnabled) WonderTradeRanks.baseBonus(player) else 0.0
         val maximumBonus = ConfigManager.double("bonus.maximum", 60.0).coerceIn(0.0, 100.0)
         // Los intercambios normales suman +0,1% antes de tirar la probabilidad de ESTE intercambio.
         // Las aportaciones especiales suman su bonus al terminar y se aplican al siguiente WT normal.
-        val normalGain = if (bonusEnabled && !offeredRare) bonusGain(offered) else 0.0
+        val normalGain = if (bonusEnabled && !offeredRare) bonusGain(offered, player) else 0.0
         val bonusForRoll = if (!offeredRare) (bonusBefore + normalGain).coerceAtMost(maximumBonus) else bonusBefore
         val effectiveChance = bonusForRoll
         val forceSpecial = !offeredRare && effectiveChance > 0.0 && Random.nextDouble() * 100.0 < effectiveChance
@@ -727,12 +731,12 @@ object WonderTradeService {
             var bonusAfter = bonusBefore
             if (bonusEnabled) {
                 bonusAfter = when {
-                    // Si un normal recibe un especial, el bonus se consume y vuelve a cero.
-                    !offeredRare && incomingRare -> 0.0
+                    // Si un normal recibe un especial, el bonus se consume y vuelve a su mínimo (0 sin rango).
+                    !offeredRare && incomingRare -> rankBase
                     // Un intercambio normal añade +0,1% (configurable), ya usado en la tirada actual.
                     !offeredRare -> bonusForRoll
                     // Ofrecer un especial añade +0,5% (configurable) para el siguiente WT normal.
-                    else -> (bonusBefore + bonusGain(offered)).coerceAtMost(maximumBonus)
+                    else -> (bonusBefore + bonusGain(offered, player)).coerceAtMost(maximumBonus)
                 }
                 playerData.setBonus(player.uuid, bonusAfter)
             }
@@ -744,7 +748,7 @@ object WonderTradeService {
                 !bonusEnabled -> ""
                 !offeredRare && incomingRare && bonusForRoll > 0.0 -> format(
                     ConfigManager.string("messages.successBonusReset", "&7Has recibido un especial y tu probabilidad se ha reiniciado a &d0%&7."),
-                    mapOf("percent" to percentText(0.0))
+                    mapOf("percent" to percentText(rankBase))
                 )
                 bonusAfter > bonusBefore -> format(
                     ConfigManager.string("messages.successBonusIncreased", "&7Tu probabilidad ha aumentado &a+{gain}%&7. Ahora tienes &d{percent}%&7."),
@@ -826,6 +830,27 @@ object WonderTradeService {
         return true
     }
 
+    /**
+     * Mientras hay un evento activo, repone la pool si se quedan sin Pokémon de su categoría (por ejemplo,
+     * si un admin los borra o alguien los recibe). Se ejecuta cada pocos segundos; necesita un jugador conectado.
+     */
+    fun maintainEventPools(server: MinecraftServer) {
+        if (!ConfigManager.bool("events.ensurePool.enabled", true)) return
+        if (!ConfigManager.bool("events.ensurePool.keepDuringEvent", true)) return
+        val active = WonderTradeEvents.active()
+        if (active.isEmpty()) return
+        val player = server.playerList.players.firstOrNull() ?: return
+        val types = ConfigManager.strings("events.ensurePool.types").map { it.lowercase() }
+        // Olvida las categorías cacheadas de entradas que ya no están en la pool.
+        val ids = pool.all().map { it.id }.toHashSet()
+        entryCategoryCache.keys.retainAll(ids)
+        for (event in active.filter { it.type.key in types }) {
+            ensureEventPool(server, player, event)
+        }
+    }
+
+    private val warnedEvents = mutableSetOf<Int>()
+
     private fun ensureEventPool(server: MinecraftServer, player: ServerPlayer, event: WtEvent) {
         val registryAccess = server.registryAccess()
         val minimum = ConfigManager.int("events.ensurePool.minimum", 3).coerceAtLeast(0)
@@ -851,6 +876,8 @@ object WonderTradeService {
         if (generated > 0) {
             trimAndSave()
             WonderTradePlus.LOGGER.info("Evento {}: se han generado {} Pokémon de la categoría {}.", event.title, generated, event.category.label)
+        } else if (warnedEvents.add(event.id)) {
+            WonderTradePlus.LOGGER.warn("Evento {}: faltan Pokémon de la categoría {} pero no se ha podido generar ninguno (¿listas de especies o permisos de especiales?).", event.title, event.category.label)
         }
     }
 
@@ -919,8 +946,8 @@ object WonderTradeService {
         val bonusEnabled = ConfigManager.bool("bonus.enabled", true)
         val offeredRare = WonderTradeRules.isRare(offered)
         val maximum = ConfigManager.double("bonus.maximum", 60.0).coerceIn(0.0, 100.0)
-        val before = if (bonusEnabled) playerData.bonus(player.uuid) else 0.0
-        val gain = if (bonusEnabled) bonusGain(offered) else 0.0
+        val before = if (bonusEnabled) effectiveBonus(player) else 0.0
+        val gain = if (bonusEnabled) bonusGain(offered, player) else 0.0
         // Igual que en el intercambio real: un normal suma antes de tirar; un especial no usa el bonus.
         val forced = if (offeredRare || specials == 0) 0.0
         else (before + gain).coerceAtMost(maximum).let { if (bonusEnabled) it else 0.0 }
@@ -963,7 +990,14 @@ object WonderTradeService {
      * si además son shiny, el extra configurable. El extra solo aplica a legendarios,
      * míticos, Ultraentes y Paradoja; un shiny de especie normal no lo recibe.
      */
-    fun bonusGain(pokemon: Pokemon): Double {
+    /** Bonus del jugador teniendo en cuenta el mínimo de su rango. */
+    fun effectiveBonus(player: ServerPlayer): Double {
+        if (!ConfigManager.bool("bonus.enabled", true)) return 0.0
+        val maximum = ConfigManager.double("bonus.maximum", 60.0).coerceIn(0.0, 100.0)
+        return maxOf(playerData.bonus(player.uuid), WonderTradeRanks.baseBonus(player)).coerceAtMost(maximum)
+    }
+
+    fun bonusGain(pokemon: Pokemon, player: ServerPlayer? = null): Double {
         val rare = WonderTradeRules.isRare(pokemon)
         val key = if (rare) "bonus.specialTradeGain" else "bonus.normalTradeGain"
         val fallback = if (rare) 0.5 else 0.1
@@ -973,7 +1007,8 @@ object WonderTradeService {
         } else 0.0
         // Evento «Arriesgar Shiny»: cada shiny ofrecido suma un % extra.
         val eventExtra = WonderTradeEvents.riskExtraGain(pokemon)
-        return base + specialShinyExtra + eventExtra
+        val multiplier = if (player != null) WonderTradeRanks.gainMultiplier(player) else 1.0
+        return (base + specialShinyExtra + eventExtra) * multiplier
     }
 
     fun normalBonusGainText(): String = percentText(ConfigManager.double("bonus.normalTradeGain", 0.1).coerceAtLeast(0.0))
@@ -1233,7 +1268,8 @@ object WonderTradeService {
         val online = server.playerList.getPlayerByName(name)
         val uuid = online?.uuid ?: playerData.findByName(name) ?: return null
         val shownName = online?.gameProfile?.name ?: name
-        val value = if (ConfigManager.bool("bonus.enabled", true)) playerData.bonus(uuid) else 0.0
+        val value = if (!ConfigManager.bool("bonus.enabled", true)) 0.0
+        else if (online != null) effectiveBonus(online) else playerData.bonus(uuid)
         return shownName to value
     }
 
@@ -1243,7 +1279,7 @@ object WonderTradeService {
 
     /** Muestra al jugador su probabilidad acumulada de recibir un especial. */
     fun showBonus(player: ServerPlayer) {
-        val value = if (ConfigManager.bool("bonus.enabled", true)) playerData.bonus(player.uuid) else 0.0
+        val value = effectiveBonus(player)
         val shinyExtra = specialShinyExtraGainText()
         send(player, "bonusInfo", mapOf(
             "percent" to percentText(value),
@@ -1256,6 +1292,55 @@ object WonderTradeService {
         if (!ConfigManager.string("messages.bonusInfo", "").contains("{specialShinyExtraGain}")) {
             send(player, "bonusShinyExtraInfo", mapOf("specialShinyExtraGain" to shinyExtra))
         }
+        rankInfoLine(player)?.let { player.sendSystemMessage(info(it)) }
+    }
+
+    /** Línea con el rango del jugador y sus ventajas, o null si no tiene rango (o los rangos están desactivados). */
+    fun rankInfoLine(player: ServerPlayer): String? {
+        val rank = WonderTradeRanks.rankOf(player) ?: return null
+        return format(
+            ConfigManager.string("messages.rankInfo", "&7Tu rango: {rank} &8— &7mínimo de probabilidad &d{base}%&7 y ganancias &ax{multiplier}&7."),
+            mapOf("rank" to rank.name, "base" to percentText(rank.baseBonus), "multiplier" to percentText(rank.gainMultiplier))
+        )
+    }
+
+    /** Respuesta de /wt rango. */
+    fun rankComponent(player: ServerPlayer): Component {
+        val lines = mutableListOf<String>()
+        if (!WonderTradeRanks.enabled()) {
+            lines += ConfigManager.string("messages.rankDisabled", "&7Los rangos están desactivados.")
+        } else {
+            lines += rankInfoLine(player) ?: ConfigManager.string("messages.rankNone", "&7No tienes ningún rango con ventajas en Wonder Trade.")
+            if (player.hasPermissions(adminLevel())) {
+                lines += "&8Detección de permisos: ${WonderTradeRanks.backendName()}"
+            }
+        }
+        return colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
+    }
+
+    // ------------------------------------------------------------ Pokémon por categoría (para /wt especiales)
+
+    private var categoryCache: Map<String, List<Pokemon>>? = null
+
+    /**
+     * Pokémon de cada categoría de especie (ultraBeast, paradox, mythical, legendary). Se calcula una vez creando
+     * un ejemplar de cada especie; es solo para mostrarlo en el menú.
+     */
+    fun speciesByCategory(player: ServerPlayer): Map<String, List<Pokemon>> {
+        categoryCache?.let { return it }
+        val result = LinkedHashMap<String, MutableList<Pokemon>>()
+        listOf("ultraBeast", "paradox", "mythical", "legendary").forEach { result[it] = mutableListOf() }
+        for (species in PokemonSpecies.species.sortedBy { it.resourceIdentifier.path }) {
+            val pokemon = runCatching {
+                PokemonProperties().apply {
+                    this.species = species.resourceIdentifier.toString()
+                    this.level = 50
+                }.create(player)
+            }.getOrNull() ?: continue
+            val key = WonderTradeRules.speciesCategoryKey(pokemon) ?: continue
+            result[key]?.add(pokemon)
+        }
+        return result.also { categoryCache = it }
     }
 
     fun cooldownRemainingSeconds(player: ServerPlayer): Long {

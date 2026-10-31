@@ -47,6 +47,29 @@ object ConfigManager {
                 })
             }
         }
+        // Migración: los rangos genéricos «Rango 1-5» de la 0.13.0 se sustituyen por los del servidor
+        // solo si siguen exactamente como se entregaron (sin que hayas editado nada).
+        root.getAsJsonObject("ranks")?.let { ranksConfig ->
+            val previous = com.google.gson.JsonParser.parseString("[{\"id\": \"rango5\", \"name\": \"&6Rango 5\", \"permission\": \"wondertradeplus.rank.5\", \"tag\": \"wt_rank_5\", \"baseBonus\": 1.0, \"gainMultiplier\": 1.0}, {\"id\": \"rango4\", \"name\": \"&dRango 4\", \"permission\": \"wondertradeplus.rank.4\", \"tag\": \"wt_rank_4\", \"baseBonus\": 0.0, \"gainMultiplier\": 1.0}, {\"id\": \"rango3\", \"name\": \"&bRango 3\", \"permission\": \"wondertradeplus.rank.3\", \"tag\": \"wt_rank_3\", \"baseBonus\": 0.0, \"gainMultiplier\": 1.0}, {\"id\": \"rango2\", \"name\": \"&aRango 2\", \"permission\": \"wondertradeplus.rank.2\", \"tag\": \"wt_rank_2\", \"baseBonus\": 0.0, \"gainMultiplier\": 1.0}, {\"id\": \"rango1\", \"name\": \"&eRango 1\", \"permission\": \"wondertradeplus.rank.1\", \"tag\": \"wt_rank_1\", \"baseBonus\": 0.0, \"gainMultiplier\": 1.0}]")
+            if (ranksConfig.get("list") == previous) {
+                defaults.getAsJsonObject("ranks")?.get("list")?.let { ranksConfig.add("list", it.deepCopy()) }
+            }
+        }
+        // Migración de mensajes: si el texto guardado sigue siendo exactamente el antiguo por defecto,
+        // se sustituye por el corregido (color de la exclamación final, espacios sobrantes).
+        val messageFixes = mapOf(
+            "broadcastShinySpecial" to ("&d&6{player} ha añadido un Pokémon LEGENDARIO SHINY al pool de Wonder Trade: &f{pokemon}&d!" to "&6{player} ha añadido un Pokémon LEGENDARIO SHINY al pool de Wonder Trade: &f{pokemon}&6!"),
+            "broadcastShinyUltraBeast" to ("&d&3◆ {player} ha añadido un ULTRAENTE SHINY al pool de Wonder Trade: &f{pokemon}&d!" to "&3◆ {player} ha añadido un ULTRAENTE SHINY al pool de Wonder Trade: &f{pokemon}&3!"),
+            "broadcastShinyPastParadox" to ("&d&c⌛ {player} ha añadido un Pokémon del PASADO SHINY al pool de Wonder Trade: &f{pokemon}&d!" to "&c⌛ {player} ha añadido un Pokémon del PASADO SHINY al pool de Wonder Trade: &f{pokemon}&c!"),
+            "broadcastShinyFutureParadox" to ("&d&b⚛ {player} ha añadido un Pokémon del FUTURO SHINY al pool de Wonder Trade: &f{pokemon}&d!" to "&b⚛ {player} ha añadido un Pokémon del FUTURO SHINY al pool de Wonder Trade: &f{pokemon}&b!"),
+            "broadcastShiny" to ("&d {player} ha añadido un Pokémon shiny al pool de Wonder Trade: &f{pokemon}&d!" to "&d{player} ha añadido un Pokémon shiny al pool de Wonder Trade: &f{pokemon}&d!")
+        )
+        root.getAsJsonObject("messages")?.let { messages ->
+            for ((key, pair) in messageFixes) {
+                val current = messages.get(key)?.let { node -> runCatching { node.asString }.getOrNull() }
+                if (current == pair.first) messages.addProperty(key, pair.second)
+            }
+        }
         save()
     }
 
@@ -100,6 +123,10 @@ object ConfigManager {
 
     fun strings(path: String): List<String> = element(path)?.takeIf { it.isJsonArray }?.asJsonArray
         ?.mapNotNull { runCatching { it.asString }.getOrNull() } ?: emptyList()
+
+    /** Lista de objetos JSON (por ejemplo ranks.list). */
+    fun objects(path: String): List<JsonObject> = element(path)?.takeIf { it.isJsonArray }?.asJsonArray
+        ?.mapNotNull { if (it.isJsonObject) it.asJsonObject else null } ?: emptyList()
 
     fun ints(path: String): List<Int> = element(path)?.takeIf { it.isJsonArray }?.asJsonArray
         ?.mapNotNull { runCatching { it.asInt }.getOrNull() } ?: emptyList()
