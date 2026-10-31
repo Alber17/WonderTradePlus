@@ -62,7 +62,7 @@ Los comandos de jugador son públicos salvo que se indique otra cosa. Los nivele
 | `/wt eventos` | Todos | Muestra los eventos activos, qué hacen y cuándo puedes usar el intercambio de evento. |
 | `/wt admin eventos` | `admin.permissionLevel` | Lista los eventos activos con su id. |
 | `/wt admin eventos crear <arriesgar\|recibir> <categorías> <duración> [valor] [espera]` | `admin.permissionLevel` | Crea un evento. Duración: `30s`, `5m`, `2h`, `1d`, `1h30m`. El valor y la espera son opcionales. |
-| `/wt admin eventos programar <tipo> <categoría> <duración> <cuándo>` | `admin.permissionLevel` | Programa un evento para que empiece solo. «Cuándo» admite una hora (`20:00`), un día de la semana (`sabado 20:00`), una fecha (`15/11 18:30`), `diario` o `semanal` para repetirlo, y `valor=N` y `espera=2m` para personalizarlo. Ejemplo: `programar recibir shiny 3h sabado 20:00 semanal`. |
+| `/wt admin eventos programar <tipo> <categoría> <duración> <cuándo>` | `admin.permissionLevel` | Programa un evento para que empiece solo. «Cuándo» admite una hora (`20:00`), un día de la semana (`sabado 20:00`), una fecha (`15/11 18:30`), y repetición `diario`, `semanal`, `mensual` o `anual`; también `valor=N` y `espera=2m`. Desde el panel Gestionar eventos → Programar evento se puede elegir duración, día, ajustar el horario con botones y seleccionar la repetición. Ejemplo: `programar recibir shiny 3h sabado 20:00 semanal`. |
 | `/wt admin eventos programados` | `admin.permissionLevel` | Lista los eventos activos y los programados. |
 | `/wt admin eventos desprogramar <id>` | `admin.permissionLevel` | Cancela un evento programado (el id sale como `P1`, `P2`…). |
 | `/wt admin eventos parar <id>` | `admin.permissionLevel` | Finaliza un evento. |
@@ -268,7 +268,7 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 - Las categorías aparecen en el orden Shiny, Ultraente, Paradoja, Mítico y Legendario.
 
 ### 0.12.0
-- **Eventos programados** (`event-schedule.json`): empiezan solos a una hora, día o fecha concretos y pueden repetirse cada día o cada semana. Avisos previos configurables (`events.schedule.announceBeforeMinutes`, por defecto 10 y 1 minuto antes), zona horaria (`events.schedule.timezone`, vacía = la del servidor) y tolerancia si el servidor estaba apagado (`events.schedule.maxLateMinutes`). Se pueden ver y cancelar desde el panel (Gestionar eventos → Eventos programados). `/wt eventos` muestra también los próximos (`events.showUpcoming`).
+- **Eventos programados** (`event-schedule.json`): empiezan solos a una hora, día o fecha concretos y pueden repetirse una vez, cada día, semana, mes o año. Avisos previos configurables (`events.schedule.announceBeforeMinutes`, por defecto 10 y 1 minuto antes), zona horaria (`events.schedule.timezone`, vacía = la del servidor) y tolerancia si el servidor estaba apagado (`events.schedule.maxLateMinutes`). Se pueden ver y cancelar desde el panel (Gestionar eventos → Eventos programados). `/wt eventos` muestra también los próximos (`events.showUpcoming`).
 - **Aviso al entrar:** quien se conecta con un evento activo recibe un mensaje corto (`events.joinNotice.*`: activar, retraso y si muestra detalles).
 - **Barra de tiempo:** una bossbar con el nombre del evento y el tiempo que queda (`events.bossbar.*`: activar, formato, estilo y color distinto para Arriesgar y Recibir). Es solo de servidor.
 - **Pokémon del evento en la pool:** al empezar un evento, si hay menos Pokémon de su categoría que `events.ensurePool.minimum` (3 por defecto), se generan los que falten (máximo `maxGenerate`) y se retiran los normales más antiguos para hacer sitio (`replaceOldest`). Los especiales nunca se retiran. Se puede limitar a un tipo de evento con `events.ensurePool.types`.
@@ -302,10 +302,13 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 - `/wt especiales` muestra también las formas regionales (Alola, Galar, Hisui, Paldea) de los Pokémon de cada categoría: Articuno, Zapdos y Moltres de Galar aparecen como legendarios.
 
 ### 0.15.0
-- **Aviso de fin de cooldown:** cuando termina el tiempo normal de un jugador conectado recibe un mensaje y un sonido suave (campana de amatista). Se desactiva con `cooldownNotice.enabled` o `sounds.cooldownReady`, y cada jugador puede silenciarlo en `/wt sonidos`.
+- **Aviso de fin de cooldown:** cuando termina el tiempo normal de un jugador conectado recibe un mensaje y un sonido de nota musical del bloque de notas. Se desactiva con `cooldownNotice.enabled` o `sounds.cooldownReady`, y cada jugador puede silenciarlo en `/wt sonidos`.
 - **Cooldown con evento:** si hay un evento activo y estás en espera, el chat muestra el tiempo del evento en lugar del normal (`messages.eventCooldown`).
 - **Reposición de especiales del evento:** el objetivo de cada categoría es lo que había en la pool al empezar el evento (como mínimo `events.ensurePool.minimum`). Si había 10 y alguien se lleva uno, se retira el normal más antiguo y se genera otro de la categoría, al instante tras el intercambio. Con `events.ensurePool.target` > 0 se fija una cantidad concreta.
 
+
+### 0.16.2
+- El aviso de cooldown disponible utiliza una nota musical `block.note_block.pling` con tono ligeramente agudo.
 
 ### 0.16.0
 - **Consola:** la mayoría de las operaciones administrativas funcionan también desde consola: activar/desactivar, recargar, rellenar pool, añadir especies (requiere al menos un jugador conectado), borrar por origen, eliminar aportaciones, resetear estadísticas, copias, mantenimiento, Discord y gestión de eventos. Las funciones que necesitan inventario o GUI siguen siendo exclusivas del juego.
@@ -315,3 +318,9 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 - **Caducidad del historial:** `history.autoDeleteAfterDays` borra entradas antiguas (30 días por defecto); `0` lo desactiva. La limpieza se ejecuta al iniciar, recargar y una vez por minuto.
 - README y `/wt help` actualizados.
 - Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.16.4
+
+- El porcentaje predeterminado para el intervalo de Wonder Trades durante eventos pasa del 10 % al 20 % (`events.tradeIntervalPercent`). Esto permite 5 WT por jugador durante cada evento.
+- Se aplica tanto a eventos iniciados desde el menú como a eventos programados. Los eventos ya creados mantienen su intervalo guardado.

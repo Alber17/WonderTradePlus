@@ -154,13 +154,12 @@
       "showLevel": true
     },
     "menuDurations": ["5m", "30m", "1h", "3h", "1d"],
+    "tradeIntervalPercent": 20.0,
     "risk": {
-      "extraGain": 0.2,
-      "cooldownSeconds": 60
+      "extraGain": 0.2
     },
     "receive": {
-      "chance": 10.0,
-      "cooldownSeconds": 60
+      "chance": 10.0
     }
   },
   "gui": {
@@ -254,7 +253,7 @@
     "eventPoolMore": "&7…y &f{more}&7 más. Míralos todos en &e/wt pool&7.",
     "eventUpcomingHeader": "&d&lPróximos eventos:",
     "eventUpcomingLine": "&7- &f{name} &7— {when} &8({duration})",
-    "helpAdminScheduleCommand": "&e/wt admin eventos programar <tipo> <categorías> <duración> <cuándo> &7Programar un evento (ej. sabado 20:00 semanal)",
+    "helpAdminScheduleCommand": "&e/wt admin eventos programar <tipo> <categorías> <duración> <cuándo> &7Programar un evento (también desde Gestionar eventos)",
     "helpAdminEventCreateCommand": "&e/wt admin eventos crear <arriesgar|recibir> <categorías> <duración> [valor] [espera] &7Crear un evento (varias categorías con +)",
     "helpAdminEventStopCommand": "&e/wt admin eventos parar <id> &7Finalizar un evento",
     "helpAdminUnscheduleCommand": "&e/wt admin eventos desprogramar <id> &7Cancelar un evento programado",

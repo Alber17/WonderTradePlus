@@ -239,10 +239,14 @@ object WonderTradeEvents {
         EventType.RECEIVE -> ConfigManager.double("events.receive.chance", 10.0)
     }.coerceIn(0.0, 100.0)
 
-    fun defaultCooldownSeconds(type: EventType): Long = when (type) {
-        EventType.RISK -> ConfigManager.int("events.risk.cooldownSeconds", 60)
-        EventType.RECEIVE -> ConfigManager.int("events.receive.cooldownSeconds", 60)
-    }.coerceAtLeast(1).toLong()
+    /** Porcentaje de la duración total que debe transcurrir entre dos WT de evento. */
+    fun tradeIntervalPercent(): Double = ConfigManager.double("events.tradeIntervalPercent", 20.0).coerceIn(0.1, 100.0)
+
+    /** Calcula el intervalo automáticamente a partir de la duración del evento. */
+    fun defaultCooldownSeconds(durationSeconds: Long): Long {
+        val interval = durationSeconds.coerceAtLeast(1L) * tradeIntervalPercent() / 100.0
+        return kotlin.math.ceil(interval).toLong().coerceAtLeast(1L)
+    }
 
     fun maximumDurationSeconds(): Long = ConfigManager.int("events.maximumDurationHours", 720).coerceAtLeast(1) * 3600L
 
@@ -265,7 +269,7 @@ object WonderTradeEvents {
             startAt = now,
             endAt = now + durationSeconds * 1000L,
             value = (value ?: defaultValue(type)).coerceIn(0.0, 100.0),
-            cooldownSeconds = (cooldownSeconds ?: defaultCooldownSeconds(type)).coerceAtLeast(1L),
+            cooldownSeconds = (cooldownSeconds ?: defaultCooldownSeconds(durationSeconds)).coerceAtLeast(1L),
             createdBy = createdBy
         )
         events.add(event)
@@ -359,9 +363,12 @@ object WonderTradeEvents {
 
     /** Descripción con los valores por defecto, para el menú de creación. */
     fun describeDefault(type: EventType, categories: List<EventCategory>): List<String> {
-        val sample = WtEvent(0, type, normalizeCategories(categories), 0L, 0L, defaultValue(type), defaultCooldownSeconds(type), "")
-        return describe(sample)
+        val sample = WtEvent(0, type, normalizeCategories(categories), 0L, 3600_000L, defaultValue(type), defaultCooldownSeconds(3600L), "")
+        val percent = tradeIntervalPercent()
+        return describe(sample).dropLast(1) + "&7Intervalo automático: &f${percentText(percent)}% &7de la duración total."
     }
+
+    private fun percentText(value: Double): String = if (value % 1.0 == 0.0) value.toInt().toString() else value.toString()
 
     /** Respuesta de /wt eventos. */
     fun eventsComponent(player: ServerPlayer?): Component {

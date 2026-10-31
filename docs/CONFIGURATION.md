@@ -19,6 +19,7 @@ El sistema también aplica `antiAbuse.excludeOwnDonations`: un jugador nunca pue
 - `pageTurn`: sonido de pasar página en el PC, pool e historial.
 - `specialReceived`: sonido suave al recibir un Pokémon especial no shiny.
 - `specialShinyReceived`: sonido del tótem al recibir un Pokémon que sea especial y shiny a la vez.
+- `cooldownReady`: aviso de disponibilidad con una nota musical del bloque de notas (`block.note_block.pling`), a un tono ligeramente agudo.
 - `volume`: volumen común (`0.0–1.0`, por defecto `0.45`).
 - `pitch`: tono común (`0.5–2.0`, por defecto `1.0`).
 
@@ -127,7 +128,9 @@ Se consulta con `/wt admin history`. En juego abre el historial paginado; desde 
 
 ## `admin`
 
-Los eventos temporales y programados están disponibles. Se gestionan desde el panel `/wt admin` → Gestionar eventos o mediante `/wt admin eventos`; el panel permite programar eventos con horas relativas y repetición diaria/semanal.
+Los eventos temporales y programados están disponibles. Se gestionan desde el panel `/wt admin` → Gestionar eventos o mediante `/wt admin eventos`; el panel permite programar eventos eligiendo duración, día de la semana, horario ajustable y repetición única, diaria, semanal, mensual o anual.
+
+En `events.tradeIntervalPercent` se configura cada cuánto puede hacer un WT de evento cada jugador, como porcentaje de la duración total. Por defecto es `20.0`: un evento permite 5 WT por jugador (uno cada 20 % de su duración); por ejemplo, uno de 30 minutos permite un WT cada 6 minutos y uno de 1 hora, cada 12 minutos. Se calcula automáticamente al crear cada evento, también para los eventos programados. El rango válido es `0.1–100`. Los eventos ya guardados conservan el intervalo que tenían al crearse. Si se indica manualmente un intervalo en un comando, ese valor explícito prevalece.
 
 Todos los subcomandos `/wt admin ...`, además de `/wt reload`, `/wt clearpool` y las consultas/modificaciones de bonus a otros jugadores mediante `/wt chance <jugador>`, requieren el nivel configurado aquí. Los comandos `/wt`, `/wt donar`, `/wt stats`, `/wt top`, `/wt cancel` y `/wt chance` propio son públicos. `/wt pool` usa `gui.poolViewPermissionLevel`.
 

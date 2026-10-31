@@ -427,7 +427,7 @@ class WonderTradePlus : ModInitializer {
                 .then(argument("duracion", StringArgumentType.word())
                     .suggests { _, builder -> SharedSuggestionProvider.suggest(listOf("30m", "1h", "3h", "1d"), builder) }
                     .then(argument("cuando", StringArgumentType.greedyString())
-                        .suggests { _, builder -> SharedSuggestionProvider.suggest(listOf("20:00", "sabado 20:00 semanal", "20:00 diario", "15/11 18:30"), builder) }
+                        .suggests { _, builder -> SharedSuggestionProvider.suggest(listOf("20:00", "sabado 20:00 semanal", "20:00 diario", "20:00 mensual", "20:00 anual", "15/11 18:30"), builder) }
                         .executes { context -> scheduleEvent(context) })))))
         .then(literal("programados").executes { context ->
             context.source.sendSuccess({ WonderTradeEvents.adminListComponent() }, false)

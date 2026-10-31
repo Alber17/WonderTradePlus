@@ -21,10 +21,18 @@ import java.util.Locale
 enum class ScheduleRepeat(val key: String, val label: String) {
     NONE("none", "una vez"),
     DAILY("diario", "cada día"),
-    WEEKLY("semanal", "cada semana");
+    WEEKLY("semanal", "cada semana"),
+    MONTHLY("mensual", "cada mes"),
+    YEARLY("anual", "cada año");
 
     companion object {
-        fun parse(text: String): ScheduleRepeat = values().firstOrNull { it.key.equals(text, true) } ?: NONE
+        fun parse(text: String): ScheduleRepeat = when (text.lowercase()) {
+            "daily" -> DAILY
+            "weekly" -> WEEKLY
+            "monthly" -> MONTHLY
+            "yearly", "annually" -> YEARLY
+            else -> values().firstOrNull { it.key.equals(text, true) } ?: NONE
+        }
     }
 }
 
@@ -38,7 +46,9 @@ data class ScheduledEvent(
     val cooldownSeconds: Long?,
     var nextRunAt: Long,
     val repeat: ScheduleRepeat,
-    val createdBy: String
+    val createdBy: String,
+    val anchorDayOfMonth: Int = 0,
+    val anchorMonth: Int = 0
 ) {
     val title: String get() = "${type.title} ${categoriesTitle(categories)}"
 
@@ -52,6 +62,8 @@ data class ScheduledEvent(
         addProperty("nextRunAt", nextRunAt)
         addProperty("repeat", repeat.key)
         addProperty("createdBy", createdBy)
+        addProperty("anchorDayOfMonth", anchorDayOfMonth)
+        addProperty("anchorMonth", anchorMonth)
     }
 
     companion object {
@@ -67,7 +79,9 @@ data class ScheduledEvent(
                 cooldownSeconds = json.get("cooldownSeconds")?.takeIf { !it.isJsonNull }?.asLong,
                 nextRunAt = json.get("nextRunAt")?.asLong ?: return null,
                 repeat = ScheduleRepeat.parse(json.get("repeat")?.asString ?: "none"),
-                createdBy = json.get("createdBy")?.asString ?: "?"
+                createdBy = json.get("createdBy")?.asString ?: "?",
+                anchorDayOfMonth = json.get("anchorDayOfMonth")?.asInt ?: 0,
+                anchorMonth = json.get("anchorMonth")?.asInt ?: 0
             )
         }
     }
@@ -152,7 +166,11 @@ object WonderTradeSchedule {
         spec: ScheduleSpec,
         createdBy: String
     ): ScheduledEvent {
-        val item = ScheduledEvent(nextId++, type, normalizeCategories(categories), durationSeconds, spec.value, spec.cooldownSeconds, spec.firstRunAt, spec.repeat, createdBy)
+        val anchorDate = Instant.ofEpochMilli(spec.firstRunAt).atZone(zone()).toLocalDate()
+        val item = ScheduledEvent(
+            nextId++, type, normalizeCategories(categories), durationSeconds, spec.value, spec.cooldownSeconds,
+            spec.firstRunAt, spec.repeat, createdBy, anchorDate.dayOfMonth, anchorDate.monthValue
+        )
         items.add(item)
         save()
         return item
@@ -171,6 +189,18 @@ object WonderTradeSchedule {
         val formatter = DateTimeFormatter.ofPattern("EEE dd/MM HH:mm", Locale("es", "ES"))
         val moment = ZonedDateTime.ofInstant(Instant.ofEpochMilli(item.nextRunAt), zone()).format(formatter)
         return if (item.repeat == ScheduleRepeat.NONE) moment else "$moment (${item.repeat.label})"
+    }
+
+    /** Crea la primera ejecución a partir del día y la hora elegidos en el menú. */
+    fun fromMenu(day: DayOfWeek, hour: Int, minute: Int, repeat: ScheduleRepeat): ScheduleSpec {
+        val zone = zone()
+        val now = ZonedDateTime.now(zone)
+        val time = LocalTime.of(hour.coerceIn(0, 23), minute.coerceIn(0, 59))
+        var date = now.toLocalDate()
+        while (date.dayOfWeek != day) date = date.plusDays(1)
+        var first = ZonedDateTime.of(date, time, zone)
+        if (!first.isAfter(now)) first = first.plusWeeks(1)
+        return ScheduleSpec(first.toInstant().toEpochMilli(), repeat, null, null)
     }
 
     /** Líneas para jugadores con los próximos eventos; vacío si no hay o está desactivado. */
@@ -212,15 +242,31 @@ object WonderTradeSchedule {
             }
             announced.removeAll { it.startsWith("${item.id}:") }
             if (item.repeat == ScheduleRepeat.NONE) items.remove(item)
-            else item.nextRunAt = nextAfter(item.nextRunAt, item.repeat, now)
+            else item.nextRunAt = nextAfter(item, now)
         }
         save()
     }
 
-    private fun nextAfter(previous: Long, repeat: ScheduleRepeat, now: Long): Long {
-        var moment = ZonedDateTime.ofInstant(Instant.ofEpochMilli(previous), zone())
+    private fun nextAfter(item: ScheduledEvent, now: Long): Long {
+        var moment = ZonedDateTime.ofInstant(Instant.ofEpochMilli(item.nextRunAt), zone())
+        val anchorDay = item.anchorDayOfMonth.takeIf { it in 1..31 } ?: moment.dayOfMonth
+        val anchorMonth = item.anchorMonth.takeIf { it in 1..12 } ?: moment.monthValue
         do {
-            moment = if (repeat == ScheduleRepeat.DAILY) moment.plusDays(1) else moment.plusWeeks(1)
+            moment = when (item.repeat) {
+                ScheduleRepeat.NONE -> moment
+                ScheduleRepeat.DAILY -> moment.plusDays(1)
+                ScheduleRepeat.WEEKLY -> moment.plusWeeks(1)
+                ScheduleRepeat.MONTHLY -> {
+                    val firstOfNextMonth = moment.toLocalDate().withDayOfMonth(1).plusMonths(1)
+                    val date = firstOfNextMonth.withDayOfMonth(minOf(anchorDay, firstOfNextMonth.lengthOfMonth()))
+                    ZonedDateTime.of(date, moment.toLocalTime(), zone())
+                }
+                ScheduleRepeat.YEARLY -> {
+                    val firstOfTargetMonth = LocalDate.of(moment.year + 1, anchorMonth, 1)
+                    val date = firstOfTargetMonth.withDayOfMonth(minOf(anchorDay, firstOfTargetMonth.lengthOfMonth()))
+                    ZonedDateTime.of(date, moment.toLocalTime(), zone())
+                }
+            }
         } while (moment.toInstant().toEpochMilli() <= now)
         return moment.toInstant().toEpochMilli()
     }
@@ -289,6 +335,8 @@ object WonderTradeSchedule {
                 token in dayNames -> day = dayNames[token]
                 token == "diario" || token == "diaria" || token == "cadadia" -> repeat = ScheduleRepeat.DAILY
                 token == "semanal" || token == "cadasemana" -> repeat = ScheduleRepeat.WEEKLY
+                token == "mensual" || token == "cadames" -> repeat = ScheduleRepeat.MONTHLY
+                token == "anual" || token == "cadaano" -> repeat = ScheduleRepeat.YEARLY
                 token.startsWith("valor=") -> {
                     value = token.substringAfter('=').replace(',', '.').toDoubleOrNull()?.takeIf { it in 0.0..100.0 }
                         ?: return failure("Valor no válido: $raw (0 a 100).")
@@ -297,7 +345,7 @@ object WonderTradeSchedule {
                     cooldown = WonderTradeEvents.parseDuration(token.substringAfter('='))
                         ?: return failure("Espera no válida: $raw (ejemplos: 30s, 1m, 5m).")
                 }
-                else -> return failure("No entiendo «$raw». Usa una hora (20:00), un día (sabado o 15/11), diario o semanal, valor=N y espera=1m.")
+                else -> return failure("No entiendo «$raw». Usa una hora (20:00), un día (sabado o 15/11), diario, semanal, mensual o anual, valor=N y espera=1m.")
             }
         }
         val chosenTime = time ?: return failure("Falta la hora, por ejemplo 20:00.")
