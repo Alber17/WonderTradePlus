@@ -150,8 +150,11 @@ object WonderTradeService {
             lines += ConfigManager.string("messages.helpAdminHistoryCommand", "&e/wt admin history [jugador] &7Consultar historial")
             lines += ConfigManager.string("messages.helpAdminResetStatsCommand", "&e/wt admin resetstats <jugador|all> &7Reiniciar estadísticas")
             lines += ConfigManager.string("messages.helpAdminChanceCommand", "&e/wt chance <jugador> set <porcentaje> | reset &7Editar el bonus")
-            lines += ConfigManager.string("messages.helpAdminScheduleCommand", "&e/wt admin eventos programar <tipo> <categoría> <duración> <cuándo> &7Programar un evento")
-            lines += ConfigManager.string("messages.helpAdminEventsCommand", "&e/wt admin eventos [crear <tipo> <categoría> <duración> [valor] [espera] | parar <id>] &7Gestionar eventos")
+            lines += ConfigManager.string("messages.helpAdminEventsCommand", "&e/wt admin eventos &7Ver eventos activos y programados")
+            lines += ConfigManager.string("messages.helpAdminEventCreateCommand", "&e/wt admin eventos crear <arriesgar|recibir> <categorías> <duración> [valor] [espera] &7Crear un evento (varias categorías con +)")
+            lines += ConfigManager.string("messages.helpAdminEventStopCommand", "&e/wt admin eventos parar <id> &7Finalizar un evento")
+            lines += ConfigManager.string("messages.helpAdminScheduleCommand", "&e/wt admin eventos programar <tipo> <categorías> <duración> <cuándo> &7Programar un evento (ej. sabado 20:00 semanal)")
+            lines += ConfigManager.string("messages.helpAdminUnscheduleCommand", "&e/wt admin eventos desprogramar <id> &7Cancelar un evento programado")
             lines += ConfigManager.string("messages.helpAdminToggleCommand", "&e/wt on | off &7Activar o desactivar Wonder Trade")
             lines += ConfigManager.string("messages.helpAdminReloadCommand", "&e/wt reload &7Recargar configuración y datos")
             lines += ConfigManager.string("messages.helpAdminMaintenanceCommand", "&e/wt admin maintenance &7Ejecutar mantenimiento")
@@ -682,9 +685,9 @@ object WonderTradeService {
         // Eventos «Recibir …»: probabilidad extra de que la entrega sea de la categoría del evento.
         for (event in WonderTradeEvents.receiveEvents()) {
             val current = chosenEntry ?: break
-            if (entryMatches(current, event.category, registryAccess)) continue
+            if (entryMatchesEvent(current, event, registryAccess)) continue
             if (Random.nextDouble() * 100.0 >= event.value) continue
-            val pick = eligibleEntries(player).filter { entryMatches(it, event.category, registryAccess) }.randomOrNull()
+            val pick = eligibleEntries(player).filter { entryMatchesEvent(it, event, registryAccess) }.randomOrNull()
             if (pick != null) chosenEntry = pick
         }
 
@@ -855,7 +858,13 @@ object WonderTradeService {
         val registryAccess = server.registryAccess()
         val minimum = ConfigManager.int("events.ensurePool.minimum", 3).coerceAtLeast(0)
         val maxGenerate = ConfigManager.int("events.ensurePool.maxGenerate", 10).coerceAtLeast(0)
-        val existing = pool.all().count { entryMatches(it, event.category, registryAccess) }
+        // Se asegura el mínimo por cada categoría del evento (por ejemplo, Míticos y Legendarios por separado).
+        for (category in event.categories) ensureCategory(server, player, event, category, minimum, maxGenerate)
+    }
+
+    private fun ensureCategory(server: MinecraftServer, player: ServerPlayer, event: WtEvent, category: EventCategory, minimum: Int, maxGenerate: Int) {
+        val registryAccess = server.registryAccess()
+        val existing = pool.all().count { entryMatches(it, category, registryAccess) }
         val needed = minOf((minimum - existing).coerceAtLeast(0), maxGenerate)
         if (needed <= 0) return
         val low = ConfigManager.int("fallback.minimumLevel", 1).coerceIn(1, 100)
@@ -864,7 +873,7 @@ object WonderTradeService {
         val replaceOldest = ConfigManager.bool("events.ensurePool.replaceOldest", true)
         var generated = 0
         repeat(needed) {
-            val fresh = generateForCategory(player, event.category, low, high, attempts) ?: return@repeat
+            val fresh = generateForCategory(player, category, low, high, attempts) ?: return@repeat
             if (replaceOldest) {
                 // Se retira el normal más antiguo; los especiales nunca se sacrifican.
                 val oldest = pool.all().filter { !WonderTradeRules.isRareEntry(it) }.minByOrNull { it.addedAt }
@@ -875,30 +884,30 @@ object WonderTradeService {
         }
         if (generated > 0) {
             trimAndSave()
-            WonderTradePlus.LOGGER.info("Evento {}: se han generado {} Pokémon de la categoría {}.", event.title, generated, event.category.label)
+            WonderTradePlus.LOGGER.info("Evento {}: se han generado {} Pokémon de la categoría {}.", event.title, generated, category.label)
         } else if (warnedEvents.add(event.id)) {
-            WonderTradePlus.LOGGER.warn("Evento {}: faltan Pokémon de la categoría {} pero no se ha podido generar ninguno (¿listas de especies o permisos de especiales?).", event.title, event.category.label)
+            WonderTradePlus.LOGGER.warn("Evento {}: faltan Pokémon de la categoría {} pero no se ha podido generar ninguno (¿listas de especies o permisos de especiales?).", event.title, category.label)
         }
     }
 
     private fun announceEventPokemon(server: MinecraftServer, event: WtEvent) {
         val registryAccess = server.registryAccess()
-        val matching = pool.all().filter { entryMatches(it, event.category, registryAccess) }
+        val matching = pool.all().filter { entryMatchesEvent(it, event, registryAccess) }
         val lines = mutableListOf<String>()
         if (matching.isEmpty()) {
             lines += ConfigManager.string("messages.eventPoolNone", "&7Ahora mismo no hay ningún Pokémon &f{category}&7 en la pool.")
-                .replace("{category}", event.category.label)
+                .replace("{category}", event.categoryText)
         } else {
             val maxListed = ConfigManager.int("events.announcePokemon.maxListed", 10).coerceAtLeast(1)
             val showLevel = ConfigManager.bool("events.announcePokemon.showLevel", true)
             lines += format(
                 ConfigManager.string("messages.eventPoolHeader", "&d★ Pokémon &f{category}&d en la pool ({count}):"),
-                mapOf("category" to event.category.label, "count" to matching.size)
+                mapOf("category" to event.categoryText, "count" to matching.size)
             )
             val names = matching.take(maxListed).map { entry ->
                 val loaded = runCatching { Pokemon.loadFromJSON(registryAccess, entry.pokemonJson.deepCopy()) }.getOrNull()
                 val name = loaded?.getDisplayName()?.string ?: entry.species.substringAfter(':')
-                val star = if (entry.shiny && event.category != EventCategory.SHINY) "&e★" else ""
+                val star = if (entry.shiny && EventCategory.SHINY !in event.categories) "&e★" else ""
                 val level = if (showLevel) " &7Nv.${entry.level}" else ""
                 "$star&f$name$level"
             }
@@ -928,6 +937,9 @@ object WonderTradeService {
         return key.ifEmpty { null }
     }
 
+    private fun entryMatchesEvent(entry: PoolEntry, event: WtEvent, registryAccess: net.minecraft.core.RegistryAccess): Boolean =
+        event.categories.any { entryMatches(entry, it, registryAccess) }
+
     private fun entryMatches(entry: PoolEntry, category: EventCategory, registryAccess: net.minecraft.core.RegistryAccess): Boolean =
         if (category == EventCategory.SHINY) entry.shiny else entryCategoryKey(entry, registryAccess) == category.speciesCategory()
 
@@ -954,7 +966,7 @@ object WonderTradeService {
         val natural = specials * 100.0 / total
         val registryAccess = player.server.registryAccess()
         // Solo cuentan los eventos de recepción para los que existe algún Pokémon de su categoría en la pool.
-        val usefulEvents = WonderTradeEvents.receiveEvents().filter { event -> eligible.any { entryMatches(it, event.category, registryAccess) } }
+        val usefulEvents = WonderTradeEvents.receiveEvents().filter { event -> eligible.any { entryMatchesEvent(it, event, registryAccess) } }
         var noSpecial = (1.0 - forced / 100.0) * (1.0 - natural / 100.0)
         usefulEvents.forEach { noSpecial *= (1.0 - it.value / 100.0) }
         val finalChance = (1.0 - noSpecial) * 100.0
@@ -975,7 +987,7 @@ object WonderTradeService {
             mapOf("percent" to String.format("%.1f", finalChance)))
         usefulEvents.forEach { event ->
             lines += format(ConfigManager.string("messages.previewEventShiny", "&d★ Evento: &7+{percent}% de recibir un Pokémon {category}"),
-                mapOf("percent" to percentText(event.value), "category" to event.category.label))
+                mapOf("percent" to percentText(event.value), "category" to event.categoryText))
         }
         if (bonusEnabled && !offeredRare) {
             lines += ConfigManager.string("messages.previewReset", "&8Si te toca un especial, tu bonus se reinicia a 0%.")
@@ -1322,6 +1334,15 @@ object WonderTradeService {
 
     private var categoryCache: Map<String, List<Pokemon>>? = null
 
+    private val regionalFormIds = mapOf(
+        "alolan" to setOf("alolan", "alola"),
+        "galarian" to setOf("galarian", "galar"),
+        "hisuian" to setOf("hisuian", "hisui"),
+        "paldean" to setOf("paldean", "paldea")
+    )
+
+    private fun normalizeFormId(value: String): String = value.lowercase().filter { it.isLetterOrDigit() }
+
     /**
      * Pokémon de cada categoría de especie (ultraBeast, paradox, mythical, legendary). Se calcula una vez creando
      * un ejemplar de cada especie; es solo para mostrarlo en el menú.
@@ -1339,6 +1360,19 @@ object WonderTradeService {
             }.getOrNull() ?: continue
             val key = WonderTradeRules.speciesCategoryKey(pokemon) ?: continue
             result[key]?.add(pokemon)
+            // Formas regionales de esa especie (por ejemplo Articuno, Zapdos y Moltres de Galar).
+            for (accepted in regionalFormIds.values) {
+                val form = species.forms.firstOrNull { candidate ->
+                    normalizeFormId(candidate.name) in accepted || normalizeFormId(candidate.formOnlyShowdownId()) in accepted
+                } ?: continue
+                val regional = runCatching {
+                    PokemonProperties().apply {
+                        this.species = species.resourceIdentifier.toString()
+                        this.level = 50
+                    }.create(player).also { it.form = form }
+                }.getOrNull() ?: continue
+                result[key]?.add(regional)
+            }
         }
         return result.also { categoryCache = it }
     }

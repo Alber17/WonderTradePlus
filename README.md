@@ -61,7 +61,7 @@ Los comandos de jugador son públicos salvo que se indique otra cosa. Los nivele
 | `/wt reload` | `admin.permissionLevel` | Recarga configuración y archivos. |
 | `/wt eventos` | Todos | Muestra los eventos activos, qué hacen y cuándo puedes usar el intercambio de evento. |
 | `/wt admin eventos` | `admin.permissionLevel` | Lista los eventos activos con su id. |
-| `/wt admin eventos crear <arriesgar\|recibir> <shiny\|ultraente\|paradoja\|mitico\|legendario> <duración> [valor] [espera]` | `admin.permissionLevel` | Crea un evento. Duración: `30s`, `5m`, `2h`, `1d`, `1h30m`. El valor y la espera son opcionales. |
+| `/wt admin eventos crear <arriesgar\|recibir> <categorías> <duración> [valor] [espera]` | `admin.permissionLevel` | Crea un evento. Duración: `30s`, `5m`, `2h`, `1d`, `1h30m`. El valor y la espera son opcionales. |
 | `/wt admin eventos programar <tipo> <categoría> <duración> <cuándo>` | `admin.permissionLevel` | Programa un evento para que empiece solo. «Cuándo» admite una hora (`20:00`), un día de la semana (`sabado 20:00`), una fecha (`15/11 18:30`), `diario` o `semanal` para repetirlo, y `valor=N` y `espera=2m` para personalizarlo. Ejemplo: `programar recibir shiny 3h sabado 20:00 semanal`. |
 | `/wt admin eventos programados` | `admin.permissionLevel` | Lista los eventos activos y los programados. |
 | `/wt admin eventos desprogramar <id>` | `admin.permissionLevel` | Cancela un evento programado (el id sale como `P1`, `P2`…). |
@@ -284,3 +284,15 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 
 ### 0.13.1
 - Los rangos por defecto son los del servidor: Leyenda, Maestro, Élite, Experto y Dominguero. Permisos `wondertradeplus.rank.<id>` y etiquetas `wt_<id>`. Si tu `config.json` tenía la lista genérica sin tocar, se actualiza sola.
+
+### 0.14.0
+- **Varias categorías en un mismo evento:** un evento ahora puede afectar a varias categorías a la vez, por ejemplo Míticos y Legendarios. En el panel (Gestionar eventos) las categorías se marcan o desmarcan con un clic y se pulsa «Continuar»; por comando se unen con `+`: `/wt admin eventos crear recibir mitico+legendario 3h`. Lo mismo vale para `programar`.
+- Se aplica a los dos tipos: «Arriesgar» suma el % extra al ofrecer un Pokémon de cualquiera de las categorías y «Recibir» da la probabilidad extra de recibir uno de cualquiera de ellas.
+- La reposición de la pool asegura el mínimo (`events.ensurePool.minimum`) de cada categoría por separado, y el anuncio al empezar lista los Pokémon de todas ellas.
+- Los eventos y programaciones guardados con una sola categoría se leen sin cambios.
+
+### 0.14.1
+- `/wt help` (admins) muestra cada comando de eventos en su línea: ver, crear, parar, programar y desprogramar. Los textos de ayuda antiguos de tu `config.json` se actualizan solos.
+
+### 0.14.2
+- `/wt especiales` muestra también las formas regionales (Alola, Galar, Hisui, Paldea) de los Pokémon de cada categoría: Articuno, Zapdos y Moltres de Galar aparecen como legendarios.

@@ -32,7 +32,7 @@ enum class ScheduleRepeat(val key: String, val label: String) {
 data class ScheduledEvent(
     val id: Int,
     val type: EventType,
-    val category: EventCategory,
+    val categories: List<EventCategory>,
     val durationSeconds: Long,
     val value: Double?,
     val cooldownSeconds: Long?,
@@ -40,12 +40,12 @@ data class ScheduledEvent(
     val repeat: ScheduleRepeat,
     val createdBy: String
 ) {
-    val title: String get() = "${type.title} ${category.label}"
+    val title: String get() = "${type.title} ${categoriesTitle(categories)}"
 
     fun toJson(): JsonObject = JsonObject().apply {
         addProperty("id", id)
         addProperty("type", type.key)
-        addProperty("category", category.key)
+        add("categories", JsonArray().also { array -> categories.forEach { array.add(it.key) } })
         addProperty("durationSeconds", durationSeconds)
         if (value != null) addProperty("value", value)
         if (cooldownSeconds != null) addProperty("cooldownSeconds", cooldownSeconds)
@@ -57,11 +57,11 @@ data class ScheduledEvent(
     companion object {
         fun fromJson(json: JsonObject): ScheduledEvent? {
             val type = EventType.parse(json.get("type")?.asString ?: return null) ?: return null
-            val category = EventCategory.parse(json.get("category")?.asString ?: return null) ?: return null
+            val categories = WtEvent.readCategories(json)
             return ScheduledEvent(
                 id = json.get("id")?.asInt ?: return null,
                 type = type,
-                category = category,
+                categories = categories,
                 durationSeconds = json.get("durationSeconds")?.asLong ?: return null,
                 value = json.get("value")?.takeIf { !it.isJsonNull }?.asDouble,
                 cooldownSeconds = json.get("cooldownSeconds")?.takeIf { !it.isJsonNull }?.asLong,
@@ -147,12 +147,12 @@ object WonderTradeSchedule {
 
     fun add(
         type: EventType,
-        category: EventCategory,
+        categories: List<EventCategory>,
         durationSeconds: Long,
         spec: ScheduleSpec,
         createdBy: String
     ): ScheduledEvent {
-        val item = ScheduledEvent(nextId++, type, category, durationSeconds, spec.value, spec.cooldownSeconds, spec.firstRunAt, spec.repeat, createdBy)
+        val item = ScheduledEvent(nextId++, type, normalizeCategories(categories), durationSeconds, spec.value, spec.cooldownSeconds, spec.firstRunAt, spec.repeat, createdBy)
         items.add(item)
         save()
         return item
@@ -201,12 +201,12 @@ object WonderTradeSchedule {
         val skipIfActive = ConfigManager.bool("events.schedule.skipIfActive", true)
         for (item in due) {
             val late = now - item.nextRunAt
-            val alreadyActive = skipIfActive && WonderTradeEvents.active(now).any { it.type == item.type && it.category == item.category }
+            val alreadyActive = skipIfActive && WonderTradeEvents.active(now).any { it.type == item.type && it.categories == item.categories }
             when {
                 late > lateLimit -> WonderTradePlus.LOGGER.info("Evento programado #{} ({}) omitido: el servidor estaba apagado a su hora.", item.id, item.title)
                 alreadyActive -> WonderTradePlus.LOGGER.info("Evento programado #{} ({}) omitido: ya hay uno igual activo.", item.id, item.title)
                 else -> {
-                    val created = WonderTradeEvents.create(server, item.type, item.category, item.durationSeconds, item.value, item.cooldownSeconds, "programado #${item.id}")
+                    val created = WonderTradeEvents.create(server, item.type, item.categories, item.durationSeconds, item.value, item.cooldownSeconds, "programado #${item.id}")
                     if (created == null) WonderTradePlus.LOGGER.info("Evento programado #{} omitido: los eventos están desactivados.", item.id)
                 }
             }

@@ -520,8 +520,10 @@ object WonderTradeGui {
         val categoryLabel = specialCategories.firstOrNull { it.first == key }?.second ?: key
         list.drop(page * POOL_PER_PAGE).take(POOL_PER_PAGE).forEachIndexed { index, pokemon ->
             val stack = runCatching { PokemonItem.from(pokemon) }.getOrElse { ItemStack(Items.PAPER) }
-            stack.set(DataComponents.CUSTOM_NAME, lit("&f" + pokemon.getDisplayName().string))
+            val formName = WonderTradeRules.formLabel(pokemon)
+            stack.set(DataComponents.CUSTOM_NAME, lit("&f" + pokemon.getDisplayName().string + (formName?.let { " &7($it)" } ?: "")))
             val lines = mutableListOf("&7Categoría: $categoryLabel")
+            formName?.let { lines += "&7Forma: &f$it" }
             WonderTradeRules.typesLabel(pokemon)?.let { lines += "&7Tipo: $it" }
             stack.set(DataComponents.LORE, ItemLore(lines.map<String, Component> { lit(it) }))
             menu.put(index, stack)
@@ -674,7 +676,7 @@ object WonderTradeGui {
                 Items.COMPASS, "&6Eventos programados",
                 "&7Programados: &f$scheduledCount",
                 "&7Para programar usa el comando:",
-                "&e/wt admin eventos programar <tipo> <categoría> <duración> <cuándo>",
+                "&e/wt admin eventos programar <tipo> <categorías> <duración> <cuándo>",
                 "&eClic para ver y cancelar"
             )) { openAdminScheduled(it) }
             menu.button(22, named(Items.ARROW, "&aVolver al panel admin")) { openAdmin(it) }
@@ -697,7 +699,7 @@ object WonderTradeGui {
         if (list.isEmpty()) {
             menu.put(22, named(
                 Items.BARRIER, "&cNo hay eventos programados",
-                "&7Prográmalos con:", "&e/wt admin eventos programar <tipo> <categoría> <duración> <cuándo>",
+                "&7Prográmalos con:", "&e/wt admin eventos programar <tipo> <categorías> <duración> <cuándo>",
                 "&7Ejemplo: &fprogramar recibir shiny 3h sabado 20:00 semanal"
             ))
         }
@@ -724,34 +726,59 @@ object WonderTradeGui {
         EventType.RECEIVE -> listOf("&7Aumenta la probabilidad de recibir", "&7Pokémon de la categoría elegida.")
     }
 
-    private fun openEventCategory(player: ServerPlayer, type: EventType) {
-        open(player, "&5Eventos &8- &d${type.title}", 3) { menu ->
-            fill(menu, 27)
-            menu.put(4, named(Items.NETHER_STAR, "&d${type.title}", *eventTypeDescription(type).toTypedArray(), "&7Elige la categoría."))
-            val icons = mapOf(
-                EventCategory.SHINY to Items.GLOWSTONE_DUST,
-                EventCategory.LEGENDARY to Items.GOLD_INGOT,
-                EventCategory.MYTHICAL to Items.AMETHYST_SHARD,
-                EventCategory.ULTRABEAST to Items.ECHO_SHARD,
-                EventCategory.PARADOX to Items.ENDER_PEARL
-            )
-            val slots = listOf(11, 12, 13, 14, 15)
-            EventCategory.values().forEachIndexed { index, category ->
-                menu.button(slots[index], named(
-                    icons[category] ?: Items.PAPER, "&d${type.title} ${category.label}",
-                    *WonderTradeEvents.describeDefault(type, category).toTypedArray(), "&eClic para elegir la duración"
-                )) { openEventDuration(it, type, category) }
-            }
-            menu.button(22, named(Items.ARROW, "&aVolver")) { openAdminEvents(it) }
-            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
-        }
+    private val eventCategoryIcons = mapOf(
+        EventCategory.SHINY to Items.GLOWSTONE_DUST,
+        EventCategory.LEGENDARY to Items.GOLD_INGOT,
+        EventCategory.MYTHICAL to Items.AMETHYST_SHARD,
+        EventCategory.ULTRABEAST to Items.ECHO_SHARD,
+        EventCategory.PARADOX to Items.ENDER_PEARL
+    )
+
+    private fun eventTitle(type: EventType, categories: List<EventCategory>) = "${type.title} ${categoriesTitle(categories)}"
+
+    private fun openEventCategory(player: ServerPlayer, type: EventType, selected: List<EventCategory> = emptyList()) {
+        open(player, "&5Eventos &8- &d${type.title}", 3) { renderEventCategory(it, type, selected) }
     }
 
-    private fun openEventDuration(player: ServerPlayer, type: EventType, category: EventCategory) {
-        val title = "${type.title} ${category.label}"
-        open(player, "&5Eventos &8- &d$title", 3) { menu ->
+    /** Selección múltiple: cada clic añade o quita una categoría y el menú se actualiza sin cerrarse. */
+    private fun renderEventCategory(menu: GuiMenu, type: EventType, selected: List<EventCategory>) {
+        menu.wipe()
+        fill(menu, 27)
+        val chosen = normalizeCategories(selected)
+        menu.put(4, named(
+            Items.NETHER_STAR, "&d${type.title}", *eventTypeDescription(type).toTypedArray(),
+            "&7Elige una o varias categorías.",
+            "&7Seleccionadas: " + if (chosen.isEmpty()) "&8ninguna" else "&f" + categoriesTitle(chosen)
+        ))
+        val slots = listOf(11, 12, 13, 14, 15)
+        EventCategory.values().forEachIndexed { index, category ->
+            val isChosen = category in chosen
+            menu.button(slots[index], named(
+                eventCategoryIcons[category] ?: Items.PAPER,
+                (if (isChosen) "&a✔ " else "&7") + category.label,
+                if (isChosen) "&eClic para quitarla" else "&eClic para añadirla"
+            )) {
+                val next = if (isChosen) chosen - category else chosen + category
+                renderEventCategory(menu, type, next)
+            }
+        }
+        if (chosen.isEmpty()) {
+            menu.put(22, named(Items.GRAY_CONCRETE, "&7Continuar", "&cElige al menos una categoría."))
+        } else {
+            menu.button(22, named(
+                Items.LIME_CONCRETE, "&aContinuar",
+                "&7Categorías: &f" + categoriesTitle(chosen), "&eClic para elegir la duración"
+            )) { openEventDuration(it, type, chosen) }
+        }
+        menu.button(18, named(Items.ARROW, "&aVolver")) { openAdminEvents(it) }
+        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+    }
+
+    private fun openEventDuration(player: ServerPlayer, type: EventType, categories: List<EventCategory>) {
+        val title = eventTitle(type, categories)
+        open(player, "&5Eventos &8- &dDuración", 3) { menu ->
             fill(menu, 27)
-            menu.put(4, named(Items.NETHER_STAR, "&d$title", *WonderTradeEvents.describeDefault(type, category).toTypedArray(), "&7Elige cuánto debe durar."))
+            menu.put(4, named(Items.NETHER_STAR, "&d$title", *WonderTradeEvents.describeDefault(type, categories).toTypedArray(), "&7Elige cuánto debe durar."))
             val maximum = WonderTradeEvents.maximumDurationSeconds()
             val options = ConfigManager.strings("events.menuDurations")
                 .mapNotNull { text -> WonderTradeEvents.parseDuration(text)?.takeIf { it <= maximum } }
@@ -763,7 +790,7 @@ object WonderTradeGui {
                     Items.CLOCK, "&e${WonderTradeEvents.formatDuration(seconds)}",
                     "&7Iniciar «$title» durante este tiempo.", "&eClic para iniciar"
                 )) { p ->
-                    val event = WonderTradeEvents.create(p.server, type, category, seconds, null, null, p.gameProfile.name)
+                    val event = WonderTradeEvents.create(p.server, type, categories, seconds, null, null, p.gameProfile.name)
                     if (event == null) p.sendSystemMessage(WonderTradeService.info("&cLos eventos están desactivados."))
                     openAdminEvents(p)
                 }
@@ -771,25 +798,25 @@ object WonderTradeGui {
             menu.button(13, named(
                 Items.CLOCK, "&6Tiempo personalizado",
                 "&7Ajusta la duración exacta con botones", "&7de minutos, horas y días.", "&eClic para elegir"
-            )) { openEventCustomDuration(it, type, category) }
-            menu.button(22, named(Items.ARROW, "&aVolver")) { openEventCategory(it, type) }
+            )) { openEventCustomDuration(it, type, categories) }
+            menu.button(22, named(Items.ARROW, "&aVolver")) { openEventCategory(it, type, categories) }
             menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
         }
     }
 
-    private fun openEventCustomDuration(player: ServerPlayer, type: EventType, category: EventCategory) {
-        open(player, "&5Eventos &8- &6Tiempo", 3) { renderEventCustomDuration(it, type, category, 3600L) }
+    private fun openEventCustomDuration(player: ServerPlayer, type: EventType, categories: List<EventCategory>) {
+        open(player, "&5Eventos &8- &6Tiempo", 3) { renderEventCustomDuration(it, type, categories, 3600L) }
     }
 
     /** Selector de duración: los botones suman o restan tiempo y el menú se actualiza sin cerrarse. */
-    private fun renderEventCustomDuration(menu: GuiMenu, type: EventType, category: EventCategory, seconds: Long) {
-        val title = "${type.title} ${category.label}"
+    private fun renderEventCustomDuration(menu: GuiMenu, type: EventType, categories: List<EventCategory>, seconds: Long) {
+        val title = eventTitle(type, categories)
         val maximum = WonderTradeEvents.maximumDurationSeconds()
         val minimum = 60L
         val current = seconds.coerceIn(minimum, maximum)
         menu.wipe()
         fill(menu, 27)
-        menu.put(4, named(Items.NETHER_STAR, "&d$title", *WonderTradeEvents.describeDefault(type, category).toTypedArray()))
+        menu.put(4, named(Items.NETHER_STAR, "&d$title", *WonderTradeEvents.describeDefault(type, categories).toTypedArray()))
         val steps = listOf(
             9 to -86_400L, 10 to -3_600L, 11 to -600L, 12 to -60L,
             14 to 60L, 15 to 600L, 16 to 3_600L, 17 to 86_400L
@@ -799,7 +826,7 @@ object WonderTradeGui {
             val sign = if (delta < 0) "-" else "+"
             val item = if (delta < 0) Items.RED_STAINED_GLASS_PANE else Items.LIME_STAINED_GLASS_PANE
             menu.button(slot, named(item, (if (delta < 0) "&c" else "&a") + "$sign$label", "&7Duración actual: &f${WonderTradeEvents.formatDuration(current)}")) {
-                renderEventCustomDuration(menu, type, category, current + delta)
+                renderEventCustomDuration(menu, type, categories, current + delta)
             }
         }
         menu.put(13, named(
@@ -810,11 +837,11 @@ object WonderTradeGui {
             Items.LIME_CONCRETE, "&aIniciar «$title»",
             "&7Durante &f${WonderTradeEvents.formatDuration(current)}&7.", "&eClic para iniciar"
         )) { p ->
-            val event = WonderTradeEvents.create(p.server, type, category, current, null, null, p.gameProfile.name)
+            val event = WonderTradeEvents.create(p.server, type, categories, current, null, null, p.gameProfile.name)
             if (event == null) p.sendSystemMessage(WonderTradeService.info("&cLos eventos están desactivados."))
             openAdminEvents(p)
         }
-        menu.button(18, named(Items.ARROW, "&aVolver")) { openEventDuration(it, type, category) }
+        menu.button(18, named(Items.ARROW, "&aVolver")) { openEventDuration(it, type, categories) }
         menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
     }
 

@@ -49,6 +49,28 @@ enum class EventCategory(val key: String, val label: String, private val species
     }
 }
 
+/** Ordena las categorías (orden del menú) y quita repetidas. */
+fun normalizeCategories(list: Collection<EventCategory>): List<EventCategory> =
+    EventCategory.values().filter { it in list }
+
+/** Texto corto de categorías, por ejemplo «Mítico + Legendario». */
+fun categoriesTitle(categories: List<EventCategory>): String = categories.joinToString(" + ") { it.label }
+
+/** Texto para frases, por ejemplo «Mítico o Legendario». */
+fun categoriesText(categories: List<EventCategory>): String = when (categories.size) {
+    0 -> ""
+    1 -> categories[0].label
+    else -> categories.dropLast(1).joinToString(", ") { it.label } + " o " + categories.last().label
+}
+
+/** Lee «mitico+legendario» (también con comas). Devuelve null si alguna no es válida o no hay ninguna. */
+fun parseCategories(text: String): List<EventCategory>? {
+    val parts = text.split('+', ',').map { it.trim() }.filter { it.isNotEmpty() }
+    if (parts.isEmpty()) return null
+    val parsed = parts.map { EventCategory.parse(it) ?: return null }
+    return normalizeCategories(parsed)
+}
+
 /**
  * Un evento temporal.
  * [value] es el % extra por shiny ofrecido (arriesgar) o el % extra de recibir un shiny (recibir).
@@ -57,7 +79,7 @@ enum class EventCategory(val key: String, val label: String, private val species
 data class WtEvent(
     val id: Int,
     val type: EventType,
-    val category: EventCategory,
+    val categories: List<EventCategory>,
     val startAt: Long,
     val endAt: Long,
     val value: Double,
@@ -65,12 +87,17 @@ data class WtEvent(
     val createdBy: String
 ) {
     /** Nombre completo, por ejemplo «Arriesgar Legendario». */
-    val title: String get() = "${type.title} ${category.label}"
+    val title: String get() = "${type.title} ${categoriesTitle(categories)}"
+
+    /** Categorías para frases («Mítico o Legendario»). */
+    val categoryText: String get() = categoriesText(categories)
+
+    fun matches(pokemon: com.cobblemon.mod.common.pokemon.Pokemon): Boolean = categories.any { it.matches(pokemon) }
 
     fun toJson(): JsonObject = JsonObject().apply {
         addProperty("id", id)
         addProperty("type", type.key)
-        addProperty("category", category.key)
+        add("categories", JsonArray().also { array -> categories.forEach { array.add(it.key) } })
         addProperty("startAt", startAt)
         addProperty("endAt", endAt)
         addProperty("value", value)
@@ -79,12 +106,19 @@ data class WtEvent(
     }
 
     companion object {
+        /** Lee «categories» (lista) o, en eventos antiguos, «category» (una sola). */
+        fun readCategories(json: JsonObject): List<EventCategory> {
+            val list = json.getAsJsonArray("categories")?.mapNotNull { node -> runCatching { EventCategory.parse(node.asString) }.getOrNull() }
+            if (!list.isNullOrEmpty()) return normalizeCategories(list)
+            return listOf(EventCategory.parse(json.get("category")?.asString ?: "shiny") ?: EventCategory.SHINY)
+        }
+
         fun fromJson(json: JsonObject): WtEvent? {
             val type = EventType.parse(json.get("type")?.asString ?: return null) ?: return null
             return WtEvent(
                 id = json.get("id")?.asInt ?: return null,
                 type = type,
-                category = EventCategory.parse(json.get("category")?.asString ?: "shiny") ?: EventCategory.SHINY,
+                categories = readCategories(json),
                 startAt = json.get("startAt")?.asLong ?: 0L,
                 endAt = json.get("endAt")?.asLong ?: return null,
                 value = json.get("value")?.asDouble ?: 0.0,
@@ -163,7 +197,7 @@ object WonderTradeEvents {
 
     /** % extra al ofrecer este Pokémon (eventos «Arriesgar …» activos cuya categoría coincide). */
     fun riskExtraGain(pokemon: com.cobblemon.mod.common.pokemon.Pokemon): Double =
-        active().filter { it.type == EventType.RISK && it.category.matches(pokemon) }.sumOf { it.value }.coerceAtLeast(0.0)
+        active().filter { it.type == EventType.RISK && it.matches(pokemon) }.sumOf { it.value }.coerceAtLeast(0.0)
 
     /** Eventos «Recibir …» activos. */
     fun receiveEvents(): List<WtEvent> = active().filter { it.type == EventType.RECEIVE && it.value > 0.0 }
@@ -216,7 +250,7 @@ object WonderTradeEvents {
     fun create(
         server: MinecraftServer,
         type: EventType,
-        category: EventCategory,
+        categories: List<EventCategory>,
         durationSeconds: Long,
         value: Double?,
         cooldownSeconds: Long?,
@@ -227,7 +261,7 @@ object WonderTradeEvents {
         val event = WtEvent(
             id = nextId++,
             type = type,
-            category = category,
+            categories = normalizeCategories(categories).ifEmpty { listOf(EventCategory.SHINY) },
             startAt = now,
             endAt = now + durationSeconds * 1000L,
             value = (value ?: defaultValue(type)).coerceIn(0.0, 100.0),
@@ -309,11 +343,11 @@ object WonderTradeEvents {
         val first = when (event.type) {
             EventType.RISK -> WonderTradeService.format(
                 ConfigManager.string("messages.eventRiskDescription", "&7Cada Pokémon &f{category}&7 que ofrezcas suma &d+{value}%&7 extra a tu probabilidad de especial."),
-                mapOf("value" to value, "category" to event.category.label)
+                mapOf("value" to value, "category" to event.categoryText)
             )
             EventType.RECEIVE -> WonderTradeService.format(
                 ConfigManager.string("messages.eventReceiveDescription", "&7Probabilidad extra de recibir un Pokémon &f{category}&7: &d+{value}%&7 en cada intercambio."),
-                mapOf("value" to value, "category" to event.category.label)
+                mapOf("value" to value, "category" to event.categoryText)
             )
         }
         val second = WonderTradeService.format(
@@ -324,8 +358,8 @@ object WonderTradeEvents {
     }
 
     /** Descripción con los valores por defecto, para el menú de creación. */
-    fun describeDefault(type: EventType, category: EventCategory): List<String> {
-        val sample = WtEvent(0, type, category, 0L, 0L, defaultValue(type), defaultCooldownSeconds(type), "")
+    fun describeDefault(type: EventType, categories: List<EventCategory>): List<String> {
+        val sample = WtEvent(0, type, normalizeCategories(categories), 0L, 0L, defaultValue(type), defaultCooldownSeconds(type), "")
         return describe(sample)
     }
 

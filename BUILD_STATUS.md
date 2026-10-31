@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.13.1**.
+- Versión actual: **0.14.2**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -188,4 +188,16 @@
 
 ## 0.13.1
 - Rangos por defecto del servidor: Leyenda, Maestro, Élite, Experto y Dominguero (con migración desde la lista genérica de 0.13.0).
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.14.0
+- Eventos con varias categorías a la vez (selección múltiple en el panel y mitico+legendario por comando); compatible con eventos guardados.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.14.1
+- /wt help: líneas separadas para crear, parar, programar y desprogramar eventos; migración de los textos de ayuda antiguos.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.14.2
+- /wt especiales incluye las formas regionales (Alola, Galar, Hisui, Paldea) de las especies de cada categoría, por ejemplo Articuno, Zapdos y Moltres de Galar.
 - Gradle no se ha ejecutado en el entorno de edición.

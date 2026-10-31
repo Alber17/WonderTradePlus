@@ -371,11 +371,11 @@ class WonderTradePlus : ModInitializer {
             context.source.sendSuccess({ WonderTradeEvents.adminListComponent() }, false)
             1
         })
-        // /wt admin eventos crear <tipo> <categoría> <duración> [valor] [espera]
+        // /wt admin eventos crear <tipo> <categorías> <duración> [valor] [espera]
         .then(literal("crear").then(argument("tipo", StringArgumentType.word())
             .suggests { _, builder -> SharedSuggestionProvider.suggest(EventType.values().map { it.key }, builder) }
             .then(argument("categoria", StringArgumentType.word())
-            .suggests { _, builder -> SharedSuggestionProvider.suggest(EventCategory.values().map { it.key }, builder) }
+            .suggests { _, builder -> SharedSuggestionProvider.suggest(EventCategory.values().map { it.key } + listOf("mitico+legendario", "ultraente+paradoja", "shiny+legendario"), builder) }
             .then(argument("duracion", StringArgumentType.word())
                 .suggests { _, builder -> SharedSuggestionProvider.suggest(listOf("5m", "30m", "1h", "3h", "1d"), builder) }
                 .executes { context -> createEvent(context, null, null) }
@@ -386,12 +386,12 @@ class WonderTradePlus : ModInitializer {
                         .executes { context ->
                             createEvent(context, DoubleArgumentType.getDouble(context, "valor"), StringArgumentType.getString(context, "espera"))
                         }))))))
-        // /wt admin eventos programar <tipo> <categoría> <duración> <cuándo...>
+        // /wt admin eventos programar <tipo> <categorías> <duración> <cuándo...>
         // Ejemplos de «cuándo»: 20:00 | sabado 20:00 semanal | 15/11 18:30 | 20:00 diario valor=25 espera=2m
         .then(literal("programar").then(argument("tipo", StringArgumentType.word())
             .suggests { _, builder -> SharedSuggestionProvider.suggest(EventType.values().map { it.key }, builder) }
             .then(argument("categoria", StringArgumentType.word())
-                .suggests { _, builder -> SharedSuggestionProvider.suggest(EventCategory.values().map { it.key }, builder) }
+                .suggests { _, builder -> SharedSuggestionProvider.suggest(EventCategory.values().map { it.key } + listOf("mitico+legendario", "ultraente+paradoja", "shiny+legendario"), builder) }
                 .then(argument("duracion", StringArgumentType.word())
                     .suggests { _, builder -> SharedSuggestionProvider.suggest(listOf("30m", "1h", "3h", "1d"), builder) }
                     .then(argument("cuando", StringArgumentType.greedyString())
@@ -420,8 +420,8 @@ class WonderTradePlus : ModInitializer {
             source.sendFailure(WonderTradeService.info("&cTipo no válido. Usa: &farriesgar &co &frecibir&c."))
             return 0
         }
-        val category = EventCategory.parse(StringArgumentType.getString(context, "categoria")) ?: run {
-            source.sendFailure(WonderTradeService.info("&cCategoría no válida. Usa: &fshiny&c, &fultraente&c, &fparadoja&c, &fmitico &co &flegendario&c."))
+        val categories = parseCategories(StringArgumentType.getString(context, "categoria")) ?: run {
+            source.sendFailure(WonderTradeService.info("&cCategoría no válida. Usa: &fshiny&c, &fultraente&c, &fparadoja&c, &fmitico &co &flegendario&c. Para varias a la vez únelas con +, por ejemplo &fmitico+legendario&c."))
             return 0
         }
         val duration = WonderTradeEvents.parseDuration(StringArgumentType.getString(context, "duracion")) ?: run {
@@ -437,7 +437,7 @@ class WonderTradePlus : ModInitializer {
             source.sendFailure(WonderTradeService.info("&c${parsed.error}"))
             return 0
         }
-        val item = WonderTradeSchedule.add(type, category, duration, spec, source.textName)
+        val item = WonderTradeSchedule.add(type, categories, duration, spec, source.textName)
         source.sendSuccess({
             WonderTradeService.info("&aEvento &f${item.title} &aprogramado (&f#P${item.id}&a): &f${WonderTradeSchedule.describeWhen(item)}&a.")
         }, true)
@@ -450,8 +450,8 @@ class WonderTradePlus : ModInitializer {
             source.sendFailure(WonderTradeService.info("&cTipo no válido. Usa: &farriesgar &co &frecibir&c."))
             return 0
         }
-        val category = EventCategory.parse(StringArgumentType.getString(context, "categoria")) ?: run {
-            source.sendFailure(WonderTradeService.info("&cCategoría no válida. Usa: &fshiny&c, &fultraente&c, &fparadoja&c, &fmitico &co &flegendario&c."))
+        val categories = parseCategories(StringArgumentType.getString(context, "categoria")) ?: run {
+            source.sendFailure(WonderTradeService.info("&cCategoría no válida. Usa: &fshiny&c, &fultraente&c, &fparadoja&c, &fmitico &co &flegendario&c. Para varias a la vez únelas con +, por ejemplo &fmitico+legendario&c."))
             return 0
         }
         val duration = WonderTradeEvents.parseDuration(StringArgumentType.getString(context, "duracion")) ?: run {
@@ -466,7 +466,7 @@ class WonderTradePlus : ModInitializer {
             source.sendFailure(WonderTradeService.info("&cEspera no válida. Ejemplos: &f30s, 1m, 5m&c."))
             return 0
         })
-        val event = WonderTradeEvents.create(source.server, type, category, duration, value, cooldown, source.textName)
+        val event = WonderTradeEvents.create(source.server, type, categories, duration, value, cooldown, source.textName)
         if (event == null) {
             source.sendFailure(WonderTradeService.info("&cLos eventos están desactivados (events.enabled)."))
             return 0
@@ -579,7 +579,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.13.1"
+        const val MOD_VERSION = "0.14.2"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

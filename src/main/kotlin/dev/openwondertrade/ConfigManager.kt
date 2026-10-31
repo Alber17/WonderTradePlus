@@ -55,6 +55,20 @@ object ConfigManager {
                 defaults.getAsJsonObject("ranks")?.get("list")?.let { ranksConfig.add("list", it.deepCopy()) }
             }
         }
+        // Migración de la ayuda de eventos: los textos de versiones anteriores se sustituyen por los actuales.
+        root.getAsJsonObject("messages")?.let { messages ->
+            val defaultMessages = defaults.getAsJsonObject("messages")
+            fun refresh(key: String, isOld: (String) -> Boolean) {
+                val current = messages.get(key)?.let { node -> runCatching { node.asString }.getOrNull() } ?: return
+                val fresh = defaultMessages?.get(key) ?: return
+                if (isOld(current)) messages.add(key, fresh.deepCopy())
+            }
+            refresh("helpAdminEventsCommand") { it.contains("[crear") }
+            refresh("helpAdminScheduleCommand") {
+                it == "&e/wt admin eventos programar <tipo> <categoría> <duración> <cuándo> &7Programar un evento" ||
+                    it == "&e/wt admin eventos programar <tipo> <categorías> <duración> <cuándo> &7Programar un evento"
+            }
+        }
         // Migración de mensajes: si el texto guardado sigue siendo exactamente el antiguo por defecto,
         // se sustituye por el corregido (color de la exclamación final, espacios sobrantes).
         val messageFixes = mapOf(
