@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.16.6**.
+- Versión actual: **0.17.0**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -241,4 +241,13 @@
 - Las esperas de los eventos por jugador ya no se pierden al reiniciar: se guardan en `event.json` (`lastUse`) y solo se descartan cuando el evento termina o su espera caduca.
 - La integración con Discord pasa a su propio archivo (`WonderTradeDiscord.kt`), con lo que `WonderTradeService.kt` queda más corto.
 - Comandos duplicados unificados internamente (un solo código para `sonidos`/`sounds`, `especiales`/`categorias`, `eventos`/`events`, `clearpool`/`admin clear`, `admin eventos`/`lista`/`programados`). Todos los nombres siguen funcionando como alias.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.17.0
+
+- Eventos (solo administradores): cada evento cuenta sus WT de evento y los jugadores distintos; se ve en `/wt admin eventos`, en el panel (clic en un evento) y se guarda en `event.json`.
+- Historial de eventos terminados (`/wt admin eventos historial` y botón «Historial de eventos» del panel), con `events.history.keep` entradas (50 por defecto).
+- Pausar y reanudar un evento activo (`/wt admin eventos pausar|reanudar <id>` o desde el panel): el tiempo se congela, el evento no tiene efecto mientras está pausado, y al reanudar se conservan el tiempo restante y las esperas de los jugadores. Sobrevive a reinicios.
+- IVs: la búsqueda de la pool admite `6x31`, `5x31`… (mínimo de IVs perfectos) y `31spd`, `31hp`, `31atk`, `31def`, `31spatk`, `31spdef` (ese stat a 31), combinables con el nombre. Los Pokémon con 6x31 muestran una estrella.
 - Gradle no se ha ejecutado en el entorno de edición.

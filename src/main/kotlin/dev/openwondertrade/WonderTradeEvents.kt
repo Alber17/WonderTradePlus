@@ -81,11 +81,20 @@ data class WtEvent(
     val type: EventType,
     val categories: List<EventCategory>,
     val startAt: Long,
-    val endAt: Long,
+    var endAt: Long,
     val value: Double,
     val cooldownSeconds: Long,
     val createdBy: String
 ) {
+    /** Intercambios de evento realizados y jugadores distintos que participaron (solo estadística para admins). */
+    var trades: Int = 0
+    val playerIds: MutableSet<String> = HashSet()
+
+    /** Momento en que se pausó (0 = en marcha). Mientras está pausado el tiempo no corre y no tiene efecto. */
+    var pausedAt: Long = 0L
+
+    val paused: Boolean get() = pausedAt > 0L
+
     /** Nombre completo, por ejemplo «Arriesgar Legendario». */
     val title: String get() = "${type.title} ${categoriesTitle(categories)}"
 
@@ -103,6 +112,9 @@ data class WtEvent(
         addProperty("value", value)
         addProperty("cooldownSeconds", cooldownSeconds)
         addProperty("createdBy", createdBy)
+        addProperty("trades", trades)
+        add("playerIds", JsonArray().also { array -> playerIds.forEach { array.add(it) } })
+        addProperty("pausedAt", pausedAt)
     }
 
     companion object {
@@ -115,7 +127,7 @@ data class WtEvent(
 
         fun fromJson(json: JsonObject): WtEvent? {
             val type = EventType.parse(json.get("type")?.asString ?: return null) ?: return null
-            return WtEvent(
+            val event = WtEvent(
                 id = json.get("id")?.asInt ?: return null,
                 type = type,
                 categories = readCategories(json),
@@ -125,7 +137,41 @@ data class WtEvent(
                 cooldownSeconds = json.get("cooldownSeconds")?.asLong ?: 60L,
                 createdBy = json.get("createdBy")?.asString ?: "?"
             )
+            event.trades = json.get("trades")?.asInt ?: 0
+            json.getAsJsonArray("playerIds")?.forEach { node -> runCatching { event.playerIds.add(node.asString) } }
+            event.pausedAt = json.get("pausedAt")?.asLong ?: 0L
+            return event
         }
+    }
+}
+
+/** Resumen de un evento terminado (historial para administradores). */
+data class EventRecord(
+    val id: Int,
+    val title: String,
+    val startAt: Long,
+    val endedAt: Long,
+    val trades: Int,
+    val players: Int,
+    val reason: String
+) {
+    fun toJson(): JsonObject = JsonObject().apply {
+        addProperty("id", id)
+        addProperty("title", title)
+        addProperty("startAt", startAt)
+        addProperty("endedAt", endedAt)
+        addProperty("trades", trades)
+        addProperty("players", players)
+        addProperty("reason", reason)
+    }
+
+    companion object {
+        fun fromJson(json: JsonObject): EventRecord? = runCatching {
+            EventRecord(
+                json.get("id").asInt, json.get("title").asString, json.get("startAt").asLong, json.get("endedAt").asLong,
+                json.get("trades")?.asInt ?: 0, json.get("players")?.asInt ?: 0, json.get("reason")?.asString ?: "terminado"
+            )
+        }.getOrNull()
     }
 }
 
@@ -139,6 +185,9 @@ object WonderTradeEvents {
     /** Última vez que cada jugador usó un intercambio de evento: "uuid:idEvento" -> milisegundos. */
     private val lastUse = HashMap<String, Long>()
 
+    /** Eventos terminados, el más reciente primero. */
+    private val history = mutableListOf<EventRecord>()
+
     // ------------------------------------------------------------ carga y guardado
 
     fun load(directory: Path? = null) {
@@ -148,6 +197,7 @@ object WonderTradeEvents {
         val path = file ?: return
         events.clear()
         lastUse.clear()
+        history.clear()
         nextId = 1
         Files.createDirectories(path.parent)
         if (!Files.exists(path)) {
@@ -160,7 +210,8 @@ object WonderTradeEvents {
             val now = System.currentTimeMillis()
             for (node in root.getAsJsonArray("events") ?: JsonArray()) {
                 val event = runCatching { WtEvent.fromJson(node.asJsonObject) }.getOrNull() ?: continue
-                if (event.endAt > now) events.add(event)
+                if (event.paused || event.endAt > now) events.add(event)
+                else record(event, "caducó mientras el servidor estaba apagado", event.endAt)
                 if (event.id >= nextId) nextId = event.id + 1
             }
             // Esperas por jugador guardadas: solo las de eventos que siguen activos y que aún no han terminado.
@@ -170,8 +221,11 @@ object WonderTradeEvents {
                 for ((key, value) in saved.entrySet()) {
                     val event = alive[key.substringAfterLast(':')] ?: continue
                     val moment = runCatching { value.asLong }.getOrNull() ?: continue
-                    if (moment + event.cooldownSeconds * 1000L > now) lastUse[key] = moment
+                    if (event.paused || moment + event.cooldownSeconds * 1000L > now) lastUse[key] = moment
                 }
+            }
+            for (node in root.getAsJsonArray("history") ?: JsonArray()) {
+                runCatching { EventRecord.fromJson(node.asJsonObject) }.getOrNull()?.let { history.add(it) }
             }
         } catch (exception: Exception) {
             WonderTradePlus.LOGGER.error("No se pudo cargar event.json. Se empieza sin eventos.", exception)
@@ -188,6 +242,7 @@ object WonderTradeEvents {
             addProperty("schemaVersion", 1)
             addProperty("nextId", nextId)
             add("events", JsonArray().also { array -> events.forEach { array.add(it.toJson()) } })
+            add("history", JsonArray().also { array -> history.forEach { array.add(it.toJson()) } })
             add("lastUse", JsonObject().also { node -> lastUse.forEach { (key, moment) -> node.addProperty(key, moment) } })
         }
         val temporary = path.resolveSibling(path.fileName.toString() + ".tmp")
@@ -204,7 +259,19 @@ object WonderTradeEvents {
     fun enabled(): Boolean = ConfigManager.bool("events.enabled", true)
 
     fun active(now: Long = System.currentTimeMillis()): List<WtEvent> =
-        if (!enabled()) emptyList() else events.filter { it.startAt <= now && now < it.endAt }
+        if (!enabled()) emptyList() else events.filter { !it.paused && it.startAt <= now && now < it.endAt }
+
+    /** Eventos en curso o pausados (para administradores). */
+    fun running(now: Long = System.currentTimeMillis()): List<WtEvent> =
+        events.filter { it.startAt <= now && (it.paused || now < it.endAt) }
+
+    fun history(limit: Int = 50): List<EventRecord> = history.take(limit)
+
+    private fun record(event: WtEvent, reason: String, endedAt: Long = System.currentTimeMillis()) {
+        history.add(0, EventRecord(event.id, event.title, event.startAt, endedAt, event.trades, event.playerIds.size, reason))
+        val keep = ConfigManager.int("events.history.keep", 50).coerceAtLeast(1)
+        while (history.size > keep) history.removeAt(history.size - 1)
+    }
 
     /** % extra al ofrecer este Pokémon (eventos «Arriesgar …» activos cuya categoría coincide). */
     fun riskExtraGain(pokemon: com.cobblemon.mod.common.pokemon.Pokemon): Double =
@@ -237,11 +304,14 @@ object WonderTradeEvents {
 
     fun markUsed(player: ServerPlayer, event: WtEvent) {
         lastUse[key(player, event)] = System.currentTimeMillis()
+        event.trades++
+        event.playerIds.add(player.uuid.toString())
         runCatching { save() }.onFailure { WonderTradePlus.LOGGER.error("No se pudo guardar la espera del evento.", it) }
     }
 
     fun unmark(player: ServerPlayer, event: WtEvent) {
         lastUse.remove(key(player, event))
+        if (event.trades > 0) event.trades--
         runCatching { save() }.onFailure { WonderTradePlus.LOGGER.error("No se pudo guardar la espera del evento.", it) }
     }
 
@@ -299,8 +369,32 @@ object WonderTradeEvents {
         events.remove(event)
         lastUse.keys.removeAll { it.endsWith(":${event.id}") }
         pendingSetup.remove(event.id)
+        record(event, "finalizado por un administrador")
         save()
         announceEnd(server, event)
+        return event
+    }
+
+    /** Pausa el tiempo de un evento en curso. Devuelve null si no existe, no ha empezado o ya está pausado. */
+    fun pause(server: MinecraftServer, id: Int): WtEvent? {
+        val now = System.currentTimeMillis()
+        val event = events.firstOrNull { it.id == id && it.startAt <= now && !it.paused && it.endAt > now } ?: return null
+        event.pausedAt = now
+        save()
+        broadcast(server, ConfigManager.string("messages.eventPaused", "&d★ El evento «{name}» se ha pausado temporalmente."), mapOf("name" to event.title))
+        return event
+    }
+
+    /** Reanuda un evento pausado: el tiempo restante y las esperas de los jugadores se conservan. */
+    fun resume(server: MinecraftServer, id: Int): WtEvent? {
+        val event = events.firstOrNull { it.id == id && it.paused } ?: return null
+        val delta = (System.currentTimeMillis() - event.pausedAt).coerceAtLeast(0L)
+        event.endAt += delta
+        event.pausedAt = 0L
+        lastUse.keys.filter { it.endsWith(":${event.id}") }.forEach { key -> lastUse[key] = (lastUse[key] ?: 0L) + delta }
+        save()
+        broadcast(server, ConfigManager.string("messages.eventResumed", "&d★ El evento «{name}» se ha reanudado. Termina en &f{time}&d."),
+            mapOf("name" to event.title, "time" to formatDuration((event.endAt - System.currentTimeMillis() + 999L) / 1000L)))
         return event
     }
 
@@ -311,9 +405,10 @@ object WonderTradeEvents {
     /** Se llama una vez por segundo: termina los eventos caducados, inicia los programados y actualiza barras y avisos. */
     fun tick(server: MinecraftServer) {
         val now = System.currentTimeMillis()
-        val ended = events.filter { it.endAt <= now }
+        val ended = events.filter { !it.paused && it.endAt <= now }
         if (ended.isNotEmpty()) {
             events.removeAll(ended.toSet())
+            ended.forEach { record(it, "terminó su tiempo", it.endAt) }
             ended.forEach { event -> lastUse.keys.removeAll { it.endsWith(":${event.id}") } }
             save()
             ended.forEach { announceEnd(server, it) }
@@ -412,14 +507,18 @@ object WonderTradeEvents {
     /** Lista para administradores, con el id de cada evento. */
     fun adminListComponent(): Component {
         val now = System.currentTimeMillis()
-        val list = active(now)
+        val list = running(now)
         val lines = mutableListOf<String>()
         if (list.isEmpty()) lines += "&7No hay eventos activos."
         else {
             lines += "&d&lEventos activos:"
             list.forEach { event ->
-                lines += "&8#${event.id} &d${event.title} &7valor &f${valueText(event.value)}% &7espera &f${formatDuration(event.cooldownSeconds)} &7termina en &f${formatDuration((event.endAt - now + 999L) / 1000L)} &8(${event.createdBy})"
+                val left = formatDuration((event.endAt - (if (event.paused) event.pausedAt else now) + 999L) / 1000L)
+                val state = if (event.paused) "&6PAUSADO &7quedan &f$left" else "&7termina en &f$left"
+                lines += "&8#${event.id} &d${event.title} &7valor &f${valueText(event.value)}% &7espera &f${formatDuration(event.cooldownSeconds)} $state &8(${event.createdBy})"
+                lines += "   &7WT hechos: &f${event.trades} &7· jugadores: &f${event.playerIds.size}"
             }
+            lines += "&7Pausar/reanudar: &e/wt admin eventos pausar|reanudar <id> &7· Historial: &e/wt admin eventos historial"
             lines += "&7Finalizar: &e/wt admin eventos parar <id>"
         }
         val scheduled = WonderTradeSchedule.all()
@@ -432,6 +531,24 @@ object WonderTradeEvents {
         }
         return WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
     }
+
+    /** Historial de eventos terminados para administradores. */
+    fun historyComponent(limit: Int = 15): Component {
+        val list = history(limit)
+        val lines = mutableListOf<String>()
+        if (list.isEmpty()) lines += "&7Todavía no hay eventos en el historial."
+        else {
+            lines += "&d&lHistorial de eventos &7(últimos ${list.size}):"
+            list.forEach { r ->
+                lines += "&8#${r.id} &d${r.title} &7— WT: &f${r.trades} &7· jugadores: &f${r.players} &7· ${historyDate(r.endedAt)} &8(${r.reason})"
+            }
+        }
+        return WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
+    }
+
+    fun historyDate(moment: Long): String =
+        java.time.ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(moment), WonderTradeSchedule.zone())
+            .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm"))
 
     /** Líneas para el reloj del menú principal. */
     fun clockLines(player: ServerPlayer): List<String> {

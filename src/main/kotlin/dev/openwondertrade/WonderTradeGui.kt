@@ -350,7 +350,7 @@ object WonderTradeGui {
         menu.wipe()
         fill(menu, 54)
         val all = WonderTradeService.poolEntries()
-        val filtered = all.filter { filter.matches(it) && matchesQuery(it, query) }
+        val filtered = all.filter { filter.matches(it) && matchesQuery(it, query, player.server.registryAccess()) }
         val entries = when (sort) {
             PoolSort.NEWEST -> filtered.sortedByDescending { it.addedAt }
             PoolSort.OLDEST -> filtered.sortedBy { it.addedAt }
@@ -444,10 +444,51 @@ object WonderTradeGui {
 
     private fun normalize(text: String): String = text.lowercase().filter { it.isLetterOrDigit() }
 
-    /** Coincide por especie ("greattusk", "great tusk", "tusk") o por apodo del Pokémon. */
-    private fun matchesQuery(entry: PoolEntry, query: String?): Boolean {
+    private val ivStatTokens = mapOf(
+        "hp" to com.cobblemon.mod.common.api.pokemon.stats.Stats.HP,
+        "atk" to com.cobblemon.mod.common.api.pokemon.stats.Stats.ATTACK,
+        "def" to com.cobblemon.mod.common.api.pokemon.stats.Stats.DEFENCE,
+        "spatk" to com.cobblemon.mod.common.api.pokemon.stats.Stats.SPECIAL_ATTACK,
+        "spdef" to com.cobblemon.mod.common.api.pokemon.stats.Stats.SPECIAL_DEFENCE,
+        "spd" to com.cobblemon.mod.common.api.pokemon.stats.Stats.SPEED
+    )
+
+    /** Texto de búsqueda ya separado: nombre, mínimo de stats a 31 y stats concretos a 31. */
+    private data class ParsedQuery(val name: String, val minPerfect: Int, val perfectStats: Set<com.cobblemon.mod.common.api.pokemon.stats.Stats>) {
+        val usesIvs: Boolean get() = minPerfect > 0 || perfectStats.isNotEmpty()
+    }
+
+    /** Admite «6x31», «5x31»… (mínimo de IVs a 31) y «31spd», «31hp»… (ese stat a 31), combinables con el nombre. */
+    private fun parseQuery(query: String): ParsedQuery {
+        val nameParts = mutableListOf<String>()
+        var minPerfect = 0
+        val stats = mutableSetOf<com.cobblemon.mod.common.api.pokemon.stats.Stats>()
+        for (token in query.trim().lowercase().split(Regex("\\s+")).filter { it.isNotEmpty() }) {
+            val count = Regex("^([1-6])x31$").matchEntire(token)?.groupValues?.get(1)?.toInt()
+            val stat = if (token.startsWith("31")) ivStatTokens[token.removePrefix("31")] else null
+            when {
+                count != null -> minPerfect = maxOf(minPerfect, count)
+                stat != null -> stats += stat
+                else -> nameParts += token
+            }
+        }
+        return ParsedQuery(nameParts.joinToString(" "), minPerfect, stats)
+    }
+
+    private fun perfectIvCount(pokemon: Pokemon): Int = runCatching {
+        ivStatTokens.values.count { pokemon.ivs.getEffectiveBattleIV(it) >= 31 }
+    }.getOrDefault(0)
+
+    /** Coincide por especie ("greattusk", "great tusk", "tusk") o apodo, y por IVs perfectos («6x31», «31spd»). */
+    private fun matchesQuery(entry: PoolEntry, query: String?, registryAccess: net.minecraft.core.RegistryAccess): Boolean {
         if (query.isNullOrBlank()) return true
-        val needle = normalize(query)
+        val parsed = parseQuery(query)
+        if (parsed.usesIvs) {
+            val pokemon = runCatching { Pokemon.loadFromJSON(registryAccess, entry.pokemonJson.deepCopy()) }.getOrNull() ?: return false
+            if (perfectIvCount(pokemon) < parsed.minPerfect) return false
+            if (parsed.perfectStats.any { runCatching { pokemon.ivs.getEffectiveBattleIV(it) }.getOrDefault(0) < 31 }) return false
+        }
+        val needle = normalize(parsed.name)
         if (needle.isEmpty()) return true
         if (normalize(entry.species.substringAfter(':')).contains(needle)) return true
         val nickname = entry.pokemonJson.entrySet().firstOrNull { it.key.equals("nickname", ignoreCase = true) }?.value?.toString()
@@ -462,7 +503,7 @@ object WonderTradeGui {
         val button = Component.literal("§e§n[Pulsa aquí para buscar]")
             .setStyle(Style.EMPTY.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/wt pool search ")))
         player.sendSystemMessage(
-            WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + "&7Escribe el nombre o la especie del Pokémon. ").copy().append(button)
+            WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + "&7Escribe el nombre o la especie del Pokémon. &8Opcional: 6x31 (IVs perfectos), 5x31… o 31spd, 31hp, 31atk, 31def, 31spatk, 31spdef. ").copy().append(button)
         )
     }
 
@@ -665,15 +706,14 @@ object WonderTradeGui {
                     )) { openEventCategory(it, type) }
                 }
                 val now = System.currentTimeMillis()
-                WonderTradeEvents.active(now).take(3).forEachIndexed { index, event ->
+                WonderTradeEvents.running(now).take(3).forEachIndexed { index, event ->
+                    val left = WonderTradeEvents.formatDuration((event.endAt - (if (event.paused) event.pausedAt else now) + 999L) / 1000L)
                     menu.button(14 + index, named(
-                        Items.CLOCK, "&d★ #${event.id} ${event.title}",
-                        "&7Termina en &f${WonderTradeEvents.formatDuration((event.endAt - now + 999L) / 1000L)}",
-                        "&cClic para finalizar"
-                    )) { p ->
-                        WonderTradeEvents.stop(p.server, event.id)
-                        openAdminEvents(p)
-                    }
+                        if (event.paused) Items.BARRIER else Items.CLOCK, "&d★ #${event.id} ${event.title}" + if (event.paused) " &6(pausado)" else "",
+                        "&7Tiempo restante: &f$left",
+                        "&7WT hechos: &f${event.trades} &7· jugadores: &f${event.playerIds.size}",
+                        "&eClic para gestionar"
+                    )) { openEventDetail(it, event.id) }
                 }
             }
             val scheduledCount = WonderTradeSchedule.all().size
@@ -684,8 +724,83 @@ object WonderTradeGui {
                 "&7También puedes elegir duración, día, horario y repetición.",
                 "&eClic para ver y cancelar"
             )) { openAdminScheduled(it) }
+            menu.button(24, named(
+                Items.WRITABLE_BOOK, "&dHistorial de eventos",
+                "&7Eventos terminados con sus WT y jugadores.", "&eClic para ver"
+            )) { openEventHistory(it) }
             menu.button(22, named(Items.ARROW, "&aVolver al panel admin")) { openAdmin(it) }
             menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        }
+    }
+
+    /** Detalle de un evento en curso: estadísticas, pausar/reanudar y finalizar (solo administradores). */
+    private fun openEventDetail(player: ServerPlayer, id: Int) {
+        if (!player.hasPermissions(WonderTradeService.adminLevel())) {
+            WonderTradeService.send(player, "adminOnly")
+            return
+        }
+        open(player, "&5Eventos &8- &dGestionar", 3) { menu -> renderEventDetail(menu, id) }
+    }
+
+    private fun renderEventDetail(menu: GuiMenu, id: Int) {
+        menu.wipe()
+        fill(menu, 27)
+        val now = System.currentTimeMillis()
+        val event = WonderTradeEvents.running(now).firstOrNull { it.id == id }
+        if (event == null) {
+            menu.put(13, named(Items.BARRIER, "&cEste evento ya no está en marcha"))
+            menu.button(22, named(Items.ARROW, "&aVolver")) { openAdminEvents(it) }
+            return
+        }
+        val left = WonderTradeEvents.formatDuration((event.endAt - (if (event.paused) event.pausedAt else now) + 999L) / 1000L)
+        menu.put(4, named(
+            Items.NETHER_STAR, "&d#${event.id} ${event.title}",
+            "&7Estado: " + if (event.paused) "&6PAUSADO" else "&aen marcha",
+            "&7Tiempo restante: &f$left",
+            "&7WT de evento hechos: &f${event.trades}",
+            "&7Jugadores distintos: &f${event.playerIds.size}",
+            "&7Creado por: &f${event.createdBy}"
+        ))
+        if (event.paused) {
+            menu.button(11, named(Items.LIME_CONCRETE, "&aReanudar", "&7El tiempo restante y las esperas", "&7de los jugadores se conservan.")) { p ->
+                WonderTradeEvents.resume(p.server, id)
+                renderEventDetail(menu, id)
+            }
+        } else {
+            menu.button(11, named(Items.YELLOW_CONCRETE, "&6Pausar", "&7Congela el tiempo y desactiva el evento", "&7hasta que lo reanudes.")) { p ->
+                WonderTradeEvents.pause(p.server, id)
+                renderEventDetail(menu, id)
+            }
+        }
+        menu.button(15, named(Items.RED_CONCRETE, "&cFinalizar", "&7Termina el evento ahora.")) { p ->
+            WonderTradeEvents.stop(p.server, id)
+            openAdminEvents(p)
+        }
+        menu.button(22, named(Items.ARROW, "&aVolver")) { openAdminEvents(it) }
+        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+    }
+
+    private fun openEventHistory(player: ServerPlayer) {
+        if (!player.hasPermissions(WonderTradeService.adminLevel())) {
+            WonderTradeService.send(player, "adminOnly")
+            return
+        }
+        open(player, "&5Eventos &8- &dHistorial", 6) { menu ->
+            fill(menu, 54)
+            val list = WonderTradeEvents.history(45)
+            if (list.isEmpty()) menu.put(22, named(Items.BARRIER, "&cTodavía no hay eventos en el historial"))
+            list.forEachIndexed { index, r ->
+                menu.put(index, named(
+                    Items.BOOK, "&d#${r.id} ${r.title}",
+                    "&7WT de evento hechos: &f${r.trades}",
+                    "&7Jugadores distintos: &f${r.players}",
+                    "&7Inicio: &f${WonderTradeEvents.historyDate(r.startAt)}",
+                    "&7Fin: &f${WonderTradeEvents.historyDate(r.endedAt)}",
+                    "&8${r.reason}"
+                ))
+            }
+            menu.button(45, named(Items.ARROW, "&aVolver")) { openAdminEvents(it) }
+            menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
         }
     }
 
@@ -1274,7 +1389,9 @@ object WonderTradeGui {
             val bonus = if (effective != base) " &7(&b$effective&7)" else ""
             "$color$label &r$value$bonus"
         }
-        listOf("&7IVs:", "  " + parts.take(3).joinToString(" &8| "), "  " + parts.drop(3).joinToString(" &8| "))
+        val perfect = perfectIvCount(pokemon)
+        val header = if (perfect >= 6) "&7IVs: &6★ perfectos &8(6x31)" else if (perfect > 0) "&7IVs: &8($perfect x31)" else "&7IVs:"
+        listOf(header, "  " + parts.take(3).joinToString(" &8| "), "  " + parts.drop(3).joinToString(" &8| "))
     }.getOrDefault(emptyList())
 
     private fun pokemonStack(pokemon: Pokemon, showOfferHint: Boolean, extra: List<String> = emptyList()): ItemStack {

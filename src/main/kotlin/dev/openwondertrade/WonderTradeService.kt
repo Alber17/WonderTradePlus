@@ -161,6 +161,8 @@ object WonderTradeService {
             lines += ConfigManager.string("messages.helpAdminEventCreateCommand", "&e/wt admin eventos crear <arriesgar|recibir> <categorías> <duración> [valor] [espera] &7Crear un evento (varias categorías con +)")
             lines += ConfigManager.string("messages.helpAdminEventStopCommand", "&e/wt admin eventos parar <id> &7Finalizar un evento")
             lines += ConfigManager.string("messages.helpAdminScheduleCommand", "&e/wt admin eventos programar <tipo> <categorías> <duración> <cuándo> &7Programar un evento (también desde Gestionar eventos)")
+            lines += ConfigManager.string("messages.helpAdminPauseCommand", "&e/wt admin eventos pausar|reanudar <id> &7Pausar o reanudar el tiempo de un evento")
+            lines += ConfigManager.string("messages.helpAdminEventHistoryCommand", "&e/wt admin eventos historial &7Ver eventos terminados con sus WT")
             lines += ConfigManager.string("messages.helpAdminUnscheduleCommand", "&e/wt admin eventos desprogramar <id> &7Cancelar un evento programado")
             lines += ConfigManager.string("messages.helpAdminToggleCommand", "&e/wt on | off &7Activar o desactivar Wonder Trade")
             lines += ConfigManager.string("messages.helpAdminReloadCommand", "&e/wt reload &7Recargar configuración y datos")

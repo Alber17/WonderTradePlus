@@ -435,6 +435,24 @@ class WonderTradePlus : ModInitializer {
             else context.source.sendSuccess({ WonderTradeService.info("&aEvento programado &f${item.title} &acancelado.") }, true)
             1
         }))
+        // Pausa o reanuda el tiempo de un evento activo (el tiempo restante y las esperas se conservan).
+        .then(literal("pausar").then(argument("id", IntegerArgumentType.integer(1)).executes { context ->
+            val event = WonderTradeEvents.pause(context.source.server, IntegerArgumentType.getInteger(context, "id"))
+            if (event == null) context.source.sendFailure(WonderTradeService.info("&cNo existe un evento en marcha con ese id (o ya está pausado)."))
+            else context.source.sendSuccess({ WonderTradeService.info("&aEvento &f${event.title} &apausado. Usa &f/wt admin eventos reanudar ${event.id}&a.") }, true)
+            1
+        }))
+        .then(literal("reanudar").then(argument("id", IntegerArgumentType.integer(1)).executes { context ->
+            val event = WonderTradeEvents.resume(context.source.server, IntegerArgumentType.getInteger(context, "id"))
+            if (event == null) context.source.sendFailure(WonderTradeService.info("&cNo existe ningún evento pausado con ese id."))
+            else context.source.sendSuccess({ WonderTradeService.info("&aEvento &f${event.title} &areanudado.") }, true)
+            1
+        }))
+        // Historial de eventos terminados (solo administradores, heredado de /wt admin).
+        .then(literal("historial").executes { context ->
+            context.source.sendSuccess({ WonderTradeEvents.historyComponent() }, false)
+            1
+        })
         .then(literal("parar").then(argument("id", IntegerArgumentType.integer(1)).executes { context ->
             val event = WonderTradeEvents.stop(context.source.server, IntegerArgumentType.getInteger(context, "id"))
             if (event == null) context.source.sendFailure(WonderTradeService.info("&cNo existe ningún evento activo con ese id."))
@@ -615,7 +633,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.16.6"
+        const val MOD_VERSION = "0.17.0"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }
