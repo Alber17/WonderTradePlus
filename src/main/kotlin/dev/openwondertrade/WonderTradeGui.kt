@@ -24,6 +24,10 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import net.minecraft.world.item.component.ItemLore
+import net.minecraft.world.item.component.ResolvableProfile
+import com.mojang.authlib.properties.Property
+import com.mojang.authlib.properties.PropertyMap
+import java.util.Optional
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.UUID
@@ -662,7 +666,7 @@ object WonderTradeGui {
                 else it.sendSystemMessage(WonderTradeService.info("&aCopia creada: &f$backup"))
                 openAdmin(it)
             }
-            menu.button(34, named(Items.NOTE_BLOCK, "&9Probar Discord", "&7Enviar un mensaje de prueba al webhook.")) { p ->
+            menu.button(34, discordHead("&9Probar Discord", "&7Enviar un mensaje de prueba al webhook.")) { p ->
                 WonderTradeDiscord.test { ok, message ->
                     p.server.execute {
                         p.sendSystemMessage(WonderTradeService.info(if (ok) "&a$message" else "&c$message"))
@@ -1178,7 +1182,7 @@ object WonderTradeGui {
                 menu.put(22, named(Items.PAPER, "&7No hay aportaciones", "&8No hay donantes registrados en la pool."))
             }
             donors.drop(current * 45).take(45).forEachIndexed { index, donor ->
-                menu.button(index, named(Items.PLAYER_HEAD, "&f$donor", "&7Eliminar todos sus Pokémon aportados.", "&cClic para eliminar")) { p ->
+                menu.button(index, playerHead(donor, "&f$donor", "&7Eliminar todos sus Pokémon aportados.", "&cClic para eliminar")) { p ->
                     val removed = WonderTradeService.removeDonorEntries(donor)
                     p.sendSystemMessage(WonderTradeService.info("&aEliminados &f$removed &aPokémon aportados por &f$donor&a."))
                     openAdminDonors(p, current)
@@ -1364,6 +1368,31 @@ object WonderTradeGui {
 
     private fun lit(value: String): Component =
         Component.literal(value.replace('&', '§')).setStyle(Style.EMPTY.withItalic(false))
+
+    /** Cabeza con la skin asociada al nombre del jugador donante. */
+    private fun playerHead(profileName: String, name: String, vararg lore: String): ItemStack {
+        val stack = named(Items.PLAYER_HEAD, name, *lore)
+        stack.set(
+            DataComponents.PROFILE,
+            ResolvableProfile(Optional.of(profileName), Optional.empty(), PropertyMap())
+        )
+        return stack
+    }
+
+    /** Cabeza decorativa con la textura oficial del logotipo de Discord. */
+    private fun discordHead(name: String, vararg lore: String): ItemStack {
+        val stack = named(Items.PLAYER_HEAD, name, *lore)
+        val properties = PropertyMap()
+        properties.put(
+            "textures",
+            Property(
+                "textures",
+                "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNGQ0MjMzN2JlMGJkY2EyMTI4MDk3ZjFjNWJiMTEwOWU1YzYzM2MxNzkyNmFmNWZiNmZjMjAwMDAwMTFhZWI1MyJ9fX0="
+            )
+        )
+        stack.set(DataComponents.PROFILE, ResolvableProfile(Optional.empty(), Optional.empty(), properties))
+        return stack
+    }
 
     private fun named(item: Item, name: String, vararg lore: String): ItemStack {
         val stack = ItemStack(item)
