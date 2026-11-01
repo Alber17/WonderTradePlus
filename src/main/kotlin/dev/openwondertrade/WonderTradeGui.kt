@@ -1157,10 +1157,8 @@ object WonderTradeGui {
             val generated = WonderTradeService.poolEntries().count { it.donorName.equals("Servidor", ignoreCase = true) }
             val playerEntries = WonderTradeService.poolEntries().count { !it.donorName.equals("Servidor", ignoreCase = true) }
             menu.put(4, named(Items.BARRIER, "&cEliminar por origen", "&7Elige qué Pokémon retirar de la pool.", "&7Generados por servidor: &f$generated", "&7Aportados por jugadores: &f$playerEntries"))
-            menu.button(11, named(Items.COMMAND_BLOCK, "&cSolo generados por la pool", "&7Elimina únicamente los Pokémon", "&7generados automáticamente por el servidor.")) { p ->
-                val removed = WonderTradeService.removeGeneratedPoolEntries()
-                p.sendSystemMessage(WonderTradeService.info("&aSe han eliminado &f$removed &aPokémon generados por la pool."))
-                openAdminPoolDeleteOptions(p)
+            menu.button(11, named(Items.COMMAND_BLOCK, "&cSolo generados por el servidor", "&7Elimina únicamente los Pokémon", "&7generados automáticamente por el servidor.", "&cPide confirmación.")) { p ->
+                openRemoveGeneratedPoolConfirm(p)
             }
             menu.button(13, named(Items.PLAYER_HEAD, "&cSolo generados por jugadores", "&7Abre la lista de jugadores que han aportado.", "&7Selecciona uno para eliminar sus Pokémon.")) { p ->
                 openAdminDonors(p)
@@ -1201,6 +1199,20 @@ object WonderTradeGui {
                 openAdmin(p)
             }
             menu.button(15, named(Items.ARROW, "&aCancelar")) { openAdmin(it) }
+        }
+    }
+
+    private fun openRemoveGeneratedPoolConfirm(player: ServerPlayer) {
+        val generated = WonderTradeService.poolEntries().count { it.donorName.equals("Servidor", ignoreCase = true) }
+        open(player, "&cConfirmar eliminación", 3) { menu ->
+            fill(menu, 27)
+            menu.put(4, named(Items.COMMAND_BLOCK, "&cEliminar Pokémon del servidor", "&7Se eliminarán &f$generated &7Pokémon", "&7generados automáticamente.", "&cLas aportaciones de jugadores se conservarán."))
+            menu.button(11, named(Items.TNT, "&cSí, eliminar", "&7Eliminar los Pokémon generados por el servidor.")) { p ->
+                val removed = WonderTradeService.removeGeneratedPoolEntries()
+                p.sendSystemMessage(WonderTradeService.info("&aSe han eliminado &f$removed &aPokémon generados por el servidor."))
+                openAdminPoolDeleteOptions(p)
+            }
+            menu.button(15, named(Items.LIME_STAINED_GLASS_PANE, "&aCancelar", "&7Volver a la selección de eliminaciones.")) { openAdminPoolDeleteOptions(it) }
         }
     }
 
