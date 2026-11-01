@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.17.4**.
+- Versión actual: **0.17.5**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -250,4 +250,13 @@
 - Historial de eventos terminados (`/wt admin eventos historial` y botón «Historial de eventos» del panel), con `events.history.keep` entradas (50 por defecto).
 - Pausar y reanudar un evento activo (`/wt admin eventos pausar|reanudar <id>` o desde el panel): el tiempo se congela, el evento no tiene efecto mientras está pausado, y al reanudar se conservan el tiempo restante y las esperas de los jugadores. Sobrevive a reinicios.
 - IVs: la búsqueda de la pool admite `6x31`, `5x31`… (mínimo de IVs perfectos) y `31spd`, `31hp`, `31atk`, `31def`, `31spatk`, `31spdef` (ese stat a 31), combinables con el nombre. Los Pokémon con 6x31 muestran una estrella.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.17.5
+
+- Cabezas de donantes (menú «Eliminar pool → jugadores»): se guardan el UUID y la textura de skin de cada jugador al entrar y al donar/intercambiar (`player-data.json`: `skinValue`, `skinSignature`), de modo que la cabeza se ve aunque esté desconectado. Sin textura guardada se usa solo el nombre (en servidores no premium el UUID no sirve para consultar a Mojang, por eso no se envía).
+- La entrada «Servidor» aparece la primera con una cabeza de dragón propia.
+- El botón «Solo generados por jugadores» usa una cabeza con la skin del administrador que abre el menú.
+- Opcional: `gui.heads.server` y `gui.heads.players` aceptan el valor base64 de «textures» de cualquier cabeza para sustituir esas dos.
 - Gradle no se ha ejecutado en el entorno de edición.

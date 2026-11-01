@@ -347,3 +347,12 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 - Pausar y reanudar un evento activo (`/wt admin eventos pausar|reanudar <id>` o desde el panel): el tiempo se congela, el evento no tiene efecto mientras está pausado, y al reanudar se conservan el tiempo restante y las esperas de los jugadores. Sobrevive a reinicios.
 - IVs: la búsqueda de la pool admite `6x31`, `5x31`… (mínimo de IVs perfectos) y `31spd`, `31hp`, `31atk`, `31def`, `31spatk`, `31spdef` (ese stat a 31), combinables con el nombre. Los Pokémon con 6x31 muestran una estrella.
 - Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.17.5
+
+- Cabezas de donantes (menú «Eliminar pool → jugadores»): se guardan el UUID y la textura de skin de cada jugador al entrar y al donar/intercambiar (`player-data.json`: `skinValue`, `skinSignature`), de modo que la cabeza se ve aunque esté desconectado. Sin textura guardada se usa solo el nombre (en servidores no premium el UUID no sirve para consultar a Mojang, por eso no se envía).
+- La entrada «Servidor» aparece la primera con una cabeza de dragón propia.
+- El botón «Solo generados por jugadores» usa una cabeza con la skin del administrador que abre el menú.
+- Opcional: `gui.heads.server` y `gui.heads.players` aceptan el valor base64 de «textures» de cualquier cabeza para sustituir esas dos.
+- Gradle no se ha ejecutado en el entorno de edición.

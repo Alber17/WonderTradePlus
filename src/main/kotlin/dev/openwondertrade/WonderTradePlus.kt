@@ -23,6 +23,7 @@ class WonderTradePlus : ModInitializer {
         // Aviso de eventos activos al entrar (todo en el servidor).
         net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register { handler, _, _ ->
             WonderTradeEventDisplay.onJoin(handler.player)
+            runCatching { WonderTradeService.rememberPlayer(handler.player) }
         }
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
             registerCommands(dispatcher, "wt")
@@ -584,7 +585,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.17.4"
+        const val MOD_VERSION = "0.17.5"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

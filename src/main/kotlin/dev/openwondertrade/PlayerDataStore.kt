@@ -161,6 +161,23 @@ class PlayerDataStore(private val file: Path) {
         playerNode(uuid, create = true)!!.addProperty("name", name)
     }
 
+    /** Guarda la textura de skin del jugador (la que informa su perfil al conectarse). Devuelve true si cambió. */
+    fun setSkin(uuid: UUID, value: String, signature: String?): Boolean {
+        val node = playerNode(uuid, create = true)!!
+        val same = node.get("skinValue")?.asString == value && node.get("skinSignature")?.takeIf { !it.isJsonNull }?.asString == signature
+        if (same) return false
+        node.addProperty("skinValue", value)
+        if (signature != null) node.addProperty("skinSignature", signature) else node.remove("skinSignature")
+        return true
+    }
+
+    /** Textura guardada (valor, firma) o null si nunca se vio una. */
+    fun skin(uuid: UUID): Pair<String, String?>? {
+        val node = playerNode(uuid, create = false) ?: return null
+        val value = node.get("skinValue")?.takeIf { !it.isJsonNull }?.asString ?: return null
+        return value to node.get("skinSignature")?.takeIf { !it.isJsonNull }?.asString
+    }
+
     /** Busca el UUID de un jugador por el último nombre guardado en un intercambio. */
     fun findByName(name: String): UUID? {
         val players = root.getAsJsonObject("players") ?: return null

@@ -1164,7 +1164,10 @@ object WonderTradeGui {
             menu.button(11, named(Items.COMMAND_BLOCK, "&cSolo generados por el servidor", "&7Elimina únicamente los Pokémon", "&7generados automáticamente por el servidor.", "&cPide confirmación.")) { p ->
                 openRemoveGeneratedPoolConfirm(p)
             }
-            menu.button(13, named(Items.PLAYER_HEAD, "&cSolo generados por jugadores", "&7Abre la lista de jugadores que han aportado.", "&7Selecciona uno para eliminar sus Pokémon.")) { p ->
+            val playersHead = configHead(
+                "gui.heads.players", "&cSolo generados por jugadores", "&7Abre la lista de jugadores que han aportado.", "&7Selecciona uno para eliminar sus Pokémon."
+            ) ?: playerHead(player.gameProfile.name, player.uuid, WonderTradeService.profileSkin(player), "&cSolo generados por jugadores", "&7Abre la lista de jugadores que han aportado.", "&7Selecciona uno para eliminar sus Pokémon.")
+            menu.button(13, playersHead) { p ->
                 openAdminDonors(p)
             }
             menu.button(15, named(Items.TNT, "&4Eliminar toda la pool", "&7Elimina todas las entradas, sin importar su origen.", "&cPide confirmación.")) { openClearPoolConfirm(it) }
@@ -1173,7 +1176,8 @@ object WonderTradeGui {
     }
 
     private fun openAdminDonors(player: ServerPlayer, page: Int = 0) {
-        val donors = WonderTradeService.poolDonors().sortedBy { it.lowercase() }
+        val donors = WonderTradeService.poolDonorProfiles()
+            .sortedWith(compareBy({ !it.first.equals("Servidor", ignoreCase = true) }, { it.first.lowercase() }))
         val pages = maxOf(1, (donors.size + 44) / 45)
         val current = page.coerceIn(0, pages - 1)
         open(player, "&5Administración &8- &cAportaciones", 6) { menu ->
@@ -1181,8 +1185,17 @@ object WonderTradeGui {
             if (donors.isEmpty()) {
                 menu.put(22, named(Items.PAPER, "&7No hay aportaciones", "&8No hay donantes registrados en la pool."))
             }
-            donors.drop(current * 45).take(45).forEachIndexed { index, donor ->
-                menu.button(index, playerHead(donor, "&f$donor", "&7Eliminar todos sus Pokémon aportados.", "&cClic para eliminar")) { p ->
+            donors.drop(current * 45).take(45).forEachIndexed { index, (donor, donorUuid) ->
+                val isServer = donor.equals("Servidor", ignoreCase = true)
+                val head = if (isServer) {
+                    configHead("gui.heads.server", "&6Servidor", "&7Pokémon generados por el servidor.", "&cClic para eliminar")
+                        ?: named(Items.DRAGON_HEAD, "&6Servidor", "&7Pokémon generados por el servidor.", "&cClic para eliminar")
+                } else {
+                    // Con UUID y textura guardados la cabeza se ve aunque el jugador esté desconectado; si no, se resuelve por nombre.
+                    val skin = donorUuid?.let { WonderTradeService.donorSkin(it) }
+                    playerHead(donor, donorUuid, skin, "&f$donor", "&7Eliminar todos sus Pokémon aportados.", "&cClic para eliminar")
+                }
+                menu.button(index, head) { p ->
                     val removed = WonderTradeService.removeDonorEntries(donor)
                     p.sendSystemMessage(WonderTradeService.info("&aEliminados &f$removed &aPokémon aportados por &f$donor&a."))
                     openAdminDonors(p, current)
@@ -1369,13 +1382,32 @@ object WonderTradeGui {
     private fun lit(value: String): Component =
         Component.literal(value.replace('&', '§')).setStyle(Style.EMPTY.withItalic(false))
 
-    /** Cabeza con la skin asociada al nombre del jugador donante. */
-    private fun playerHead(profileName: String, name: String, vararg lore: String): ItemStack {
+    /**
+     * Cabeza de un jugador. Si hay textura guardada (valor y firma) se usa tal cual, junto con su UUID, y no depende de que esté
+     * conectado ni de Mojang. Sin textura se usa solo el nombre (el cliente lo resuelve; en servidores no premium el UUID
+     * no sirve para consultar a Mojang, por eso no se envía).
+     */
+    private fun playerHead(profileName: String, uuid: java.util.UUID?, skin: Pair<String, String?>?, name: String, vararg lore: String): ItemStack {
         val stack = named(Items.PLAYER_HEAD, name, *lore)
-        stack.set(
-            DataComponents.PROFILE,
-            ResolvableProfile(Optional.of(profileName), Optional.empty(), PropertyMap())
-        )
+        val properties = PropertyMap()
+        if (skin != null) {
+            val signature = skin.second
+            properties.put("textures", if (signature != null) Property("textures", skin.first, signature) else Property("textures", skin.first))
+            stack.set(DataComponents.PROFILE, ResolvableProfile(Optional.of(profileName), Optional.ofNullable(uuid), properties))
+        } else {
+            stack.set(DataComponents.PROFILE, ResolvableProfile(Optional.of(profileName), Optional.empty(), properties))
+        }
+        return stack
+    }
+
+    /** Cabeza con textura propia indicada en la configuración (valor base64 de «textures»); null si no hay ninguna. */
+    private fun configHead(key: String, name: String, vararg lore: String): ItemStack? {
+        val value = ConfigManager.string(key, "").trim()
+        if (value.isEmpty()) return null
+        val stack = named(Items.PLAYER_HEAD, name, *lore)
+        val properties = PropertyMap()
+        properties.put("textures", Property("textures", value))
+        stack.set(DataComponents.PROFILE, ResolvableProfile(Optional.empty(), Optional.empty(), properties))
         return stack
     }
 

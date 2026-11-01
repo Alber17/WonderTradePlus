@@ -167,7 +167,11 @@
     "poolViewPermissionLevel": 0,
     "showDonorNames": true,
     "showBonusRatesInBook": true,
-    "showTradePreview": true
+    "showTradePreview": true,
+    "heads": {
+      "server": "",
+      "players": ""
+    }
   },
   "broadcast": {
     "enabled": true,

@@ -342,6 +342,27 @@ object WonderTradeService {
     fun historyPlayers(): List<String> = history.players()
     fun poolDonors(): List<String> = pool.all().map { it.donorName }.distinct()
 
+    /** Donantes distintos de la pool con su UUID (si la entrada lo guarda), para mostrar sus cabezas aunque estén desconectados. */
+    fun poolDonorProfiles(): List<Pair<String, UUID?>> =
+        pool.all().groupBy { it.donorName.lowercase() }.values.map { group ->
+            group.first().donorName to group.firstNotNullOfOrNull { runCatching { UUID.fromString(it.donorUuid) }.getOrNull() }
+        }
+
+    /** Textura de skin guardada de un jugador (valor, firma). */
+    fun donorSkin(uuid: UUID): Pair<String, String?>? = playerData.skin(uuid)
+
+    /** Textura de skin del perfil de un jugador conectado, si su perfil la incluye. */
+    fun profileSkin(player: ServerPlayer): Pair<String, String?>? =
+        runCatching { player.gameProfile.properties.get("textures").firstOrNull() }.getOrNull()?.let { it.value() to it.signature() }
+
+    /** Guarda nombre y skin del jugador para poder dibujar su cabeza cuando no esté conectado. */
+    fun rememberPlayer(player: ServerPlayer) {
+        var changed = false
+        playerData.setName(player.uuid, player.gameProfile.name)
+        profileSkin(player)?.let { (value, signature) -> changed = playerData.setSkin(player.uuid, value, signature) }
+        if (changed) playerData.save()
+    }
+
     private var speciesCache: List<String>? = null
 
     /** Solo especies base. Las formas regionales se eligen después como opciones (alolan, galarian…). */
@@ -632,7 +653,7 @@ object WonderTradeService {
             if (!store.remove(offered)) throw IllegalStateException("No se pudo retirar el Pokémon donado del equipo/PC")
             pool.add(PoolEntry.fromPokemon(donation, registryAccess, player.gameProfile.name, now, player.uuid.toString()))
             pool.save()
-            playerData.setName(player.uuid, player.gameProfile.name)
+            rememberPlayer(player)
             playerData.recordDonation(player.uuid, WonderTradeRules.isRare(donation), now)
             playerData.save()
         } catch (exception: Exception) {
@@ -751,7 +772,7 @@ object WonderTradeService {
             val incomingRare = WonderTradeRules.isRare(incoming)
             playerData.recordTrade(player.uuid, now, offeredRare, incomingRare, affectCooldown = eventUse == null)
             if (eventUse != null) WonderTradeEvents.markUsed(player, eventUse)
-            playerData.setName(player.uuid, player.gameProfile.name)
+            rememberPlayer(player)
             var bonusAfter = bonusBefore
             if (bonusEnabled) {
                 bonusAfter = when {
