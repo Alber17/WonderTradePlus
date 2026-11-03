@@ -400,3 +400,9 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 
 - Panel de administración: nuevo botón «Top Donaciones» (esmeralda/redstone) en la fila de servidor que activa o desactiva el Top Donaciones (`topDonations.enabled`) y muestra si este mes hay Top. El cambio se guarda en `config.json`.
 - Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.18.2
+
+- Panel de administración redistribuido: se quita el objeto «Panel de administración» del centro superior y los botones quedan en cuatro filas con espacio entre ellos (Pool, Servidor, Datos y Sistema). Historial y Reiniciar estadísticas pasan a la nueva fila «Datos».
+- Gradle no se ha ejecutado en el entorno de edición.

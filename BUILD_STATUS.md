@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.18.1**.
+- Versión actual: **0.18.2**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -303,4 +303,10 @@
 ## 0.18.1
 
 - Panel de administración: nuevo botón «Top Donaciones» (esmeralda/redstone) en la fila de servidor que activa o desactiva el Top Donaciones (`topDonations.enabled`) y muestra si este mes hay Top. El cambio se guarda en `config.json`.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.18.2
+
+- Panel de administración redistribuido: se quita el objeto «Panel de administración» del centro superior y los botones quedan en cuatro filas con espacio entre ellos (Pool, Servidor, Datos y Sistema). Historial y Reiniciar estadísticas pasan a la nueva fila «Datos».
 - Gradle no se ha ejecutado en el entorno de edición.

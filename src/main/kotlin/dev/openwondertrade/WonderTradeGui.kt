@@ -611,11 +611,7 @@ object WonderTradeGui {
         open(player, ConfigManager.string("messages.adminMenuTitle", "&5Wonder Trade &8- &cAdministración"), 6) { menu ->
             fill(menu, 54)
             val on = WonderTradeService.isEnabled()
-            menu.put(4, named(
-                Items.NETHER_STAR, "&cPanel de administración",
-                "&7Wonder Trade: ${if (on) "&aactivado" else "&cdesactivado"}"
-            ))
-
+            // Cada fila es un grupo (etiqueta a la izquierda) con los botones espaciados de dos en dos.
             // Fila 1: pool
             menu.put(9, named(Items.ORANGE_STAINED_GLASS_PANE, "&6Pool"))
             menu.button(11, named(Items.CHEST, ConfigManager.string("messages.adminMenuPool", "&6Gestionar pool"), "&7Ver y administrar los Pokémon.")) {
@@ -644,42 +640,44 @@ object WonderTradeGui {
             ) else named(
                 Items.REDSTONE, "&cTop Donaciones: DESACTIVADO", "&7No se suman puntos ni se dan premios.", "&eClic para activar"
             )
-            menu.button(21, topStack) {
+            menu.button(22, topStack) {
                 ConfigManager.setBool("topDonations.enabled", !WonderTradeTopDonations.enabled())
                 openAdmin(it)
             }
             val toggleStack = if (on) named(Items.LIME_DYE, "&aWonder Trade: ACTIVADO", "&7Los jugadores pueden intercambiar y donar.", "&eClic para desactivar")
             else named(Items.RED_DYE, "&cWonder Trade: DESACTIVADO", "&7Los jugadores no pueden intercambiar ni donar.", "&eClic para activar")
-            menu.button(22, toggleStack) {
+            menu.button(24, toggleStack) {
                 WonderTradeService.setEnabled(!WonderTradeService.isEnabled())
                 openAdmin(it)
             }
-            menu.button(24, named(Items.WRITABLE_BOOK, ConfigManager.string("messages.adminMenuHistory", "&eHistorial"), "&7Últimos intercambios.")) {
+            // Fila 3: datos
+            menu.put(27, named(Items.YELLOW_STAINED_GLASS_PANE, "&eDatos"))
+            menu.button(29, named(Items.WRITABLE_BOOK, ConfigManager.string("messages.adminMenuHistory", "&eHistorial"), "&7Últimos intercambios.")) {
                 openHistory(it)
             }
-            menu.button(26, named(Items.BOOK, "&eReiniciar estadísticas", "&7Reinicia todos los rankings y estadísticas.", "&cNo se puede deshacer.")) {
+            menu.button(31, named(Items.BOOK, "&eReiniciar estadísticas", "&7Reinicia todos los rankings y estadísticas.", "&cNo se puede deshacer.")) {
                 openResetStatsConfirm(it)
             }
 
-            // Fila 3: sistema
-            menu.put(27, named(Items.LIGHT_BLUE_STAINED_GLASS_PANE, "&bSistema"))
-            menu.button(28, named(Items.COMPARATOR, ConfigManager.string("messages.adminMenuReload", "&bRecargar configuración"))) {
+            // Fila 4: sistema
+            menu.put(36, named(Items.LIGHT_BLUE_STAINED_GLASS_PANE, "&bSistema"))
+            menu.button(38, named(Items.COMPARATOR, ConfigManager.string("messages.adminMenuReload", "&bRecargar configuración"))) {
                 WonderTradeService.reload()
                 WonderTradeService.send(it, "reload")
                 openAdmin(it)
             }
-            menu.button(30, named(Items.HOPPER, ConfigManager.string("messages.adminMenuMaintenance", "&aEjecutar mantenimiento"), "&7Caducidad y purga de la pool.")) {
+            menu.button(40, named(Items.HOPPER, ConfigManager.string("messages.adminMenuMaintenance", "&aEjecutar mantenimiento"), "&7Caducidad y purga de la pool.")) {
                 val (expired, generated) = WonderTradeService.maintainPool(it.server)
                 it.sendSystemMessage(WonderTradeService.info("&aMantenimiento: &f$expired &aPokémon eliminados, &f$generated &agenerados."))
                 openAdmin(it)
             }
-            menu.button(32, named(Items.PAPER, ConfigManager.string("messages.adminMenuBackup", "&dCrear copia de seguridad"))) {
+            menu.button(42, named(Items.PAPER, ConfigManager.string("messages.adminMenuBackup", "&dCrear copia de seguridad"))) {
                 val backup = WonderTradeService.backupNow()
                 if (backup == null) it.sendSystemMessage(WonderTradeService.info("&cNo se pudo crear la copia."))
                 else it.sendSystemMessage(WonderTradeService.info("&aCopia creada: &f$backup"))
                 openAdmin(it)
             }
-            menu.button(34, discordHead("&9Probar Discord", "&7Enviar un mensaje de prueba al webhook.")) { p ->
+            menu.button(44, discordHead("&9Probar Discord", "&7Enviar un mensaje de prueba al webhook.")) { p ->
                 WonderTradeDiscord.test { ok, message ->
                     p.server.execute {
                         p.sendSystemMessage(WonderTradeService.info(if (ok) "&a$message" else "&c$message"))
