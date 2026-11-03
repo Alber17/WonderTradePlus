@@ -394,3 +394,9 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 - Anti-repetición al donar: no se puede donar la misma especie (`donation.sameSpecies.period`: `month`, `week` u `off`) ni el mismo ejemplar (`donation.blockSameIndividual`) dentro del periodo.
 - `config-guide.txt`, README y documentación actualizados.
 - Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.18.1
+
+- Panel de administración: nuevo botón «Top Donaciones» (esmeralda/redstone) en la fila de servidor que activa o desactiva el Top Donaciones (`topDonations.enabled`) y muestra si este mes hay Top. El cambio se guarda en `config.json`.
+- Gradle no se ha ejecutado en el entorno de edición.

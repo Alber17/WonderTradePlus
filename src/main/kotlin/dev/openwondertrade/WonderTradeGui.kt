@@ -635,6 +635,19 @@ object WonderTradeGui {
             menu.button(20, named(Items.NETHER_STAR, "&dGestionar eventos", "&7Crea eventos temporales para todos.", "&eClic para abrir")) {
                 openAdminEvents(it)
             }
+            // Top Donaciones: activar o desactivar el evento mensual de donadores.
+            val topOn = WonderTradeTopDonations.enabled()
+            val thisMonth = java.time.YearMonth.now(WonderTradeSchedule.zone())
+            val monthState = if (WonderTradeTopDonations.isActiveMonth(thisMonth)) "&aEste mes hay Top" else "&7Este mes no hay Top"
+            val topStack = if (topOn) named(
+                Items.EMERALD, "&aTop Donaciones: ACTIVADO", "&7Premios mensuales a los mejores donadores.", monthState, "&eClic para desactivar"
+            ) else named(
+                Items.REDSTONE, "&cTop Donaciones: DESACTIVADO", "&7No se suman puntos ni se dan premios.", "&eClic para activar"
+            )
+            menu.button(21, topStack) {
+                ConfigManager.setBool("topDonations.enabled", !WonderTradeTopDonations.enabled())
+                openAdmin(it)
+            }
             val toggleStack = if (on) named(Items.LIME_DYE, "&aWonder Trade: ACTIVADO", "&7Los jugadores pueden intercambiar y donar.", "&eClic para desactivar")
             else named(Items.RED_DYE, "&cWonder Trade: DESACTIVADO", "&7Los jugadores no pueden intercambiar ni donar.", "&eClic para activar")
             menu.button(22, toggleStack) {

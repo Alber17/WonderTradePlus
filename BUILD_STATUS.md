@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.18.0**.
+- Versión actual: **0.18.1**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -297,4 +297,10 @@
 - Límite de donaciones mensual: `donation.limitMode` (`monthly` por defecto, se reinicia el día 1) con `donation.monthlyLimit` (20 por defecto). `weekly` conserva la ventana móvil de 7 días y `donation.weeklyLimit`.
 - Anti-repetición al donar: no se puede donar la misma especie (`donation.sameSpecies.period`: `month`, `week` u `off`) ni el mismo ejemplar (`donation.blockSameIndividual`) dentro del periodo.
 - `config-guide.txt`, README y documentación actualizados.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.18.1
+
+- Panel de administración: nuevo botón «Top Donaciones» (esmeralda/redstone) en la fila de servidor que activa o desactiva el Top Donaciones (`topDonations.enabled`) y muestra si este mes hay Top. El cambio se guarda en `config.json`.
 - Gradle no se ha ejecutado en el entorno de edición.
