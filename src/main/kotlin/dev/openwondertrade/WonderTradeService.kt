@@ -868,9 +868,40 @@ object WonderTradeService {
     // ------------------------------------------------------------ preparación de eventos
 
     /** Genera un Pokémon de la categoría indicada (shiny o de especie), o null si no se encuentra. */
-    private fun generateForCategory(player: ServerPlayer, category: EventCategory, low: Int, high: Int, attempts: Int): Pokemon? =
-        if (category == EventCategory.SHINY) generateRandom(player, low, high, attempts, true) { fillAllowed(it) }
-        else generateRandom(player, low, high, attempts, null) { fillAllowed(it) && category.matches(it) }
+    /**
+     * Genera un Pokémon de la categoría de un evento eligiendo la especie nosotros (no con la especie «random» de
+     * Cobblemon, que repetía casi siempre las mismas). Se sortean primero las especies que todavía no están en la
+     * pool, para que cada reposición traiga uno distinto; si ya están todas, se repite alguna.
+     */
+    private fun generateForCategory(player: ServerPlayer, category: EventCategory, low: Int, high: Int, attempts: Int): Pokemon? {
+        val inPool = pool.all().map { it.species.lowercase() }.toHashSet()
+        data class Template(val speciesId: String, val form: com.cobblemon.mod.common.pokemon.FormData?)
+        val templates: List<Template> = if (category == EventCategory.SHINY) {
+            PokemonSpecies.species.map { Template(it.resourceIdentifier.toString(), null) }
+        } else {
+            speciesByCategory(player)[category.speciesCategory()].orEmpty().map { Template(it.species.resourceIdentifier.toString(), it.form) }
+        }
+        val (unused, used) = templates.shuffled().partition { it.speciesId.lowercase() !in inPool }
+        for (template in (unused + used.shuffled()).take(attempts)) {
+            val candidate = runCatching {
+                PokemonProperties().apply {
+                    this.species = template.speciesId
+                    this.level = Random.nextInt(low, high + 1)
+                    if (category == EventCategory.SHINY) this.shiny = true
+                }.create(player).also { created ->
+                    val form = template.form
+                    if (form != null && created.form.name != form.name) {
+                        created.form = form
+                        created.updateAspects()
+                    }
+                }
+            }.getOrNull() ?: continue
+            if (!fillAllowed(candidate)) continue
+            if (category != EventCategory.SHINY && !category.matches(candidate)) continue
+            return candidate
+        }
+        return null
+    }
 
     /**
      * Prepara un evento recién iniciado: asegura que la pool tenga Pokémon de su categoría (retirando los normales

@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.17.6**.
+- Versión actual: **0.17.7**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -273,4 +273,10 @@
 - Espera para staff: nueva clave `trade.cooldownBypassPermissionLevel` (5 = nadie se salta la espera; con 2 vuelven a saltársela los admins). Sustituye a `trade.adminBypassPermissionLevel`, que ya no se usa. Si más adelante usas LuckPerms se puede afinar por grupo.
 - Nombres de eventos más claros: «Apuesta de Shiny y Legendario» / «Lluvia de Mítico, Ultraente y Paradoja» (`events.names.risk` y `events.names.receive`).
 - Nuevo `config-guide.txt` (se regenera en cada arranque junto a `config.json`) con la explicación de cada apartado, comandos y permisos.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.17.7
+
+- Pokémon generados para un evento: la especie ya no la elige el `random` de Cobblemon (repetía casi siempre las mismas). Ahora se sortea de la lista de especies de la categoría del evento, priorizando las que todavía no están en la pool; también incluye las formas regionales. Para eventos Shiny se sortea entre todas las especies.
 - Gradle no se ha ejecutado en el entorno de edición.
