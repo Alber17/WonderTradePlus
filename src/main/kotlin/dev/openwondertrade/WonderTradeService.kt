@@ -32,6 +32,7 @@ object WonderTradeService {
         history = HistoryStore(directory.resolve("history.json"))
         WonderTradeEvents.load(directory)
         WonderTradeSchedule.load(directory)
+        WonderTradeTopDonations.load(directory)
         pool.load()
         trimAndSave()
         playerData.load()
@@ -46,6 +47,7 @@ object WonderTradeService {
         entryCategoryCache.clear()
         WonderTradeEvents.load()
         WonderTradeSchedule.load()
+        WonderTradeTopDonations.load()
         pool.load()
         trimAndSave()
         playerData.load()
@@ -133,6 +135,7 @@ object WonderTradeService {
             ConfigManager.string("messages.helpDonateCommand", "&e/wt donar &7Donar un Pokémon a la pool"),
             ConfigManager.string("messages.helpStatsCommand", "&e/wt stats [jugador] &7Consultar estadísticas"),
             ConfigManager.string("messages.helpTopCommand", "&e/wt top &7Abrir el menú de rankings"),
+            ConfigManager.string("messages.helpTopDonationsCommand", "&e/wt donaciones &7Ver el Top Donaciones del mes"),
             ConfigManager.string("messages.helpEventsCommand", "&e/wt eventos &7Ver los eventos activos"),
             ConfigManager.string("messages.helpSpecialsCommand", "&e/wt especiales &7Ver qué Pokémon son míticos, legendarios, Ultraentes y Paradoja"),
             ConfigManager.string("messages.helpRankCommand", "&e/wt rango &7Ver tu rango y sus ventajas"),
@@ -223,12 +226,43 @@ object WonderTradeService {
             ))
             return false
         }
-        val weeklyLimit = ConfigManager.int("donation.weeklyLimit", 5).coerceAtLeast(0)
-        if (weeklyLimit > 0 && playerData.donationsInLastWeek(player.uuid) >= weeklyLimit) {
-            send(player, "donationWeeklyLimit", mapOf("limit" to weeklyLimit))
-            return false
+        // Límite de donaciones: por mes natural (se reinicia el día 1) o por ventana móvil de 7 días.
+        if (ConfigManager.string("donation.limitMode", "monthly").equals("weekly", ignoreCase = true)) {
+            val weeklyLimit = ConfigManager.int("donation.weeklyLimit", 5).coerceAtLeast(0)
+            if (weeklyLimit > 0 && playerData.donationsInLastWeek(player.uuid) >= weeklyLimit) {
+                send(player, "donationWeeklyLimit", mapOf("limit" to weeklyLimit))
+                return false
+            }
+        } else {
+            val monthlyLimit = ConfigManager.int("donation.monthlyLimit", 20).coerceAtLeast(0)
+            if (monthlyLimit > 0 && playerData.donationsThisMonth(player.uuid, WonderTradeSchedule.zone()) >= monthlyLimit) {
+                send(player, "donationMonthlyLimit", mapOf("limit" to monthlyLimit))
+                return false
+            }
         }
         return true
+    }
+
+    /** No se puede donar dos veces la misma especie (ni el mismo ejemplar) dentro del periodo configurado. */
+    private fun donationRepeated(player: ServerPlayer, pokemon: Pokemon): Boolean {
+        val period = ConfigManager.string("donation.sameSpecies.period", "month").lowercase()
+        if (period == "off") return false
+        val now = System.currentTimeMillis()
+        val zone = WonderTradeSchedule.zone()
+        fun within(moment: Long): Boolean = if (period == "week") now - moment < 7L * 24L * 3_600_000L
+        else java.time.YearMonth.from(java.time.Instant.ofEpochMilli(moment).atZone(zone)) == java.time.YearMonth.now(zone)
+        val species = pokemon.species.resourceIdentifier.path.lowercase()
+        playerData.lastDonatedSpecies(player.uuid, species)?.takeIf { within(it) }?.let {
+            send(player, "donationSameSpecies", mapOf("period" to if (period == "week") "esta semana" else "este mes"))
+            return true
+        }
+        if (ConfigManager.bool("donation.blockSameIndividual", true)) {
+            playerData.lastDonatedIndividual(player.uuid, pokemon.uuid.toString())?.takeIf { within(it) }?.let {
+                send(player, "donationSameIndividual", mapOf("period" to if (period == "week") "esta semana" else "este mes"))
+                return true
+            }
+        }
+        return false
     }
 
     fun clearPool() {
@@ -279,6 +313,7 @@ object WonderTradeService {
             return false
         }
         if (repeatedSpecies(player, pokemon)) return false
+        if (donationRepeated(player, pokemon)) return false
         val speciesPath = pokemon.species.resourceIdentifier.path.lowercase()
         val blocked = ConfigManager.strings("donation.speciesBlacklist").map { it.substringAfter(':').lowercase() }
         if (speciesPath in blocked) {
@@ -666,6 +701,7 @@ object WonderTradeService {
             rememberPlayer(player)
             playerData.setLastOfferedSpecies(player.uuid, offered.species.resourceIdentifier.path.lowercase())
             playerData.recordDonation(player.uuid, WonderTradeRules.isRare(donation), now)
+            playerData.recordDonatedPokemon(player.uuid, offered.species.resourceIdentifier.path.lowercase(), offered.uuid.toString(), now)
             playerData.save()
         } catch (exception: Exception) {
             WonderTradePlus.LOGGER.error("Ha fallado la donación de Wonder Trade para {}. Se intentará revertirla.", player.gameProfile.name, exception)
@@ -680,6 +716,7 @@ object WonderTradeService {
         send(player, "donationSuccess", mapOf("pokemon" to donation.getDisplayName().string, "size" to pool.size))
         announceDonation(player, donation)
         WonderTradeDiscord.notifyDonation(player, donation)
+        runCatching { WonderTradeTopDonations.record(player, donation) }.onFailure { WonderTradePlus.LOGGER.error("No se pudo registrar la donación en el Top Donaciones.", it) }
     }
 
     private fun performTrade(player: ServerPlayer, party: PokemonStore<*>, offered: Pokemon) {
@@ -1139,6 +1176,7 @@ object WonderTradeService {
         if (tickCounter % 20 != 0) return
         secondCounter++
         runCatching { WonderTradeEvents.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el control de eventos.", it) }
+        runCatching { WonderTradeTopDonations.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el Top Donaciones.", it) }
         server.playerList.players.forEach { WonderTradeGui.refreshCooldown(it) }
         runCatching { checkCooldownNotices(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el aviso de disponibilidad.", it) }
         val now = System.currentTimeMillis()

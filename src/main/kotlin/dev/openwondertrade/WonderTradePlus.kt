@@ -126,6 +126,9 @@ class WonderTradePlus : ModInitializer {
             // «categorias» es alias de «especiales».
             .then(literal("especiales").executes { openSpecialsCommand(it) })
             .then(literal("categorias").executes { openSpecialsCommand(it) })
+            // PERMISO: público; Top Donaciones del mes (puntos, ranking y próximo mes activo). «topdonaciones» es alias.
+            .then(literal("donaciones").executes { showTopDonationsCommand(it) })
+            .then(literal("topdonaciones").executes { showTopDonationsCommand(it) })
             // PERMISO: público; muestra tu rango y sus ventajas.
             .then(literal("rango").executes { context ->
                 val player = context.source.playerOrException
@@ -187,6 +190,11 @@ class WonderTradePlus : ModInitializer {
 
     private fun showEventsCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>): Int {
         context.source.sendSuccess({ WonderTradeEvents.eventsComponent(context.source.player) }, false)
+        return 1
+    }
+
+    private fun showTopDonationsCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>): Int {
+        context.source.sendSuccess({ WonderTradeTopDonations.component(context.source.player) }, false)
         return 1
     }
 
@@ -587,7 +595,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.17.7"
+        const val MOD_VERSION = "0.18.0"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

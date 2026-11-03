@@ -9,7 +9,7 @@ object WonderTradeDiscord {
     private val httpClient: java.net.http.HttpClient by lazy { java.net.http.HttpClient.newHttpClient() }
 
     /** Envía un mensaje al webhook de Discord sin bloquear el servidor. `onResult` se llama desde otro hilo. */
-    private fun discordPost(content: String, force: Boolean = false, onResult: ((Boolean, String) -> Unit)? = null) {
+    private fun discordPost(content: String, force: Boolean = false, onResult: ((Boolean, String) -> Unit)? = null, roleId: String? = null) {
         if (!force && !ConfigManager.bool("discord.enabled", false)) return
         val url = ConfigManager.string("discord.webhookUrl", "").trim()
         if (url.isEmpty()) {
@@ -21,7 +21,11 @@ object WonderTradeDiscord {
                 addProperty("content", content)
                 addProperty("username", ConfigManager.string("discord.username", "WonderTrade"))
                 // Evita que un apodo con @everyone o @here mencione a nadie.
-                add("allowed_mentions", com.google.gson.JsonObject().apply { add("parse", com.google.gson.JsonArray()) })
+                // Solo se permite mencionar el rol configurado para eventos (si lo hay).
+                add("allowed_mentions", com.google.gson.JsonObject().apply {
+                    add("parse", com.google.gson.JsonArray())
+                    if (roleId != null) add("roles", com.google.gson.JsonArray().also { it.add(roleId) })
+                })
             }
             val request = java.net.http.HttpRequest.newBuilder(java.net.URI.create(url))
                 .timeout(java.time.Duration.ofSeconds(10))
@@ -43,6 +47,66 @@ object WonderTradeDiscord {
             WonderTradePlus.LOGGER.warn("Webhook de Discord inválido: {}", exception.message)
             onResult?.invoke(false, "La URL del webhook no es válida.")
         }
+    }
+
+    // ------------------------------------------------------------ eventos
+
+    private fun eventsEnabled(kind: String): Boolean =
+        ConfigManager.bool("discord.enabled", false) && ConfigManager.bool("discord.events.enabled", true) &&
+            ConfigManager.bool("discord.events.$kind", true)
+
+    /** Envía el aviso de un evento; si hay rol configurado (discord.events.mentionRoleId) lo menciona al principio. */
+    private fun postEvent(template: String, values: Map<String, Any>) {
+        if (template.isBlank()) return
+        val role = ConfigManager.string("discord.events.mentionRoleId", "").trim().takeIf { it.isNotEmpty() && it.all(Char::isDigit) }
+        val text = WonderTradeService.format(template, values)
+        discordPost(if (role != null) "<@&$role> $text" else text, roleId = role)
+    }
+
+    private fun epoch(millis: Long): Long = millis / 1000L
+
+    fun eventStarted(event: WtEvent) {
+        if (!eventsEnabled("start")) return
+        val details = WonderTradeEvents.describe(event).joinToString("\n") { it.replace(Regex("&."), "") }
+        postEvent(
+            ConfigManager.string("discord.eventStartMessage", "🎉 **Evento iniciado: {name}**\n{details}\n⏱️ Dura {duration} · termina <t:{endEpoch}:R>"),
+            mapOf(
+                "name" to event.title, "details" to details,
+                "duration" to WonderTradeEvents.formatDuration((event.endAt - event.startAt) / 1000L), "endEpoch" to epoch(event.endAt)
+            )
+        )
+    }
+
+    fun eventEnded(event: WtEvent) {
+        if (!eventsEnabled("end")) return
+        postEvent(ConfigManager.string("discord.eventEndMessage", "🏁 **Ha terminado el evento: {name}**"), mapOf("name" to event.title))
+    }
+
+    fun eventScheduledSoon(item: ScheduledEvent) {
+        if (!eventsEnabled("scheduledSoon")) return
+        postEvent(
+            ConfigManager.string("discord.eventSoonMessage", "⏰ **{name}** empieza <t:{startEpoch}:R>"),
+            mapOf("name" to item.title, "startEpoch" to epoch(item.nextRunAt))
+        )
+    }
+
+    /** Anuncio del Top Donaciones al cerrar el mes (líneas ya sin códigos de color). */
+    fun topDonations(lines: List<String>) {
+        if (!eventsEnabled("topDonations") || lines.isEmpty()) return
+        discordPost(lines.joinToString("\n"))
+    }
+
+    fun eventPaused(event: WtEvent) {
+        if (!eventsEnabled("pause")) return
+        postEvent(ConfigManager.string("discord.eventPausedMessage", "⏸️ El evento **{name}** se ha pausado temporalmente."), mapOf("name" to event.title))
+    }
+
+    fun eventResumed(event: WtEvent) {
+        if (!eventsEnabled("pause")) return
+        postEvent(
+            ConfigManager.string("discord.eventResumedMessage", "▶️ El evento **{name}** se ha reanudado. Termina <t:{endEpoch}:R>."),
+            mapOf("name" to event.title, "endEpoch" to epoch(event.endAt))
+        )
     }
 
     fun test(callback: (Boolean, String) -> Unit) {

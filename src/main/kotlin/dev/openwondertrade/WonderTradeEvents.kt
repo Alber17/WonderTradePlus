@@ -371,6 +371,7 @@ object WonderTradeEvents {
         save()
         broadcast(server, ConfigManager.string("messages.eventStarted", "&d★ ¡Evento «{name}» activo durante {duration}! &7Usa &e/wt eventos &7para ver los detalles."),
             mapOf("name" to event.title, "duration" to formatDuration(durationSeconds)))
+        runCatching { WonderTradeDiscord.eventStarted(event) }
         // Asegura Pokémon de la categoría en la pool y anuncia cuáles hay; si no hay jugadores, se hace al entrar el primero.
         if (!runCatching { WonderTradeService.prepareEvent(server, event) }.getOrDefault(true)) pendingSetup.add(event.id)
         return event
@@ -394,6 +395,7 @@ object WonderTradeEvents {
         event.pausedAt = now
         save()
         broadcast(server, ConfigManager.string("messages.eventPaused", "&d★ El evento «{name}» se ha pausado temporalmente."), mapOf("name" to event.title))
+        runCatching { WonderTradeDiscord.eventPaused(event) }
         return event
     }
 
@@ -407,6 +409,7 @@ object WonderTradeEvents {
         save()
         broadcast(server, ConfigManager.string("messages.eventResumed", "&d★ El evento «{name}» se ha reanudado. Termina en &f{time}&d."),
             mapOf("name" to event.title, "time" to formatDuration((event.endAt - System.currentTimeMillis() + 999L) / 1000L)))
+        runCatching { WonderTradeDiscord.eventResumed(event) }
         return event
     }
 
@@ -450,6 +453,7 @@ object WonderTradeEvents {
     private fun announceEnd(server: MinecraftServer, event: WtEvent) {
         broadcast(server, ConfigManager.string("messages.eventEnded", "&d★ El evento «{name}» ha terminado."),
             mapOf("name" to event.title))
+        runCatching { WonderTradeDiscord.eventEnded(event) }
     }
 
     fun broadcast(server: MinecraftServer, template: String, values: Map<String, Any>) {

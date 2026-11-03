@@ -360,6 +360,8 @@ object WonderTradeSchedule {
                     ConfigManager.string("messages.eventScheduledSoon", "&d★ El evento «{name}» empezará en &f{time}&d."),
                     mapOf("name" to item.title, "time" to WonderTradeEvents.formatDuration((item.nextRunAt - now + 999L) / 1000L))
                 )
+                // A Discord solo se avisa con la antelación mayor, para no repetir el mensaje.
+                if (minutes == marks.max()) runCatching { WonderTradeDiscord.eventScheduledSoon(item) }
             }
         }
     }

@@ -26,6 +26,7 @@ Publicos (nivel 0):
   /wt stats                 Tus estadisticas (gui.statsOwnPermissionLevel).
   /wt stats <jugador>       Estadisticas de otro (gui.statsOthersPermissionLevel).
   /wt top                   Menu de rankings.
+  /wt donaciones            Top Donaciones del mes (alias: /wt topdonaciones).
   /wt especiales            Lista de legendarios, miticos, Ultraentes y Paradoja.
   /wt rango                 Tu rango y sus ventajas.
   /wt eventos               Eventos activos y proximos.
@@ -133,6 +134,18 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
 --------------------------------------------------------------------------------
  enabled / webhookUrl / username   Activacion, URL del webhook y nombre mostrado.
  notifyDonations / notifyReceived  Avisar de aportes raros y de recibidos raros.
+ events.enabled / start / end / scheduledSoon / pause / topDonations
+                                  Avisos de eventos a Discord: inicio, fin, aviso
+                                  previo de un evento programado (solo el mas
+                                  anticipado) y pausa/reanudacion.
+ events.mentionRoleId             ID de un rol de Discord a mencionar en esos
+                                  avisos (vacio = sin mencion).
+ eventStartMessage / eventEndMessage / eventSoonMessage /
+ eventPausedMessage / eventResumedMessage
+                                  Textos. Variables: {name} {details} {duration}
+                                  {endEpoch} {startEpoch}. <t:{endEpoch}:R> y
+                                  <t:{startEpoch}:F> son marcas de tiempo de Discord:
+                                  cada persona las ve en su propia hora.
  donationMessage / receivedMessage Textos ({player} {pokemon} {level} {category}).
 
 --------------------------------------------------------------------------------
@@ -222,11 +235,46 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
                             mitico, Ultraente o Paradoja.
 
 --------------------------------------------------------------------------------
- donation
+ donation - Donaciones con /wt donar
 --------------------------------------------------------------------------------
- weeklyLimit                Donaciones maximas por jugador en los ultimos 7 dias
-                            (5; 0 = sin limite).
+ limitMode                  "monthly" (por defecto): limite por mes natural, se
+                            reinicia el dia 1 a las 00:00 (zona de
+                            events.schedule.timezone). "weekly": ventana movil de
+                            7 dias.
+ monthlyLimit               Donaciones maximas por jugador y mes (20; 0 = sin limite).
+ weeklyLimit                Donaciones maximas en los ultimos 7 dias si limitMode es
+                            "weekly" (5; 0 = sin limite).
+ sameSpecies.period         No se puede donar dos veces la misma especie dentro de
+                            este periodo: "month" (mes natural), "week" (7 dias) u
+                            "off" (sin restriccion).
+ blockSameIndividual        Tampoco el mismo ejemplar exacto dentro de ese periodo.
  speciesBlacklist           Especies que no se pueden donar.
+
+--------------------------------------------------------------------------------
+ topDonations - Top Donaciones mensual con recompensas
+--------------------------------------------------------------------------------
+ enabled                    Activa el Top Donaciones.
+ everyMonth                 true = todos los meses tienen Top (ignora lo de abajo).
+ firstYear                  Primer ano de referencia (2026).
+ oddMonthsInFirstYear       true: en firstYear hay Top en los meses impares
+                            (enero, marzo, mayo, julio, septiembre, noviembre).
+ alternateYears             true: cada ano se invierte (2027 = meses pares, 2028 =
+                            impares...). false: siempre los mismos meses.
+ announceHour               Hora (0-23, hora del servidor) del ultimo dia del mes
+                            en que se anuncia el Top 3 y se cierra el periodo.
+ points.normal/shiny/ultraBeast/paradox/mythical/legendary
+                            Puntos por donacion. Un especial shiny puntua como su
+                            categoria (sin extra por shiny + categoria).
+ rewards.first / second / third
+                            Lista de comandos de consola que se ejecutan al ganador
+                            del 1.er, 2.o y 3.er puesto. Variables: {player}
+                            {rank} {points} {period}. Ejemplos:
+                              "give {player} cobblemon:rare_candy 10"
+                              "pokegive {player} dratini lvl=10"
+                              "lp user {player} permission set algo.premio true"
+                            Si el ganador esta desconectado, se entrega al entrar.
+ (Solo cuentan las donaciones hechas con /wt donar en meses activos. El estado se
+  guarda en top-donations.json. Avisos a Discord: discord.events.topDonations.)
 
 --------------------------------------------------------------------------------
  sounds - Sonidos globales (cada jugador ajusta los suyos con /wt sonidos)

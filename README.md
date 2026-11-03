@@ -6,7 +6,7 @@ Wonder Trade abierto y configurable para **Cobblemon**. Se distribuye como **mod
 
 - **Menú (GUI)** para elegir el Pokémon a ofrecer desde el **equipo** o desde el **PC**, con pantalla de confirmación.
 - **Pool persistente** de Pokémon aportados por los jugadores, guardados como datos completos de Cobblemon (no solo la especie).
-- **Donación directa** mediante `/wt donar`: usa el mismo menú de equipo/PC, retira el Pokémon elegido y lo añade a la pool sin entregar otro ni consumir cooldown o límite diario. Máximo 5 donaciones por jugador en los últimos 7 días (configurable); especies prohibidas editables en `donation.speciesBlacklist`. Si la pool está llena, avisa y no abre el menú.
+- **Donación directa** mediante `/wt donar`: usa el mismo menú de equipo/PC, retira el Pokémon elegido y lo añade a la pool sin entregar otro ni consumir cooldown o límite diario. Límite mensual por jugador (20 por defecto, se reinicia el día 1; configurable o por ventana de 7 días); no se puede donar la misma especie dos veces en el mismo mes; especies prohibidas editables en `donation.speciesBlacklist`. Si la pool está llena, avisa y no abre el menú.
 - Vista del **pool completo** en un menú paginado de solo lectura (se puede restringir a operadores).
 - Los intercambios entregan cualquier Pokémon válido que ya exista en la pool; nunca generan Pokémon durante un intercambio.
 - Filtros de admisión para shiny, legendarios/míticos, Ultraentes y etiquetas especiales (la lista de etiquetas es configurable).
@@ -95,7 +95,7 @@ Todos requieren `admin.permissionLevel` (nivel OP 2 por defecto, configurable en
 
 - `/wt 3 confirm`: intercambia el Pokémon del slot 3 de golpe.
 - `/wt 3` y después `/wt confirm`: realiza el intercambio en dos pasos.
-- `/wt donar`: abre el menú de donación; el Pokémon se retira del equipo o PC y se incorpora a la pool sin recibir otro. Hay un máximo de 5 donaciones por jugador en los últimos 7 días (configurable). No puedes recibir tus propias aportaciones y se pueden bloquear especies mediante `donation.speciesBlacklist`.
+- `/wt donar`: abre el menú de donación; el Pokémon se retira del equipo o PC y se incorpora a la pool sin recibir otro. Hay un máximo de donaciones por jugador y mes natural (`donation.monthlyLimit`, 20 por defecto; con `donation.limitMode: weekly` se usa la ventana de 7 días). No puedes recibir tus propias aportaciones y se pueden bloquear especies mediante `donation.speciesBlacklist`.
 
 ### Cómo funciona el menú
 
@@ -158,7 +158,7 @@ Opciones principales:
 - La selección no empareja especie, rareza, nivel ni estado shiny: se elige cualquier entrada válida de la pool. Los ajustes antiguos `matchSpecialTier`, `avoidSameSpecies`, `matchLevel`, `levelDifference` y `shinyMode` se conservan por compatibilidad, pero ya no se utilizan.
 - `general.speciesBlacklist`, `general.useSpeciesWhitelist`, `general.speciesWhitelist`: listas de especies.
 - `pool.enabled`, `pool.maximumEntries`: comportamiento del pool. Los intercambios solo entregan Pokémon ya guardados en el pool.
-- `donation.weeklyLimit`: máximo de donaciones directas por jugador en una ventana móvil de 7 días; `0` = ilimitado (5 por defecto). `donation.speciesBlacklist`: especies que no se pueden donar, acepta nombres como `ditto` o `cobblemon:ditto`.
+- `donation.limitMode` (`monthly` o `weekly`), `donation.monthlyLimit` (20; `0` = ilimitado), `donation.weeklyLimit` (5; ventana móvil de 7 días si el modo es `weekly`), `donation.sameSpecies.period` (`month`, `week` u `off`: no repetir especie al donar) y `donation.blockSameIndividual`. `donation.speciesBlacklist`: especies que no se pueden donar, acepta nombres como `ditto` o `cobblemon:ditto`.
 - `fallback.minimumLevel` / `fallback.maximumLevel`: rango aleatorio para `/wt admin addspecies` y `/wt admin fill`.
 - `bonus.enabled`, `bonus.maximum`, `bonus.normalTradeGain`, `bonus.specialTradeGain` y `bonus.specialShinyExtraGain`: activan el sistema, fijan el límite y configuran los incrementos: normal (+0,1 puntos porcentuales), especial (+0,5) y el extra por especial shiny (+0,2 adicionales cuando es legendario, mítico, Ultraente o Paradoja) por defecto.
 - `admin.regionalForms`: permite activar o desactivar individualmente las opciones `alolan`, `galarian`, `hisuian` y `paldean` de `/wt admin addspecies`. El jugador escribe la opción regional igual que en `/pokegive`; el mod localiza y asigna la forma registrada en Cobblemon sin exigir `form=...`. `fallback.minimumLevel` y `fallback.maximumLevel` configuran el nivel aleatorio.
@@ -375,4 +375,22 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 ## 0.17.7
 
 - Pokémon generados para un evento: la especie ya no la elige el `random` de Cobblemon (repetía casi siempre las mismas). Ahora se sortea de la lista de especies de la categoría del evento, priorizando las que todavía no están en la pool; también incluye las formas regionales. Para eventos Shiny se sortea entre todas las especies.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.17.8
+
+- Avisos de eventos a Discord (`discord.events`): inicio del evento (con detalles y duración), fin, aviso previo de los eventos programados (solo el más anticipado de `announceBeforeMinutes`) y pausa/reanudación. Usan marcas de tiempo de Discord (`<t:…>`), así que cada persona ve la hora y la cuenta atrás en su propia zona horaria.
+- Opcional: `discord.events.mentionRoleId` menciona un rol en esos avisos. Cada aviso se puede activar o desactivar por separado y los textos están en `discord.eventStartMessage`, `eventEndMessage`, `eventSoonMessage`, `eventPausedMessage` y `eventResumedMessage`. Requiere `discord.enabled: true` y un `webhookUrl` válido.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.18.0
+
+- **Top Donaciones** mensual con recompensas (`topDonations`): solo cuentan las donaciones hechas con `/wt donar` en meses activos. Por defecto hay Top en los meses impares de 2026 (enero, marzo, mayo, julio, septiembre y noviembre) y se invierte cada año (2027: meses pares; 2028: impares…). Puntos: normal 1, shiny 2, Ultraente/Paradoja 3, legendario/mítico 4, sin extra por shiny + categoría (configurables en `topDonations.points`).
+- El último día del mes, a la hora `topDonations.announceHour` (20:00 por defecto), se anuncia el Top 3 con sus puntos en el chat y en Discord (`discord.events.topDonations`), y el 1.º, 2.º y 3.º reciben las recompensas definidas en `topDonations.rewards.first/second/third` (comandos de consola con `{player}`, `{rank}`, `{points}` y `{period}`). Si el ganador está desconectado, las recibe al entrar. Los ejemplos incluidos dan caramelos raros: cámbialos por lo que quieras.
+- Nuevo `/wt donaciones` (alias `/wt topdonaciones`): ranking del mes, tus puntos o cuándo es el próximo mes activo. El estado se guarda en `top-donations.json`.
+- Límite de donaciones mensual: `donation.limitMode` (`monthly` por defecto, se reinicia el día 1) con `donation.monthlyLimit` (20 por defecto). `weekly` conserva la ventana móvil de 7 días y `donation.weeklyLimit`.
+- Anti-repetición al donar: no se puede donar la misma especie (`donation.sameSpecies.period`: `month`, `week` u `off`) ni el mismo ejemplar (`donation.blockSameIndividual`) dentro del periodo.
+- `config-guide.txt`, README y documentación actualizados.
 - Gradle no se ha ejecutado en el entorno de edición.

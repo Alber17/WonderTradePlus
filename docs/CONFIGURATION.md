@@ -5,7 +5,7 @@ La configuración inicial se copia en `config/wondertradeplus/config.json`. Edit
 
 ## `donation`
 
-- `weeklyLimit`: máximo de donaciones directas por jugador en los últimos 7 días (ventana móvil). Por defecto `5`; `0` lo desactiva. Solo cuenta `/wt donar`, no las aportaciones que acompañan a un Wonder Trade normal.
+- `limitMode`: `monthly` (por defecto, mes natural: se reinicia el día 1 a las 00:00) o `weekly` (ventana móvil de 7 días). `monthlyLimit`: máximo de donaciones por jugador y mes (por defecto `20`; `0` lo desactiva). `weeklyLimit`: máximo en los últimos 7 días cuando el modo es `weekly` (por defecto `5`). `sameSpecies.period`: `month`, `week` u `off` para impedir donar dos veces la misma especie en ese periodo; `blockSameIndividual` impide donar el mismo ejemplar. Solo cuenta `/wt donar`, no las aportaciones que acompañan a un Wonder Trade normal.
 - `speciesBlacklist`: lista de especies que no pueden donarse mediante `/wt donar`. Admite nombres simples (`ditto`) o identificadores (`cobblemon:ditto`).
 
 El sistema también aplica `antiAbuse.excludeOwnDonations`: un jugador nunca puede recibir una entrada que haya donado él mismo.

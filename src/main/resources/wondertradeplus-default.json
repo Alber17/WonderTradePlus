@@ -74,7 +74,21 @@
     "notifyDonations": true,
     "notifyReceived": true,
     "donationMessage": "**{player}** ha aportado **{pokemon}** (Nv. {level}, {category}) al pool de Wonder Trade.",
-    "receivedMessage": "🎉 **{player}** ha recibido **{pokemon}** (Nv. {level}, {category}) en un Wonder Trade."
+    "receivedMessage": "🎉 **{player}** ha recibido **{pokemon}** (Nv. {level}, {category}) en un Wonder Trade.",
+    "events": {
+      "enabled": true,
+      "start": true,
+      "end": true,
+      "scheduledSoon": true,
+      "pause": true,
+      "topDonations": true,
+      "mentionRoleId": ""
+    },
+    "eventStartMessage": "🎉 **Evento iniciado: {name}**\n{details}\n⏱️ Dura {duration} · termina <t:{endEpoch}:R> (<t:{endEpoch}:t>, a tu hora)",
+    "eventEndMessage": "🏁 **Ha terminado el evento: {name}**",
+    "eventSoonMessage": "⏰ **{name}** empieza <t:{startEpoch}:R> (<t:{startEpoch}:F>, a tu hora)",
+    "eventPausedMessage": "⏸️ El evento **{name}** se ha pausado temporalmente.",
+    "eventResumedMessage": "▶️ El evento **{name}** se ha reanudado. Termina <t:{endEpoch}:R>."
   },
   "bonus": {
     "enabled": true,
@@ -314,6 +328,21 @@
     "menuBookSpecialGain": "&7Legendario / Mítico / Ultraente / Paradoja: &d+{gain}%",
     "menuBookSpecialShinyGain": "&7Especial shiny: &d+{base}% + {extra}% extra = {total}%",
     "donationBookDescription": "&7Elige un Pokémon para donarlo a la pool. No recibirás nada a cambio.",
+    "donationMonthlyLimit": "&cYa has alcanzado el límite de &f{limit} &cdonaciones este mes. Se reinicia el día 1.",
+    "donationSameSpecies": "&cEsa especie ya la has donado {period}. Prueba con otra.",
+    "donationSameIndividual": "&cEse Pokémon ya lo donaste {period}.",
+    "helpTopDonationsCommand": "&e/wt donaciones &7Ver el Top Donaciones del mes",
+    "topDonationsDisabled": "&7El Top Donaciones está desactivado.",
+    "topDonationsInactive": "&7Este mes no hay Top Donaciones. El próximo será en &f{month}&7.",
+    "topDonationsCurrentHeader": "&d&lTop Donaciones de {month} &7(termina el {end}):",
+    "topDonationsEmpty": "&7Todavía nadie ha donado este mes. ¡Usa &e/wt donar&7!",
+    "topDonationsLine": "&6#{rank} &f{player} &7— &e{points} puntos &8({donations} donaciones)",
+    "topDonationsYou": "&7Tus puntos: &e{points}",
+    "topDonationsPointsInfo": "&8Puntos: normal 1 · shiny 2 · Ultraente/Paradoja 3 · legendario/mítico 4.",
+    "topDonationsHeader": "&d&l★ ¡Top Donaciones de {month}!",
+    "topDonationsNobody": "&d★ Top Donaciones de {month}: nadie ha donado este mes.",
+    "topDonationsFooter": "&7¡Gracias a todos por donar! Los premios se entregan a los ganadores.",
+    "topDonationsReward": "&d★ ¡Has quedado &f#{rank} &den el Top Donaciones con &e{points} puntos&d! Tu recompensa ya está en tu inventario.",
     "donationWeeklyLimit": "&cYa has alcanzado el límite de &f{limit} &cdonaciones en los últimos 7 días.",
     "donationSpeciesBlocked": "&cEsta especie no está permitida para donaciones.",
     "cooldownReady": "&aDisponible para intercambiar",
@@ -363,8 +392,35 @@
     "helpAdminRemovePlayersCommand": "&e/wt admin removeplayers &7Eliminar solo Pokémon aportados por jugadores"
   },
   "donation": {
+    "limitMode": "monthly",
+    "monthlyLimit": 20,
     "weeklyLimit": 5,
+    "sameSpecies": {
+      "period": "month"
+    },
+    "blockSameIndividual": true,
     "speciesBlacklist": []
+  },
+  "topDonations": {
+    "enabled": true,
+    "everyMonth": false,
+    "firstYear": 2026,
+    "oddMonthsInFirstYear": true,
+    "alternateYears": true,
+    "announceHour": 20,
+    "points": {
+      "normal": 1,
+      "shiny": 2,
+      "ultraBeast": 3,
+      "paradox": 3,
+      "mythical": 4,
+      "legendary": 4
+    },
+    "rewards": {
+      "first": ["give {player} cobblemon:rare_candy 10"],
+      "second": ["give {player} cobblemon:rare_candy 5"],
+      "third": ["give {player} cobblemon:rare_candy 3"]
+    }
   },
   "sounds": {
     "enabled": true,

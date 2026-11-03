@@ -71,11 +71,40 @@ class PlayerDataStore(private val file: Path) {
         return timestamps.count { node -> runCatching { node.asLong >= cutoff }.getOrDefault(false) }
     }
 
+    /** Donaciones hechas en el mes natural actual (el contador se reinicia el día 1 a las 00:00 de la zona del servidor). */
+    fun donationsThisMonth(uuid: UUID, zone: java.time.ZoneId, now: Long = System.currentTimeMillis()): Int {
+        val data = playerNode(uuid, create = false) ?: return 0
+        val start = java.time.YearMonth.now(zone).atDay(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val timestamps = data.getAsJsonArray("donationTimestamps") ?: return 0
+        return timestamps.count { node -> runCatching { node.asLong >= start && node.asLong <= now }.getOrDefault(false) }
+    }
+
+    /** Momento en que el jugador donó por última vez esta especie (null si no consta). */
+    fun lastDonatedSpecies(uuid: UUID, species: String): Long? =
+        playerNode(uuid, create = false)?.getAsJsonObject("donatedSpecies")?.get(species)?.takeIf { !it.isJsonNull }?.asLong
+
+    /** Momento en que el jugador donó este ejemplar concreto (null si no consta). */
+    fun lastDonatedIndividual(uuid: UUID, pokemonId: String): Long? =
+        playerNode(uuid, create = false)?.getAsJsonObject("donatedIndividuals")?.get(pokemonId)?.takeIf { !it.isJsonNull }?.asLong
+
+    /** Anota especie y ejemplar donados; las anotaciones de más de 62 días se descartan. */
+    fun recordDonatedPokemon(uuid: UUID, species: String, pokemonId: String, now: Long = System.currentTimeMillis()) {
+        val data = playerNode(uuid, create = true)!!
+        val cutoff = now - 62L * 24L * 60L * 60L * 1000L
+        for (name in listOf("donatedSpecies", "donatedIndividuals")) {
+            val node = data.getAsJsonObject(name) ?: JsonObject().also { data.add(name, it) }
+            node.entrySet().filter { runCatching { it.value.asLong < cutoff }.getOrDefault(true) }.map { it.key }.forEach { node.remove(it) }
+        }
+        data.getAsJsonObject("donatedSpecies").addProperty(species, now)
+        data.getAsJsonObject("donatedIndividuals").addProperty(pokemonId, now)
+    }
+
     fun recordDonation(uuid: UUID, special: Boolean, now: Long = System.currentTimeMillis()) {
         val data = playerNode(uuid, create = true)!!
         data.addProperty("donations", (data.get("donations")?.asInt ?: 0) + 1)
         if (special) data.addProperty("specialsDonated", (data.get("specialsDonated")?.asInt ?: 0) + 1)
-        val cutoff = now - 7L * 24L * 60L * 60L * 1000L
+        // Se guardan 62 días para poder contar tanto la semana como el mes natural.
+        val cutoff = now - 62L * 24L * 60L * 60L * 1000L
         val previous = data.getAsJsonArray("donationTimestamps") ?: JsonArray()
         val timestamps = JsonArray()
         previous.mapNotNull { runCatching { it.asLong }.getOrNull() }
