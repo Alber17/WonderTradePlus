@@ -1,0 +1,257 @@
+================================================================================
+ WONDERTRADE PLUS - GUIA DE CONFIGURACION
+================================================================================
+Este archivo se regenera solo en cada arranque del servidor. NO lo edites: tus
+cambios se hacen en config.json (misma carpeta). Aqui solo se explica que hace
+cada apartado, los valores validos y los permisos de los comandos.
+
+Consejos:
+ - Despues de cambiar config.json usa /wt reload (o reinicia).
+ - Si te equivocas en la sintaxis del JSON el mod no podra leerlo y usara los
+   valores por defecto: revisa la consola.
+ - Los textos usan codigos de color con & (&a verde, &c rojo, &d rosa, &e
+   amarillo, &f blanco, &7 gris, &l negrita...). {nombre} son variables.
+ - Una opcion que falte en config.json se anade sola con su valor por defecto.
+ - Los niveles de permiso son los de OP de Minecraft: 0 = todos, 1-3 = ayudantes,
+   2 = moderador/admin habitual, 4 = owner/consola. El valor 5 significa "nadie".
+
+--------------------------------------------------------------------------------
+ COMANDOS Y PERMISOS
+--------------------------------------------------------------------------------
+Publicos (nivel 0):
+  /wt                       Abre el menu principal.
+  /wt <slot>                Solicita un intercambio del slot 1-6.
+  /wt confirm | cancel      Confirma o cancela el intercambio pendiente.
+  /wt donar                 Dona un Pokemon a la pool.
+  /wt stats                 Tus estadisticas (gui.statsOwnPermissionLevel).
+  /wt stats <jugador>       Estadisticas de otro (gui.statsOthersPermissionLevel).
+  /wt top                   Menu de rankings.
+  /wt especiales            Lista de legendarios, miticos, Ultraentes y Paradoja.
+  /wt rango                 Tu rango y sus ventajas.
+  /wt eventos               Eventos activos y proximos.
+  /wt sonidos               Preferencias de sonido personales.
+  /wt pool [search <texto>] Ver la pool (gui.poolViewPermissionLevel). La busqueda
+                            admite IVs: 6x31, 5x31... o 31spd, 31hp, 31atk,
+                            31def, 31spatk, 31spdef (se combinan con el nombre).
+  /wt chance                Tu bonus actual.
+Administracion (admin.permissionLevel, 2 por defecto):
+  /wt on | off              Activa o desactiva Wonder Trade.
+  /wt reload                Recarga config y datos.
+  /wt admin ...             Panel y subcomandos (fill, add, remove, history,
+                            backup, maintenance, discord test, resetstats,
+                            removeplayer, removegenerated, removeplayers, clear).
+  /wt admin eventos ...     lista | crear | programar | programados |
+                            desprogramar <id> | pausar <id> | reanudar <id> |
+                            historial | parar <id>.
+  /wt clearpool             Alias de /wt admin clear.
+Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
+       /wondertrade = /wt.
+
+--------------------------------------------------------------------------------
+ general - Reglas basicas del intercambio
+--------------------------------------------------------------------------------
+ enabled                    Interruptor general (tambien /wt on|off).
+ requireConfirmation        Pide /wt confirm antes de intercambiar.
+ confirmationTimeoutSeconds Segundos que dura la confirmacion pendiente.
+ allowInBattle              Permite intercambiar durante un combate.
+ allowFaintedPokemon        Permite ofrecer Pokemon debilitados.
+ allowShinyPokemon / allowSpecialPokemon / allowAlphaPokemon / allowHeldItems
+                            Permiten ofrecer shiny, especiales, alfa u objetos.
+ minimumOfferedLevel / maximumOfferedLevel   Nivel minimo y maximo ofrecible.
+ speciesBlacklist           Especies que nadie puede ofrecer.
+ useSpeciesWhitelist / speciesWhitelist      Si true, solo se pueden ofrecer
+                            las especies de la lista blanca.
+
+--------------------------------------------------------------------------------
+ trade - Esperas y limites
+--------------------------------------------------------------------------------
+ cooldownMinutes            Espera entre intercambios de cada jugador (720 = 12 h).
+ dailyLimit                 Intercambios maximos al dia (0 = sin limite).
+ cooldownBypassPermissionLevel
+                            Jugadores con este nivel de OP o mas se saltan la
+                            espera. 5 = nadie (owners, admins y moderadores
+                            tambien esperan). 2 = admins sin espera.
+ adminBypassPermissionLevel (antigua, ya no se usa; ver la de arriba).
+ blockRepeatSpecies         Si true, no se puede ofrecer la misma especie dos
+                            veces seguidas (intercambio o donacion): hay que
+                            ofrecer otra entre medias. Mensaje: messages.repeatSpecies.
+ specialLabels              Etiquetas de Cobblemon que cuentan como "especial".
+
+--------------------------------------------------------------------------------
+ pool - La pool de Pokemon
+--------------------------------------------------------------------------------
+ enabled / acceptDonations  Usar la pool y aceptar lo que ofrecen los jugadores.
+ randomFallback             Si no hay candidato en la pool, generar uno al azar.
+ maximumEntries             Tamano maximo (si se pasa, se recortan las mas antiguas).
+ trimOldestFirst            true = se recortan primero las mas antiguas.
+ clampDonatedLevel + donatedMinimumLevel / donatedMaximumLevel
+                            Limita el nivel de lo donado.
+ playerDonationsEnabled     Permite que los jugadores aporten a la pool.
+
+--------------------------------------------------------------------------------
+ fallback - Generacion de Pokemon al azar
+--------------------------------------------------------------------------------
+ minimumLevel / maximumLevel      Nivel de los Pokemon generados.
+ speciesGenerationAttempts        Intentos para encontrar una especie valida.
+ shinyBehavior                    Como tratar el shiny al generar.
+
+--------------------------------------------------------------------------------
+ antiAbuse - Proteccion
+--------------------------------------------------------------------------------
+ excludeOwnDonations        No recibes lo que tu mismo has donado.
+ donationHoldMinutes        Minutos que una donacion no se puede recibir.
+
+--------------------------------------------------------------------------------
+ maintenance - Mantenimiento y limpieza de la pool
+--------------------------------------------------------------------------------
+ intervalMinutes            Cada cuanto se ejecuta el mantenimiento (30).
+ expireAfterDays            Elimina de la pool todo lo que lleve mas de X dias
+                            (14). OJO: incluye especiales y no repone. 0 = no.
+ purge.enabled / afterHours Un Pokemon NORMAL que lleva mas de X horas (168 = una
+                            semana) sin que nadie lo reciba se sustituye por otro
+                            normal. Los especiales nunca se purgan.
+ purge.includePlayerDonations
+                            Si false solo se purgan los generados por el servidor.
+ monthlyReset.enabled       Reinicio mensual: renueva todos los Pokemon normales
+                            de la pool (los especiales se conservan).
+ monthlyReset.dayOfMonth    Dia del mes en que se hace (1-28). La primera vez tras
+                            actualizar solo anota el mes, no borra nada.
+ monthlyReset.includePlayerDonations
+                            Si false conserva los aportados por jugadores.
+ (El reinicio necesita un jugador conectado para generar los nuevos; si no hay
+  nadie se aplaza hasta que entre alguien.)
+
+--------------------------------------------------------------------------------
+ backup / history
+--------------------------------------------------------------------------------
+ backup.intervalHours / keep   Copia automatica cada X horas y cuantas se guardan.
+ history.enabled               Guarda el historial de intercambios.
+ history.autoDeleteAfterDays   Borra entradas mas viejas de X dias (0 = nunca).
+
+--------------------------------------------------------------------------------
+ discord - Avisos por webhook
+--------------------------------------------------------------------------------
+ enabled / webhookUrl / username   Activacion, URL del webhook y nombre mostrado.
+ notifyDonations / notifyReceived  Avisar de aportes raros y de recibidos raros.
+ donationMessage / receivedMessage Textos ({player} {pokemon} {level} {category}).
+
+--------------------------------------------------------------------------------
+ bonus - Probabilidad de recibir un especial
+--------------------------------------------------------------------------------
+ enabled                    Activa el sistema de bonus.
+ maximum                    Tope del bonus (%).
+ specialTradeGain           % que suma ofrecer un especial.
+ specialShinyExtraGain      % extra si ademas es shiny.
+ normalTradeGain            % que suma ofrecer un Pokemon normal.
+
+--------------------------------------------------------------------------------
+ ranks - Rangos del servidor
+--------------------------------------------------------------------------------
+ enabled                    Activa los rangos.
+ list                       Del mas alto al mas bajo; gana el primero que coincida.
+   id / name                Identificador y nombre mostrado.
+   permission               Permiso (LuckPerms/Fabric Permissions), p. ej.
+                            wondertradeplus.rank.leyenda. Sin LuckPerms usa "tag".
+   tag                      Etiqueta de Minecraft: /tag <jugador> add wt_leyenda.
+   baseBonus                Minimo del bonus (%): vuelve a este valor al recibir
+                            un especial en vez de a 0.
+   gainMultiplier           Multiplica lo que suma cada Pokemon ofrecido.
+   improvementPercent       % FIJO de mejora que se suma a la probabilidad de
+                            recibir un especial en cada intercambio (no se consume).
+
+--------------------------------------------------------------------------------
+ cooldownNotice - Aviso de cooldown listo
+--------------------------------------------------------------------------------
+ enabled                    Avisa cuando vuelve a estar disponible.
+ normalReminderMinutes      Recordatorio cada X min mientras sigue disponible.
+ eventReminderMinutes       Lo mismo cuando hay un evento activo.
+
+--------------------------------------------------------------------------------
+ events - Eventos temporales
+--------------------------------------------------------------------------------
+ enabled / maximumDurationHours   Activa los eventos y duracion maxima.
+ showUpcoming                     Muestra los proximos eventos en /wt eventos y
+                                  al entrar.
+ names.risk / names.receive       Nombre de cada tipo. {categories} se sustituye
+                                  (p. ej. "Apuesta de Shiny y Legendario").
+ schedule.timezone                Zona horaria de los eventos programados (vacia =
+                                  la del servidor). Ej.: "Europe/Madrid".
+ schedule.maxLateMinutes          Si el servidor estaba apagado, tolerancia para
+                                  iniciar un evento tarde.
+ schedule.skipIfActive            No inicia uno programado si ya hay uno igual.
+ schedule.announceBeforeMinutes   Avisos previos (p. ej. 10 y 1 minuto antes).
+ schedule.reminder.enabled / intervalMinutes / withinHours / maxListed
+                                  Recordatorio ocasional en el chat de los eventos
+                                  programados: cada X minutos, solo los que empiezan
+                                  dentro de X horas, maximo N. Muestra cuenta atras.
+ bossbar.*                        Barra de tiempo del evento (formato, color).
+ joinNotice.*                     Aviso al entrar al servidor.
+ ensurePool.*                     Mantiene Pokemon del evento en la pool (cantidad
+                                  minima/objetivo, cuantos generar, reponer
+                                  quitando los normales mas antiguos).
+ announcePokemon.*                Al empezar un evento, lista sus Pokemon.
+ menuDurations                    Duraciones del menu de crear eventos.
+ tradeIntervalPercent             Espera por jugador como % de la duracion (20 =
+                                  5 WT por evento).
+ risk.extraGain / receive.chance  Valores por defecto de cada tipo de evento.
+ history.keep                     Eventos terminados que se guardan (50).
+
+--------------------------------------------------------------------------------
+ gui - Menus
+--------------------------------------------------------------------------------
+ enabled                    Usar menus (false = solo comandos).
+ poolViewPermissionLevel    Nivel para ver la pool (0 = todos).
+ showDonorNames             Muestra quien aporto cada Pokemon.
+ showBonusRatesInBook       Muestra los % de bonus en el libro del menu.
+ showTradePreview           Vista previa antes de ofrecer.
+ statsOwnPermissionLevel    Nivel para usar /wt stats (0 = todos).
+ statsOthersPermissionLevel Nivel para /wt stats <jugador> (0 = todos; pon 2 para
+                            que solo lo vean los admins).
+ heads.server / heads.players
+                            Valor base64 "textures" para cambiar las cabezas del
+                            menu de eliminar pool (opcional).
+ (menu.showIvs: false oculta los IVs y la naturaleza en el lore.)
+
+--------------------------------------------------------------------------------
+ broadcast - Avisos globales al chat
+--------------------------------------------------------------------------------
+ enabled                    Interruptor general.
+ *Donations                 Aviso cuando alguien aporta un shiny / especial /
+                            Ultraente / Paradoja (y sus versiones shiny).
+ received*                  Aviso cuando alguien recibe un shiny, legendario,
+                            mitico, Ultraente o Paradoja.
+
+--------------------------------------------------------------------------------
+ donation
+--------------------------------------------------------------------------------
+ weeklyLimit                Donaciones maximas por jugador en los ultimos 7 dias
+                            (5; 0 = sin limite).
+ speciesBlacklist           Especies que no se pueden donar.
+
+--------------------------------------------------------------------------------
+ sounds - Sonidos globales (cada jugador ajusta los suyos con /wt sonidos)
+--------------------------------------------------------------------------------
+ enabled                    Interruptor global.
+ menuOpen / pcOpen / buttonClick / pageTurn / specialReceived /
+ specialShinyReceived / cooldownReady
+                            Activa cada sonido.
+ volume / pitch             Volumen y tono.
+
+--------------------------------------------------------------------------------
+ messages - Todos los textos
+--------------------------------------------------------------------------------
+ Cada mensaje del mod se puede cambiar aqui. Si lo dejas como esta de fabrica,
+ las actualizaciones pueden mejorarlo; si lo personalizas, se respeta siempre.
+
+--------------------------------------------------------------------------------
+ ARCHIVOS DEL MOD (carpeta config/wondertradeplus)
+--------------------------------------------------------------------------------
+ config.json             Configuracion (este archivo explica sus apartados).
+ pool.json               Pokemon de la pool.
+ player-data.json        Datos de jugadores (bonus, donaciones, skins...).
+ history.json            Historial de intercambios.
+ event.json              Eventos activos, esperas, estadisticas e historial.
+ event-schedule.json     Eventos programados.
+ maintenance-state.json  Control del reinicio mensual de la pool.
+ backups/                Copias automaticas.
+ config-guide.txt        Esta guia (se regenera).

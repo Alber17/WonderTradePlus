@@ -93,12 +93,14 @@ class WonderTradePlus : ModInitializer {
             })
             // PERMISO: público; estadísticas propias y públicas visibles sin OP.
             .then(literal("stats")
+                .requires { it.hasPermission(ConfigManager.int("gui.statsOwnPermissionLevel", 0).coerceIn(0, 4)) }
                 .executes { context ->
                     val player = context.source.playerOrException
                     context.source.sendSuccess({ WonderTradeService.statsComponent(player.uuid, player.gameProfile.name) }, false)
                     1
                 }
                 .then(argument("player", StringArgumentType.word())
+                    .requires { it.hasPermission(ConfigManager.int("gui.statsOthersPermissionLevel", 0).coerceIn(0, 4)) }
                     .suggests { context, builder ->
                         SharedSuggestionProvider.suggest(
                             (context.source.onlinePlayerNames + WonderTradeService.knownPlayerNames()).distinct(),
@@ -585,7 +587,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.17.5"
+        const val MOD_VERSION = "0.17.6"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

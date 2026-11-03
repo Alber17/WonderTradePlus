@@ -55,6 +55,16 @@ object ConfigManager {
                 defaults.getAsJsonObject("ranks")?.get("list")?.let { ranksConfig.add("list", it.deepCopy()) }
             }
         }
+        // Migración 0.17.6: los rangos ya guardados reciben «improvementPercent» desde los valores por defecto (por id).
+        root.getAsJsonObject("ranks")?.getAsJsonArray("list")?.let { list ->
+            val defaultRanks = defaults.getAsJsonObject("ranks")?.getAsJsonArray("list")
+            for (node in list) {
+                val rank = node as? JsonObject ?: continue
+                if (rank.has("improvementPercent")) continue
+                val fresh = defaultRanks?.firstOrNull { (it as? JsonObject)?.get("id") == rank.get("id") } as? JsonObject
+                rank.addProperty("improvementPercent", fresh?.get("improvementPercent")?.asDouble ?: 0.0)
+            }
+        }
         // Migración de la ayuda de eventos: los textos de versiones anteriores se sustituyen por los actuales.
         root.getAsJsonObject("messages")?.let { messages ->
             val defaultMessages = defaults.getAsJsonObject("messages")
@@ -85,6 +95,16 @@ object ConfigManager {
             }
         }
         save()
+        writeGuide()
+    }
+
+    /** Copia config-guide.txt (explicación de cada apartado) junto a config.json. Se regenera en cada arranque. */
+    private fun writeGuide() {
+        runCatching {
+            ConfigManager::class.java.getResourceAsStream("/config-guide.txt")?.use { input ->
+                Files.copy(input, configPath.resolveSibling("config-guide.txt"), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            }
+        }.onFailure { WonderTradePlus.LOGGER.warn("No se pudo escribir config-guide.txt: {}", it.message) }
     }
 
     private fun mergeMissing(defaults: JsonObject, supplied: JsonObject): JsonObject {

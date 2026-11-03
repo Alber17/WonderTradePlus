@@ -52,7 +52,7 @@ data class ScheduledEvent(
     /** Mensual por día de la semana: 1-4 = primer…cuarto, 5 = último; 0 = método antiguo (mismo día del mes). */
     val weekOrdinal: Int = 0
 ) {
-    val title: String get() = "${type.title} ${categoriesTitle(categories)}"
+    val title: String get() = eventName(type, categories)
 
     fun toJson(): JsonObject = JsonObject().apply {
         addProperty("id", id)
@@ -194,10 +194,47 @@ object WonderTradeSchedule {
     fun describeWhen(item: ScheduledEvent): String {
         val formatter = DateTimeFormatter.ofPattern("EEE dd/MM HH:mm", Locale("es", "ES"))
         val moment = ZonedDateTime.ofInstant(Instant.ofEpochMilli(item.nextRunAt), zone()).format(formatter)
-        if (item.repeat == ScheduleRepeat.NONE) return moment
+        val countdown = countdownText(item.nextRunAt - System.currentTimeMillis())
+        if (item.repeat == ScheduleRepeat.NONE) return "$moment (hora del servidor) · empieza en $countdown"
         val day = ZonedDateTime.ofInstant(Instant.ofEpochMilli(item.nextRunAt), zone()).dayOfWeek
         val label = if (item.repeat == ScheduleRepeat.MONTHLY && item.weekOrdinal in 1..5) "cada ${ordinalText(item.weekOrdinal, day)} del mes" else item.repeat.label
-        return "$moment ($label)"
+        return "$moment (hora del servidor) · empieza en $countdown ($label)"
+    }
+
+    /** Cuenta atrás en horas y minutos («53h 20min»), independiente de la zona horaria de quien la lea. */
+    fun countdownText(millis: Long): String {
+        val minutes = (millis.coerceAtLeast(0L) + 59_999L) / 60_000L
+        return when {
+            minutes <= 0L -> "ahora"
+            minutes < 60L -> "${minutes}min"
+            else -> "${minutes / 60L}h ${minutes % 60L}min"
+        }
+    }
+
+    private var lastReminderAt = 0L
+
+    /** De vez en cuando recuerda en el chat los próximos eventos programados (events.schedule.reminder). */
+    private fun remind(server: MinecraftServer, now: Long) {
+        if (!ConfigManager.bool("events.schedule.reminder.enabled", true)) return
+        if (lastReminderAt == 0L) { lastReminderAt = now; return }
+        val interval = ConfigManager.int("events.schedule.reminder.intervalMinutes", 180).coerceAtLeast(5) * 60_000L
+        if (now - lastReminderAt < interval) return
+        if (server.playerList.players.isEmpty()) return
+        val within = ConfigManager.int("events.schedule.reminder.withinHours", 72).coerceAtLeast(1) * 3_600_000L
+        val list = all().filter { it.nextRunAt > now && it.nextRunAt - now <= within }
+            .take(ConfigManager.int("events.schedule.reminder.maxListed", 3).coerceAtLeast(1))
+        lastReminderAt = now
+        if (list.isEmpty()) return
+        val lines = mutableListOf(ConfigManager.string("messages.eventReminderHeader", "&d★ Próximos eventos de Wonder Trade:"))
+        list.forEach { item ->
+            lines += WonderTradeService.format(
+                ConfigManager.string("messages.eventReminderLine", "&7- &f{name} &7— {when}"),
+                mapOf("name" to item.title, "when" to describeWhen(item))
+            )
+        }
+        server.playerList.broadcastSystemMessage(
+            WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n")), false
+        )
     }
 
     fun dayName(day: DayOfWeek): String =
@@ -259,6 +296,7 @@ object WonderTradeSchedule {
     fun tick(server: MinecraftServer) {
         if (items.isEmpty()) return
         val now = System.currentTimeMillis()
+        runCatching { remind(server, now) }
         announceSoon(server, now)
         val due = items.filter { it.nextRunAt <= now }
         if (due.isEmpty()) return

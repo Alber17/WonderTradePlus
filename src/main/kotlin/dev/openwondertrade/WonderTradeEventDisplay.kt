@@ -28,8 +28,10 @@ object WonderTradeEventDisplay {
             joinQueue.remove(uuid)
             val player = server.playerList.getPlayer(uuid) ?: continue
             val active = WonderTradeEvents.active(now)
-            if (active.isEmpty()) continue
-            val lines = mutableListOf(ConfigManager.string("messages.eventJoinHeader", "&d★ Hay eventos de Wonder Trade activos:"))
+            val upcoming = WonderTradeSchedule.upcomingLines()
+            if (active.isEmpty() && upcoming.isEmpty()) continue
+            val lines = mutableListOf<String>()
+            if (active.isNotEmpty()) lines += ConfigManager.string("messages.eventJoinHeader", "&d★ Hay eventos de Wonder Trade activos:")
             val details = ConfigManager.bool("events.joinNotice.showDetails", false)
             active.forEach { event ->
                 lines += WonderTradeService.format(
@@ -38,6 +40,7 @@ object WonderTradeEventDisplay {
                 )
                 if (details) WonderTradeEvents.describe(event).forEach { lines += "  $it" }
             }
+            lines += upcoming
             lines += ConfigManager.string("messages.eventJoinFooter", "&7Usa &e/wt eventos &7para ver los detalles.")
             player.sendSystemMessage(WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n")))
         }

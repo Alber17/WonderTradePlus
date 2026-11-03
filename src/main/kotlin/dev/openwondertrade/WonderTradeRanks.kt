@@ -15,7 +15,9 @@ data class WtRank(
     val permission: String,
     val tag: String,
     val baseBonus: Double,
-    val gainMultiplier: Double
+    val gainMultiplier: Double,
+    /** % extra fijo que se suma a la probabilidad de especial en cada intercambio (no se consume). */
+    val improvementPercent: Double = 0.0
 )
 
 /** Detecta el rango de un jugador por permiso (LuckPerms / Fabric Permissions API) o por etiqueta (/tag). */
@@ -33,7 +35,8 @@ object WonderTradeRanks {
             permission = json.get("permission")?.let { runCatching { it.asString }.getOrNull() } ?: "",
             tag = json.get("tag")?.let { runCatching { it.asString }.getOrNull() } ?: "",
             baseBonus = json.get("baseBonus")?.let { runCatching { it.asDouble }.getOrNull() }?.coerceIn(0.0, 100.0) ?: 0.0,
-            gainMultiplier = json.get("gainMultiplier")?.let { runCatching { it.asDouble }.getOrNull() }?.coerceAtLeast(0.0) ?: 1.0
+            gainMultiplier = json.get("gainMultiplier")?.let { runCatching { it.asDouble }.getOrNull() }?.coerceAtLeast(0.0) ?: 1.0,
+            improvementPercent = json.get("improvementPercent")?.let { runCatching { it.asDouble }.getOrNull() }?.coerceIn(0.0, 100.0) ?: 0.0
         )
     }
 
@@ -48,6 +51,8 @@ object WonderTradeRanks {
     }
 
     fun gainMultiplier(player: ServerPlayer): Double = rankOf(player)?.gainMultiplier ?: 1.0
+
+    fun improvementPercent(player: ServerPlayer): Double = rankOf(player)?.improvementPercent ?: 0.0
 
     private fun matches(player: ServerPlayer, rank: WtRank): Boolean {
         if (rank.permission.isNotBlank() && hasPermission(player, rank.permission)) return true

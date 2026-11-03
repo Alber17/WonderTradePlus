@@ -852,7 +852,7 @@ object WonderTradeGui {
         EventCategory.PARADOX to Items.ENDER_PEARL
     )
 
-    private fun eventTitle(type: EventType, categories: List<EventCategory>) = "${type.title} ${categoriesTitle(categories)}"
+    private fun eventTitle(type: EventType, categories: List<EventCategory>) = eventName(type, categories)
 
     private fun openEventCategory(player: ServerPlayer, type: EventType, selected: List<EventCategory> = emptyList()) {
         open(player, "&5Eventos &8- &d${type.title}", 3) { renderEventCategory(it, type, selected) }
@@ -1455,9 +1455,27 @@ object WonderTradeGui {
             "$color$label &r$value$bonus"
         }
         val perfect = perfectIvCount(pokemon)
-        val header = if (perfect >= 6) "&7IVs: &6★ perfectos &8(6x31)" else if (perfect > 0) "&7IVs: &8($perfect x31)" else "&7IVs:"
+        val header = if (perfect >= 6) "&7IVs: &6★ perfectos &8(6x31)" else if (perfect > 0) "&7IVs: &8(${perfect}x31)" else "&7IVs:"
         listOf(header, "  " + parts.take(3).joinToString(" &8| "), "  " + parts.drop(3).joinToString(" &8| "))
     }.getOrDefault(emptyList())
+
+    private val natureNames = mapOf(
+        "hardy" to "Fuerte", "lonely" to "Huraña", "brave" to "Audaz", "adamant" to "Firme", "naughty" to "Pícara",
+        "bold" to "Osada", "docile" to "Dócil", "relaxed" to "Plácida", "impish" to "Agitada", "lax" to "Floja",
+        "timid" to "Miedosa", "hasty" to "Activa", "serious" to "Seria", "jolly" to "Alegre", "naive" to "Ingenua",
+        "modest" to "Modesta", "mild" to "Afable", "quiet" to "Mansa", "bashful" to "Tímida", "rash" to "Alocada",
+        "calm" to "Serena", "gentle" to "Amable", "sassy" to "Grosera", "careful" to "Cauta", "quirky" to "Rara"
+    )
+
+    private fun natureLabel(nature: com.cobblemon.mod.common.pokemon.Nature): String =
+        nature.name.path.let { natureNames[it.lowercase()] ?: it.replaceFirstChar { c -> c.uppercase() } }
+
+    /** Naturaleza en español; si el Pokémon usa una menta, la naturaleza de la menta va al lado entre paréntesis. */
+    private fun natureLine(pokemon: Pokemon): String? = runCatching {
+        val own = natureLabel(pokemon.nature)
+        val minted = pokemon.mintedNature?.takeIf { it != pokemon.nature }
+        "&7Naturaleza: &f$own" + if (minted != null) " &7(menta: &b${natureLabel(minted)}&7)" else ""
+    }.getOrNull()
 
     private fun pokemonStack(pokemon: Pokemon, showOfferHint: Boolean, extra: List<String> = emptyList()): ItemStack {
         val stack = runCatching { PokemonItem.from(pokemon) }.getOrElse { ItemStack(Items.PAPER) }
@@ -1472,6 +1490,7 @@ object WonderTradeGui {
         if (pokemon.shiny) labels += "&eShiny"
         if (labels.isNotEmpty()) lines += "&7Categoría: " + labels.joinToString(" &7· ")
         if (pokemon.isAlpha) lines += "&cAlfa"
+        natureLine(pokemon)?.let { lines += it }
         if (ConfigManager.bool("menu.showIvs", true)) lines += ivLines(pokemon)
         lines += extra
         if (showOfferHint) {

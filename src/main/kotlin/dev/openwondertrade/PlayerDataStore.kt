@@ -161,6 +161,14 @@ class PlayerDataStore(private val file: Path) {
         playerNode(uuid, create = true)!!.addProperty("name", name)
     }
 
+    /** Última especie ofrecida (intercambio o donación) por el jugador; sirve para impedir repetirla seguida. */
+    fun lastOfferedSpecies(uuid: UUID): String? =
+        playerNode(uuid, create = false)?.get("lastOfferedSpecies")?.takeIf { !it.isJsonNull }?.asString
+
+    fun setLastOfferedSpecies(uuid: UUID, species: String) {
+        playerNode(uuid, create = true)!!.addProperty("lastOfferedSpecies", species)
+    }
+
     /** Guarda la textura de skin del jugador (la que informa su perfil al conectarse). Devuelve true si cambió. */
     fun setSkin(uuid: UUID, value: String, signature: String?): Boolean {
         val node = playerNode(uuid, create = true)!!

@@ -356,3 +356,17 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 - El botón «Solo generados por jugadores» usa una cabeza con la skin del administrador que abre el menú.
 - Opcional: `gui.heads.server` y `gui.heads.players` aceptan el valor base64 de «textures» de cualquier cabeza para sustituir esas dos.
 - Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.17.6
+
+- `/wt stats` y `/wt stats <jugador>` tienen permisos separados: `gui.statsOwnPermissionLevel` y `gui.statsOthersPermissionLevel` (ambos 0 por defecto; pon 2 en el segundo para que solo lo vean los admins).
+- Rangos: nuevo campo `improvementPercent` (% fijo que se suma a la probabilidad de especial en cada intercambio, sin consumirse). Los rangos ya guardados lo reciben automáticamente desde los valores por defecto (1, 0,75, 0,5, 0,25 y 0,1); ponlo a 0 si no lo quieres. Se muestra en `/wt rango`.
+- IVs: corregido el texto `(1x31)`. Nueva línea de naturaleza en español; si hay menta, la naturaleza de la menta aparece entre paréntesis.
+- Eventos programados: la hora ahora incluye «hora del servidor» y una cuenta atrás en horas y minutos («empieza en 5h 20min»), visible en `/wt eventos`, al entrar, en el panel y en los avisos. Recordatorio ocasional en el chat (`events.schedule.reminder`: cada 180 min, eventos dentro de 72 h, máximo 3). El aviso al entrar también muestra los próximos aunque no haya ninguno activo.
+- Reinicio mensual de la pool (`maintenance.monthlyReset`): el día 1 renueva los Pokémon normales (los especiales se conservan). La primera vez solo anota el mes para no borrar nada al actualizar; el estado se guarda en `maintenance-state.json`.
+- Especie repetida (`trade.blockRepeatSpecies`): no se puede ofrecer la misma especie dos veces seguidas (intercambio o donación). Mensaje `messages.repeatSpecies`.
+- Espera para staff: nueva clave `trade.cooldownBypassPermissionLevel` (5 = nadie se salta la espera; con 2 vuelven a saltársela los admins). Sustituye a `trade.adminBypassPermissionLevel`, que ya no se usa. Si más adelante usas LuckPerms se puede afinar por grupo.
+- Nombres de eventos más claros: «Apuesta de Shiny y Legendario» / «Lluvia de Mítico, Ultraente y Paradoja» (`events.names.risk` y `events.names.receive`).
+- Nuevo `config-guide.txt` (se regenera en cada arranque junto a `config.json`) con la explicación de cada apartado, comandos y permisos.
+- Gradle no se ha ejecutado en el entorno de edición.

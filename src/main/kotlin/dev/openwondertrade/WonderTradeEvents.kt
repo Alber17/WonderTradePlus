@@ -56,6 +56,18 @@ fun normalizeCategories(list: Collection<EventCategory>): List<EventCategory> =
 /** Texto corto de categorías, por ejemplo «Mítico + Legendario». */
 fun categoriesTitle(categories: List<EventCategory>): String = categories.joinToString(" + ") { it.label }
 
+/**
+ * Nombre visible de un evento, configurable en events.names.risk / events.names.receive.
+ * Por defecto: «Apuesta de Shiny y Legendario» o «Lluvia de Mítico, Ultraente y Paradoja».
+ */
+fun eventName(type: EventType, categories: List<EventCategory>): String {
+    val labels = categories.map { it.label }
+    val joined = if (labels.size <= 1) labels.joinToString("") else labels.dropLast(1).joinToString(", ") + " y " + labels.last()
+    val template = if (type == EventType.RISK) ConfigManager.string("events.names.risk", "Apuesta de {categories}")
+    else ConfigManager.string("events.names.receive", "Lluvia de {categories}")
+    return template.replace("{categories}", joined)
+}
+
 /** Texto para frases, por ejemplo «Mítico o Legendario». */
 fun categoriesText(categories: List<EventCategory>): String = when (categories.size) {
     0 -> ""
@@ -96,7 +108,7 @@ data class WtEvent(
     val paused: Boolean get() = pausedAt > 0L
 
     /** Nombre completo, por ejemplo «Arriesgar Legendario». */
-    val title: String get() = "${type.title} ${categoriesTitle(categories)}"
+    val title: String get() = eventName(type, categories)
 
     /** Categorías para frases («Mítico o Legendario»). */
     val categoryText: String get() = categoriesText(categories)

@@ -19,6 +19,8 @@
     "cooldownMinutes": 720,
     "dailyLimit": 0,
     "adminBypassPermissionLevel": 2,
+    "cooldownBypassPermissionLevel": 5,
+    "blockRepeatSpecies": true,
     "specialLabels": [
       "legendary",
       "mythical",
@@ -48,6 +50,11 @@
     "donationHoldMinutes": 10
   },
   "maintenance": {
+    "monthlyReset": {
+      "enabled": true,
+      "dayOfMonth": 1,
+      "includePlayerDonations": true
+    },
     "expireAfterDays": 14,
     "intervalMinutes": 30,
     "purge": {
@@ -103,11 +110,11 @@
   "ranks": {
     "enabled": true,
     "list": [
-      { "id": "leyenda", "name": "&6Leyenda", "permission": "wondertradeplus.rank.leyenda", "tag": "wt_leyenda", "baseBonus": 1.0, "gainMultiplier": 1.0 },
-      { "id": "maestro", "name": "&dMaestro", "permission": "wondertradeplus.rank.maestro", "tag": "wt_maestro", "baseBonus": 0.0, "gainMultiplier": 1.0 },
-      { "id": "elite", "name": "&bÉlite", "permission": "wondertradeplus.rank.elite", "tag": "wt_elite", "baseBonus": 0.0, "gainMultiplier": 1.0 },
-      { "id": "experto", "name": "&aExperto", "permission": "wondertradeplus.rank.experto", "tag": "wt_experto", "baseBonus": 0.0, "gainMultiplier": 1.0 },
-      { "id": "dominguero", "name": "&eDominguero", "permission": "wondertradeplus.rank.dominguero", "tag": "wt_dominguero", "baseBonus": 0.0, "gainMultiplier": 1.0 }
+      { "id": "leyenda", "name": "&6Leyenda", "permission": "wondertradeplus.rank.leyenda", "tag": "wt_leyenda", "baseBonus": 1.0, "gainMultiplier": 1.0, "improvementPercent": 1.0 },
+      { "id": "maestro", "name": "&dMaestro", "permission": "wondertradeplus.rank.maestro", "tag": "wt_maestro", "baseBonus": 0.0, "gainMultiplier": 1.0, "improvementPercent": 0.75 },
+      { "id": "elite", "name": "&bÉlite", "permission": "wondertradeplus.rank.elite", "tag": "wt_elite", "baseBonus": 0.0, "gainMultiplier": 1.0, "improvementPercent": 0.5 },
+      { "id": "experto", "name": "&aExperto", "permission": "wondertradeplus.rank.experto", "tag": "wt_experto", "baseBonus": 0.0, "gainMultiplier": 1.0, "improvementPercent": 0.25 },
+      { "id": "dominguero", "name": "&eDominguero", "permission": "wondertradeplus.rank.dominguero", "tag": "wt_dominguero", "baseBonus": 0.0, "gainMultiplier": 1.0, "improvementPercent": 0.1 }
     ]
   },
   "cooldownNotice": {
@@ -123,7 +130,17 @@
       "timezone": "",
       "maxLateMinutes": 10,
       "skipIfActive": true,
-      "announceBeforeMinutes": [10, 1]
+      "announceBeforeMinutes": [10, 1],
+      "reminder": {
+        "enabled": true,
+        "intervalMinutes": 180,
+        "withinHours": 72,
+        "maxListed": 3
+      }
+    },
+    "names": {
+      "risk": "Apuesta de {categories}",
+      "receive": "Lluvia de {categories}"
     },
     "bossbar": {
       "enabled": true,
@@ -168,6 +185,8 @@
     "showDonorNames": true,
     "showBonusRatesInBook": true,
     "showTradePreview": true,
+    "statsOwnPermissionLevel": 0,
+    "statsOthersPermissionLevel": 0,
     "heads": {
       "server": "",
       "players": ""
@@ -261,7 +280,11 @@
     "helpAdminEventCreateCommand": "&e/wt admin eventos crear <arriesgar|recibir> <categorías> <duración> [valor] [espera] &7Crear un evento (varias categorías con +)",
     "helpAdminEventStopCommand": "&e/wt admin eventos parar <id> &7Finalizar un evento",
     "helpAdminUnscheduleCommand": "&e/wt admin eventos desprogramar <id> &7Cancelar un evento programado",
-    "rankInfo": "&7Tu rango: {rank} &8— &7mínimo de probabilidad &d{base}%&7 y ganancias &ax{multiplier}&7.",
+    "rankInfo": "&7Tu rango: {rank} &8— &7mínimo de probabilidad &d{base}%&7, mejora &b+{improvement}%&7 y ganancias &ax{multiplier}&7.",
+    "repeatSpecies": "&cEsa especie ya la has tradeado antes. Prueba con otra y podrás volver a ella.",
+    "poolMonthlyReset": "&d★ Reinicio mensual de la pool: los Pokémon normales se han renovado. ¡Los especiales se conservan!",
+    "eventReminderHeader": "&d★ Próximos eventos de Wonder Trade &8(la cuenta atrás va a tu hora):",
+    "eventReminderLine": "&7- &f{name} &7— {when}",
     "rankNone": "&7No tienes ningún rango con ventajas en Wonder Trade.",
     "rankDisabled": "&7Los rangos están desactivados.",
     "helpSpecialsCommand": "&e/wt especiales &7Ver qué Pokémon son míticos, legendarios, Ultraentes y Paradoja",

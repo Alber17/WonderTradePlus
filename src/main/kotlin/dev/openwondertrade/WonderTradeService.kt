@@ -278,6 +278,7 @@ object WonderTradeService {
             send(player, key, mapOf("min" to ConfigManager.int("general.minimumOfferedLevel", 1), "max" to ConfigManager.int("general.maximumOfferedLevel", 100)))
             return false
         }
+        if (repeatedSpecies(player, pokemon)) return false
         val speciesPath = pokemon.species.resourceIdentifier.path.lowercase()
         val blocked = ConfigManager.strings("donation.speciesBlacklist").map { it.substringAfter(':').lowercase() }
         if (speciesPath in blocked) {
@@ -354,6 +355,15 @@ object WonderTradeService {
     /** Textura de skin del perfil de un jugador conectado, si su perfil la incluye. */
     fun profileSkin(player: ServerPlayer): Pair<String, String?>? =
         runCatching { player.gameProfile.properties.get("textures").firstOrNull() }.getOrNull()?.let { it.value() to it.signature() }
+
+    /** true (y avisa) si el jugador intenta ofrecer la misma especie que ofreció la última vez. */
+    private fun repeatedSpecies(player: ServerPlayer, pokemon: Pokemon): Boolean {
+        if (!ConfigManager.bool("trade.blockRepeatSpecies", true)) return false
+        val species = pokemon.species.resourceIdentifier.path.lowercase()
+        if (playerData.lastOfferedSpecies(player.uuid) != species) return false
+        send(player, "repeatSpecies")
+        return true
+    }
 
     /** Guarda nombre y skin del jugador para poder dibujar su cabeza cuando no esté conectado. */
     fun rememberPlayer(player: ServerPlayer) {
@@ -654,6 +664,7 @@ object WonderTradeService {
             pool.add(PoolEntry.fromPokemon(donation, registryAccess, player.gameProfile.name, now, player.uuid.toString()))
             pool.save()
             rememberPlayer(player)
+            playerData.setLastOfferedSpecies(player.uuid, offered.species.resourceIdentifier.path.lowercase())
             playerData.recordDonation(player.uuid, WonderTradeRules.isRare(donation), now)
             playerData.save()
         } catch (exception: Exception) {
@@ -681,9 +692,10 @@ object WonderTradeService {
             send(player, key, mapOf("min" to ConfigManager.int("general.minimumOfferedLevel", 1), "max" to ConfigManager.int("general.maximumOfferedLevel", 100)))
             return
         }
+        if (repeatedSpecies(player, offered)) return
         checkLimits(player)?.let { return }
         // Si hay un evento activo con la espera cumplida, este intercambio usa el evento y no gasta tu tiempo normal.
-        val eventBypass = player.hasPermissions(ConfigManager.int("trade.adminBypassPermissionLevel", 2).coerceIn(0, 4))
+        val eventBypass = cooldownBypass(player)
         val eventUse = if (eventBypass) null else WonderTradeEvents.readyEvent(player)
 
         val now = System.currentTimeMillis()
@@ -715,7 +727,8 @@ object WonderTradeService {
         // Las aportaciones especiales suman su bonus al terminar y se aplican al siguiente WT normal.
         val normalGain = if (bonusEnabled && !offeredRare) bonusGain(offered, player) else 0.0
         val bonusForRoll = if (!offeredRare) (bonusBefore + normalGain).coerceAtMost(maximumBonus) else bonusBefore
-        val effectiveChance = bonusForRoll
+        // La mejora fija del rango se suma a la probabilidad de este intercambio (no se consume ni se acumula).
+        val effectiveChance = if (bonusEnabled) (bonusForRoll + WonderTradeRanks.improvementPercent(player)).coerceAtMost(100.0) else bonusForRoll
         val forceSpecial = !offeredRare && effectiveChance > 0.0 && Random.nextDouble() * 100.0 < effectiveChance
 
         // Si se activa el bonus, se prioriza un especial que ya exista en el pool.
@@ -773,6 +786,7 @@ object WonderTradeService {
             playerData.recordTrade(player.uuid, now, offeredRare, incomingRare, affectCooldown = eventUse == null)
             if (eventUse != null) WonderTradeEvents.markUsed(player, eventUse)
             rememberPlayer(player)
+            playerData.setLastOfferedSpecies(player.uuid, offered.species.resourceIdentifier.path.lowercase())
             var bonusAfter = bonusBefore
             if (bonusEnabled) {
                 bonusAfter = when {
@@ -1126,7 +1140,35 @@ object WonderTradeService {
             WonderTradePlus.LOGGER.info("Mantenimiento del pool: {} entradas caducadas eliminadas; {} Pokémon permanecen.", expired, pool.size)
         }
         val (purged, generated) = purgeStale(server)
-        return (expired + purged) to generated
+        val monthly = runCatching { monthlyReset(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el reinicio mensual de la pool.", it) }.getOrDefault(0)
+        return (expired + purged + monthly) to (generated + monthly)
+    }
+
+    /**
+     * Reinicio mensual: el día configurado de cada mes sustituye los Pokémon normales de la pool por otros nuevos
+     * (los especiales se conservan). La primera vez que se ejecuta solo anota el mes actual, para no vaciar nada
+     * justo al actualizar. Si no hay jugadores conectados para generar, se aplaza.
+     */
+    private fun monthlyReset(server: MinecraftServer): Int {
+        if (!ConfigManager.bool("maintenance.monthlyReset.enabled", true)) return 0
+        val today = java.time.LocalDate.now(WonderTradeSchedule.zone())
+        val day = ConfigManager.int("maintenance.monthlyReset.dayOfMonth", 1).coerceIn(1, 28)
+        val key = "%04d-%02d".format(today.year, today.monthValue)
+        val file = FabricLoader.getInstance().configDir.resolve("wondertradeplus").resolve("maintenance-state.json")
+        val state = runCatching { Files.newBufferedReader(file).use { com.google.gson.JsonParser.parseReader(it).asJsonObject } }.getOrNull()
+        fun mark() {
+            val node = com.google.gson.JsonObject().apply { addProperty("lastMonthlyReset", key) }
+            Files.createDirectories(file.parent)
+            Files.writeString(file, node.toString())
+        }
+        if (state == null) { mark(); return 0 }
+        if (state.get("lastMonthlyReset")?.asString == key || today.dayOfMonth < day) return 0
+        if (server.playerList.players.isEmpty()) return 0
+        val (replaced, _) = purgeStale(server, forceAll = true, forceIncludeDonations = ConfigManager.bool("maintenance.monthlyReset.includePlayerDonations", true))
+        mark()
+        WonderTradePlus.LOGGER.info("Reinicio mensual de la pool: {} Pokémon normales renovados.", replaced)
+        WonderTradeEvents.broadcast(server, ConfigManager.string("messages.poolMonthlyReset", "&d★ Reinicio mensual de la pool."), emptyMap())
+        return replaced
     }
 
     /**
@@ -1134,14 +1176,14 @@ object WonderTradeService {
      * elimina y se sustituye por uno nuevo (normal). Los especiales (shiny, legendario, mítico, Ultraente
      * y Paradoja) nunca se purgan. Solo se retira una entrada si se ha podido generar su sustituto.
      */
-    private fun purgeStale(server: MinecraftServer): Pair<Int, Int> {
-        if (!ConfigManager.bool("maintenance.purge.enabled", true)) return 0 to 0
+    private fun purgeStale(server: MinecraftServer, forceAll: Boolean = false, forceIncludeDonations: Boolean = true): Pair<Int, Int> {
+        if (!forceAll && !ConfigManager.bool("maintenance.purge.enabled", true)) return 0 to 0
         val hours = ConfigManager.int("maintenance.purge.afterHours", 168)
-        if (hours <= 0) return 0 to 0
+        if (!forceAll && hours <= 0) return 0 to 0
         // Generar Pokémon necesita un jugador conectado; si no hay ninguno se aplaza a la siguiente pasada.
         val player = server.playerList.players.firstOrNull() ?: return 0 to 0
-        val limit = System.currentTimeMillis() - hours * 3_600_000L
-        val includeDonations = ConfigManager.bool("maintenance.purge.includePlayerDonations", true)
+        val limit = if (forceAll) Long.MAX_VALUE else System.currentTimeMillis() - hours * 3_600_000L
+        val includeDonations = if (forceAll) forceIncludeDonations else ConfigManager.bool("maintenance.purge.includePlayerDonations", true)
         val stale = pool.all().filter {
             it.addedAt > 0L && it.addedAt < limit && !WonderTradeRules.isRareEntry(it) && (includeDonations || it.donorUuid.isEmpty())
         }
@@ -1298,7 +1340,7 @@ object WonderTradeService {
         val rank = WonderTradeRanks.rankOf(player) ?: return null
         return format(
             ConfigManager.string("messages.rankInfo", "&7Tu rango: {rank} &8— &7mínimo de probabilidad &d{base}%&7 y ganancias &ax{multiplier}&7."),
-            mapOf("rank" to rank.name, "base" to percentText(rank.baseBonus), "multiplier" to percentText(rank.gainMultiplier))
+            mapOf("rank" to rank.name, "base" to percentText(rank.baseBonus), "improvement" to percentText(rank.improvementPercent), "multiplier" to percentText(rank.gainMultiplier))
         )
     }
 
@@ -1400,9 +1442,15 @@ object WonderTradeService {
         }
     }
 
+    /**
+     * Quién se salta la espera: jugadores con nivel de permiso >= trade.cooldownBypassPermissionLevel.
+     * Por defecto 5 (nadie: owners, admins y moderadores también esperan). 2 devuelve el comportamiento antiguo.
+     */
+    private fun cooldownBypass(player: ServerPlayer): Boolean =
+        player.hasPermissions(ConfigManager.int("trade.cooldownBypassPermissionLevel", 5).coerceIn(0, 5))
+
     fun cooldownRemainingSeconds(player: ServerPlayer): Long {
-        val bypassLevel = ConfigManager.int("trade.adminBypassPermissionLevel", 2).coerceIn(0, 4)
-        val bypass = player.hasPermissions(bypassLevel)
+        val bypass = cooldownBypass(player)
         val cooldown = (ConfigManager.int("trade.cooldownMinutes", 720).coerceAtLeast(0) * 60L).toLong()
         return playerData.cooldownRemainingSeconds(player.uuid, System.currentTimeMillis(), cooldown, bypass)
     }
@@ -1413,8 +1461,7 @@ object WonderTradeService {
     }
 
     private fun checkLimits(player: ServerPlayer): Boolean? {
-        val bypassLevel = ConfigManager.int("trade.adminBypassPermissionLevel", 2).coerceIn(0, 4)
-        val bypass = player.hasPermissions(bypassLevel) || WonderTradeEvents.readyEvent(player) != null
+        val bypass = cooldownBypass(player) || WonderTradeEvents.readyEvent(player) != null
         val cooldown = (ConfigManager.int("trade.cooldownMinutes", 720).coerceAtLeast(0) * 60L).toLong()
         val limit = ConfigManager.int("trade.dailyLimit", 0).coerceAtLeast(0)
         val check = playerData.check(player.uuid, System.currentTimeMillis(), cooldown, limit, bypass)
