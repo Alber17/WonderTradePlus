@@ -62,10 +62,10 @@ object WonderTradeRules {
     fun categoryLabel(pokemon: Pokemon): String? {
         val id = pokemon.species.resourceIdentifier.path.lowercase()
         return when {
-            runCatching { pokemon.isUltraBeast() }.getOrDefault(false) -> "&3Ultraente"
-            id in pastParadox || id in futureParadox -> "&cParadoja"
-            runCatching { pokemon.isMythical() }.getOrDefault(false) -> "&dMítico"
-            runCatching { pokemon.isLegendary() }.getOrDefault(false) -> "&6Legendario"
+            runCatching { pokemon.isUltraBeast() }.getOrDefault(false) -> Lang.tr("&3Ultraente")
+            id in pastParadox || id in futureParadox -> Lang.tr("&cParadoja")
+            runCatching { pokemon.isMythical() }.getOrDefault(false) -> Lang.tr("&dMítico")
+            runCatching { pokemon.isLegendary() }.getOrDefault(false) -> Lang.tr("&6Legendario")
             else -> null
         }
     }

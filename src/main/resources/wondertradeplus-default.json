@@ -13,7 +13,8 @@
     "maximumOfferedLevel": 100,
     "speciesBlacklist": [],
     "useSpeciesWhitelist": false,
-    "speciesWhitelist": []
+    "speciesWhitelist": [],
+    "language": "es_es"
   },
   "trade": {
     "cooldownMinutes": 720,
@@ -73,8 +74,6 @@
     "username": "WonderTrade",
     "notifyDonations": true,
     "notifyReceived": true,
-    "donationMessage": "**{player}** ha aportado **{pokemon}** (Nv. {level}, {category}) al pool de Wonder Trade.",
-    "receivedMessage": "🎉 **{player}** ha recibido **{pokemon}** (Nv. {level}, {category}) en un Wonder Trade.",
     "events": {
       "enabled": true,
       "start": true,
@@ -83,12 +82,7 @@
       "pause": true,
       "topDonations": true,
       "mentionRoleId": ""
-    },
-    "eventStartMessage": "🎉 **Evento iniciado: {name}**\n{details}\n⏱️ Dura {duration} · termina <t:{endEpoch}:R> (<t:{endEpoch}:t>, a tu hora)",
-    "eventEndMessage": "🏁 **Ha terminado el evento: {name}**",
-    "eventSoonMessage": "⏰ **{name}** empieza <t:{startEpoch}:R> (<t:{startEpoch}:F>, a tu hora)",
-    "eventPausedMessage": "⏸️ El evento **{name}** se ha pausado temporalmente.",
-    "eventResumedMessage": "▶️ El evento **{name}** se ha reanudado. Termina <t:{endEpoch}:R>."
+    }
   },
   "bonus": {
     "enabled": true,
@@ -124,11 +118,51 @@
   "ranks": {
     "enabled": true,
     "list": [
-      { "id": "leyenda", "name": "&6Leyenda", "permission": "wondertradeplus.rank.leyenda", "tag": "wt_leyenda", "baseBonus": 1.0, "gainMultiplier": 1.0, "improvementPercent": 1.0 },
-      { "id": "maestro", "name": "&dMaestro", "permission": "wondertradeplus.rank.maestro", "tag": "wt_maestro", "baseBonus": 0.0, "gainMultiplier": 1.0, "improvementPercent": 0.75 },
-      { "id": "elite", "name": "&bÉlite", "permission": "wondertradeplus.rank.elite", "tag": "wt_elite", "baseBonus": 0.0, "gainMultiplier": 1.0, "improvementPercent": 0.5 },
-      { "id": "experto", "name": "&aExperto", "permission": "wondertradeplus.rank.experto", "tag": "wt_experto", "baseBonus": 0.0, "gainMultiplier": 1.0, "improvementPercent": 0.25 },
-      { "id": "dominguero", "name": "&eDominguero", "permission": "wondertradeplus.rank.dominguero", "tag": "wt_dominguero", "baseBonus": 0.0, "gainMultiplier": 1.0, "improvementPercent": 0.1 }
+      {
+        "id": "leyenda",
+        "name": "&6Leyenda",
+        "permission": "wondertradeplus.rank.leyenda",
+        "tag": "wt_leyenda",
+        "baseBonus": 1.0,
+        "gainMultiplier": 1.0,
+        "improvementPercent": 1.0
+      },
+      {
+        "id": "maestro",
+        "name": "&dMaestro",
+        "permission": "wondertradeplus.rank.maestro",
+        "tag": "wt_maestro",
+        "baseBonus": 0.0,
+        "gainMultiplier": 1.0,
+        "improvementPercent": 0.75
+      },
+      {
+        "id": "elite",
+        "name": "&bÉlite",
+        "permission": "wondertradeplus.rank.elite",
+        "tag": "wt_elite",
+        "baseBonus": 0.0,
+        "gainMultiplier": 1.0,
+        "improvementPercent": 0.5
+      },
+      {
+        "id": "experto",
+        "name": "&aExperto",
+        "permission": "wondertradeplus.rank.experto",
+        "tag": "wt_experto",
+        "baseBonus": 0.0,
+        "gainMultiplier": 1.0,
+        "improvementPercent": 0.25
+      },
+      {
+        "id": "dominguero",
+        "name": "&eDominguero",
+        "permission": "wondertradeplus.rank.dominguero",
+        "tag": "wt_dominguero",
+        "baseBonus": 0.0,
+        "gainMultiplier": 1.0,
+        "improvementPercent": 0.1
+      }
     ]
   },
   "cooldownNotice": {
@@ -144,7 +178,10 @@
       "timezone": "",
       "maxLateMinutes": 10,
       "skipIfActive": true,
-      "announceBeforeMinutes": [10, 1],
+      "announceBeforeMinutes": [
+        10,
+        1
+      ],
       "reminder": {
         "enabled": true,
         "intervalMinutes": 180,
@@ -152,16 +189,16 @@
         "maxListed": 3
       }
     },
-    "names": {
-      "risk": "Apuesta de {categories}",
-      "receive": "Lluvia de {categories}"
-    },
     "bossbar": {
       "enabled": true,
       "format": "&d★ {name} &7— &f{time}",
       "overlay": "PROGRESS",
-      "risk": { "color": "PURPLE" },
-      "receive": { "color": "PINK" }
+      "risk": {
+        "color": "PURPLE"
+      },
+      "receive": {
+        "color": "PINK"
+      }
     },
     "joinNotice": {
       "enabled": true,
@@ -170,7 +207,10 @@
     },
     "ensurePool": {
       "enabled": true,
-      "types": ["arriesgar", "recibir"],
+      "types": [
+        "arriesgar",
+        "recibir"
+      ],
       "minimum": 3,
       "target": 0,
       "maxGenerate": 10,
@@ -184,7 +224,13 @@
       "maxListed": 10,
       "showLevel": true
     },
-    "menuDurations": ["5m", "30m", "1h", "3h", "1d"],
+    "menuDurations": [
+      "5m",
+      "30m",
+      "1h",
+      "3h",
+      "1d"
+    ],
     "tradeIntervalPercent": 20.0,
     "risk": {
       "extraGain": 0.2
@@ -224,179 +270,7 @@
     "receivedUltraBeast": true,
     "receivedParadox": true
   },
-  "messages": {
-    "prefix": "&8[&dWonderTrade&8] &r",
-    "help": "&d&lWonder Trade &7- Comandos disponibles:",
-    "helpSoundsCommand": "&e/wt sonidos &7Configurar tus sonidos",
-    "invalidSlot": "&cEl slot debe estar entre 1 y 6.",
-    "emptySlot": "&cNo tienes ningún Pokémon en ese slot.",
-    "confirmation": "&eVas a intercambiar &f{sent}&e. Escribe &a/wt confirm&e antes de {seconds} segundos.",
-    "confirmationExpired": "&cLa confirmación ha caducado. Vuelve a usar /wt <slot>.",
-    "nothingToConfirm": "&cNo tienes ningún intercambio pendiente.",
-    "notTradeable": "&cEse Pokémon no se puede intercambiar.",
-    "faintedBlocked": "&cNo puedes intercambiar un Pokémon debilitado.",
-    "shinyBlocked": "&cLos Pokémon shiny están desactivados en Wonder Trade.",
-    "specialBlocked": "&cLos Pokémon legendarios/míticos/especiales están desactivados.",
-    "alphaBlocked": "&cLos Pokémon alfa están desactivados.",
-    "heldItemBlocked": "&cQuítale el objeto equipado antes de intercambiarlo.",
-    "levelBlocked": "&cEl nivel de ese Pokémon está fuera del rango permitido ({min}-{max}).",
-    "speciesBlocked": "&cEsa especie no está permitida en Wonder Trade.",
-    "cooldown": "&cDebes esperar {time} para volver a intercambiar.",
-    "dailyLimit": "&cYa has alcanzado el límite diario de Wonder Trade ({limit}).",
-    "noCandidate": "&cNo hay ningún Pokémon disponible en la pool para este intercambio. No se ha realizado el intercambio.",
-    "generationFailed": "&cNo se ha podido recuperar el Pokémon elegido de la pool. No se ha intercambiado nada.",
-    "success": "&aIntercambio completado: has recibido &f{received}&a. {bonusText}",
-    "poolInfo": "&7Pool de Wonder Trade: &e{size} &7Pokémon.",
-    "reload": "&aConfiguración y pool recargados.",
-    "poolCleared": "&aPool vaciado.",
-    "adminOnly": "&cNecesitas ser operador de nivel 2 para usar ese comando.",
-    "saveFailed": "&cNo se pudo guardar el intercambio de forma segura. Se ha intentado restaurar tu equipo; revisa la consola si aparece un error.",
-    "cancelled": "&7Intercambio cancelado.",
-    "broadcastNormal": "&7{player} ha añadido un Pokémon al pool de Wonder Trade.",
-    "broadcastSpecial": "&6{player} ha añadido un Pokémon legendario al pool de Wonder Trade: &f{pokemon}&6!",
-    "broadcastShinySpecial": "&6{player} ha añadido un Pokémon LEGENDARIO SHINY al pool de Wonder Trade: &f{pokemon}&6!",
-    "bonusIncreased": "&d Tu aportación especial aumenta tu probabilidad en &f+{gain}%&d. Ahora tienes &f{percent}%&d.",
-    "bonusReset": "&6¡Has recibido un Pokémon especial! Tu probabilidad acumulada vuelve a &f{percent}%&6.",
-    "bonusInfo": "&7Probabilidad acumulada de recibir un especial: &d{percent}%&7. Cada WT normal suma &a+{normalGain}%&7, cada WT especial &d+{specialGain}%&7 y, si también es shiny, añade &d+{specialShinyExtraGain}%&7 extra.",
-    "broadcastUltraBeast": "&3◆ {player} ha añadido un Ultraente al pool de Wonder Trade: &f{pokemon}&3!",
-    "broadcastShinyUltraBeast": "&3◆ {player} ha añadido un ULTRAENTE SHINY al pool de Wonder Trade: &f{pokemon}&3!",
-    "broadcastPastParadox": "&c⌛ {player} ha añadido un Pokémon del pasado al pool de Wonder Trade: &f{pokemon}&c!",
-    "broadcastShinyPastParadox": "&c⌛ {player} ha añadido un Pokémon del PASADO SHINY al pool de Wonder Trade: &f{pokemon}&c!",
-    "broadcastFutureParadox": "&b⚛ {player} ha añadido un Pokémon del futuro al pool de Wonder Trade: &f{pokemon}&b!",
-    "broadcastShinyFutureParadox": "&b⚛ {player} ha añadido un Pokémon del FUTURO SHINY al pool de Wonder Trade: &f{pokemon}&b!",
-    "broadcastShiny": "&d{player} ha añadido un Pokémon shiny al pool de Wonder Trade: &f{pokemon}&d!",
-    "bonusNormalIncreased": "&d Tu intercambio normal aumenta tu probabilidad en &f+{gain}%&d. Ahora tienes &f{percent}%&d.",
-    "bonusShinyExtraInfo": "&7Un shiny que también sea legendario, mítico, Ultraente o Paradoja suma &d+{specialShinyExtraGain}%&7 adicional.",
-    "successBonusIncreased": "&7Tu probabilidad ha aumentado &a+{gain}%&7. Ahora tienes &d{percent}%&7.",
-    "successBonusReset": "&7Has recibido un especial y tu probabilidad se ha reiniciado a &d{percent}%&7.",
-    "successBonusUnchanged": "&7Tu probabilidad acumulada sigue en &d{percent}%&7.",
-    "eventStarted": "&d★ ¡Evento «{name}» activo durante {duration}! &7Usa &e/wt eventos &7para ver los detalles.",
-    "eventEnded": "&d★ El evento «{name}» ha terminado.",
-    "eventNone": "&7No hay ningún evento activo ahora mismo.",
-    "eventsHeader": "&d&lEventos activos:",
-    "eventRiskDescription": "&7Cada Pokémon &f{category}&7 que ofrezcas suma &d+{value}%&7 extra a tu probabilidad de especial.",
-    "eventReceiveDescription": "&7Probabilidad extra de recibir un Pokémon &f{category}&7: &d+{value}%&7 en cada intercambio.",
-    "eventCooldownDescription": "&7Puedes intercambiar una vez cada &f{cooldown}&7 sin gastar tu tiempo normal.",
-    "eventYourCooldown": "&7Tu próximo intercambio de evento: {state}",
-    "previewEventShiny": "&d★ Evento: &7+{percent}% de recibir un Pokémon {category}",
-    "helpEventsCommand": "&e/wt eventos &7Ver los eventos activos",
-    "helpAdminEventsCommand": "&e/wt admin eventos &7Ver eventos activos y programados",
-    "eventScheduledSoon": "&d★ El evento «{name}» empezará en &f{time}&d.",
-    "eventJoinHeader": "&d★ Hay eventos de Wonder Trade activos:",
-    "eventJoinLine": "&7- &f{name} &7(termina en &f{time}&7)",
-    "eventJoinFooter": "&7Usa &e/wt eventos &7para ver los detalles.",
-    "eventPoolHeader": "&d★ Pokémon &f{category}&d en la pool ({count}):",
-    "eventPoolNone": "&7Ahora mismo no hay ningún Pokémon &f{category}&7 en la pool.",
-    "eventPoolMore": "&7…y &f{more}&7 más. Míralos todos en &e/wt pool&7.",
-    "eventUpcomingHeader": "&d&lPróximos eventos:",
-    "eventUpcomingLine": "&7- &f{name} &7— {when} &8({duration})",
-    "helpAdminScheduleCommand": "&e/wt admin eventos programar <tipo> <categorías> <duración> <cuándo> &7Programar un evento (también desde Gestionar eventos)",
-    "helpAdminEventCreateCommand": "&e/wt admin eventos crear <arriesgar|recibir> <categorías> <duración> [valor] [espera] &7Crear un evento (varias categorías con +)",
-    "helpAdminEventStopCommand": "&e/wt admin eventos parar <id> &7Finalizar un evento",
-    "helpAdminUnscheduleCommand": "&e/wt admin eventos desprogramar <id> &7Cancelar un evento programado",
-    "rankInfo": "&7Tu rango: {rank} &8— &7mínimo de probabilidad &d{base}%&7, mejora &b+{improvement}%&7 y ganancias &ax{multiplier}&7.",
-    "repeatSpecies": "&cEsa especie ya la has tradeado antes. Prueba con otra y podrás volver a ella.",
-    "poolMonthlyReset": "&d★ Reinicio mensual de la pool: los Pokémon normales se han renovado. ¡Los especiales se conservan!",
-    "eventReminderHeader": "&d★ Próximos eventos de Wonder Trade &8(la cuenta atrás va a tu hora):",
-    "eventReminderLine": "&7- &f{name} &7— {when}",
-    "rankNone": "&7No tienes ningún rango con ventajas en Wonder Trade.",
-    "rankDisabled": "&7Los rangos están desactivados.",
-    "helpSpecialsCommand": "&e/wt especiales &7Ver qué Pokémon son míticos, legendarios, Ultraentes y Paradoja",
-    "helpRankCommand": "&e/wt rango &7Ver tu rango y sus ventajas",
-    "cooldownFinished": "&a¡Ya puedes hacer Wonder Trade otra vez! Usa &e/wt&a.",
-    "eventCooldown": "&cTu próximo intercambio de evento estará disponible en &f{time}&c.",
-    "tradeDisabled": "&cWonder Trade está desactivado temporalmente.",
-    "previewTitle": "&dProbabilidades de este intercambio",
-    "previewPool": "&7Especiales disponibles en la pool: &f{specials}&7/&f{total}",
-    "previewBonusNow": "&7Tu bonus actual: &d{percent}%",
-    "previewBonusUsed": "&7Bonus aplicado en este intercambio: &d{percent}% &8(+{gain}%)",
-    "previewBonusOfferedSpecial": "&7Ofrecer un especial no usa el bonus, pero lo subirá a &d{percent}%&7.",
-    "previewChance": "&7Probabilidad de recibir un especial: &d{percent}%",
-    "previewReset": "&8Si te toca un especial, tu bonus se reinicia a 0%.",
-    "previewEmptyPool": "&cNo hay Pokémon disponibles para ti en la pool.",
-    "helpAdminToggleCommand": "&e/wt on | off &7Activar o desactivar Wonder Trade",
-    "donationDisabled": "&cLas donaciones a la pool están desactivadas.",
-    "donationPoolFull": "&cNo puedes donar porque la pool ya está completa (&f{size}/{maximum}&c).",
-    "donationInBattle": "&cNo puedes donar Pokémon durante un combate.",
-    "donationSuccess": "&aDonación completada: &f{pokemon} &ase ha añadido a la pool. ¡Gracias!",
-    "menuBookTitle": "&dWonder Trade",
-    "menuBookDescription": "&7Elige un Pokémon para ofrecerlo. Recibirás otro a cambio.",
-    "menuBookBonusHeader": "&7Bonus por ofrecer Pokémon:",
-    "menuBookBonusDisabled": "&cEl sistema de bonus está desactivado.",
-    "menuBookNormalGain": "&7Pokémon normal: &a+{gain}%",
-    "menuBookShinyGain": "&7Pokémon shiny (sin categoría especial): &d+{gain}%",
-    "menuBookSpecialGain": "&7Legendario / Mítico / Ultraente / Paradoja: &d+{gain}%",
-    "menuBookSpecialShinyGain": "&7Especial shiny: &d+{base}% + {extra}% extra = {total}%",
-    "donationBookDescription": "&7Elige un Pokémon para donarlo a la pool. No recibirás nada a cambio.",
-    "donationMonthlyLimit": "&cYa has alcanzado el límite de &f{limit} &cdonaciones este mes. Se reinicia el día 1.",
-    "donationSameSpecies": "&cEsa especie ya la has donado {period}. Prueba con otra.",
-    "donationSameIndividual": "&cEse Pokémon ya lo donaste {period}.",
-    "helpTopDonationsCommand": "&e/wt donaciones &7Ver el Top Donaciones del mes",
-    "topDonationsDisabled": "&7El Top Donaciones está desactivado.",
-    "topDonationsInactive": "&7Este mes no hay Top Donaciones. El próximo será en &f{month}&7.",
-    "topDonationsCurrentHeader": "&d&lTop Donaciones de {month} &7(termina el {end}):",
-    "topDonationsEmpty": "&7Todavía nadie ha donado este mes. ¡Usa &e/wt donar&7!",
-    "topDonationsLine": "&6#{rank} &f{player} &7— &e{points} puntos &8({donations} donaciones)",
-    "topDonationsYou": "&7Tus puntos: &e{points}",
-    "topDonationsPointsInfo": "&8Puntos: normal 1 · shiny 2 · Ultraente/Paradoja 3 · legendario/mítico 4.",
-    "topDonationsHeader": "&d&l★ ¡Top Donaciones de {month}!",
-    "topDonationsNobody": "&d★ Top Donaciones de {month}: nadie ha donado este mes.",
-    "topDonationsFooter": "&7¡Gracias a todos por donar! Los premios se entregan a los ganadores.",
-    "topDonationsReward": "&d★ ¡Has quedado &f#{rank} &den el Top Donaciones con &e{points} puntos&d! Tu recompensa ya está en tu inventario.",
-    "penalized": "&cEstás penalizado en Wonder Trade ({time}). No puedes intercambiar ni donar.",
-    "penaltyNotice": "&cHas sido penalizado en Wonder Trade durante &f{time}&c. No podrás intercambiar ni donar.",
-    "penaltyLifted": "&aTu penalización de Wonder Trade se ha retirado. ¡Ya puedes volver a intercambiar!",
-    "penaltyPermanent": "permanente",
-    "helpAdminPenalizeCommand": "&e/wt admin penalizar <jugador> [duración|permanente] &7Penalizar a un jugador (también desde el panel)",
-    "helpAdminPardonCommand": "&e/wt admin perdonar <jugador> &7Retirar una penalización; &e/wt admin penalizaciones &7lista las vigentes",
-    "donationWeeklyLimit": "&cYa has alcanzado el límite de &f{limit} &cdonaciones en los últimos 7 días.",
-    "donationSpeciesBlocked": "&cEsta especie no está permitida para donaciones.",
-    "cooldownReady": "&aDisponible para intercambiar",
-    "adminMenuTitle": "&5Wonder Trade &8- &cAdministración",
-    "adminMenuPool": "&6Gestionar pool",
-    "adminMenuHistory": "&eHistorial",
-    "adminMenuReload": "&bRecargar configuración",
-    "adminMenuMaintenance": "&aEjecutar mantenimiento",
-    "adminMenuBackup": "&dCrear copia de seguridad",
-    "adminMenuClear": "&cVaciar pool",
-    "adminMenuClearConfirm": "&cConfirmar vaciado",
-    "adminMenuBack": "&aVolver",
-    "cooldownMenuTitle": "&bSiguiente Wonder Trade",
-    "cooldownMenuLore": "&7Tiempo restante: &f{time}",
-    "helpPoolCommand": "&e/wt pool &7Ver la pool",
-    "helpPoolSearchCommand": "&e/wt pool search <texto> &7Buscar en la pool por nombre o especie",
-    "helpMenuCommand": "&e/wt &7Abrir el menú principal",
-    "helpDonateCommand": "&e/wt donar &7Donar un Pokémon a la pool",
-    "helpStatsCommand": "&e/wt stats [jugador] &7Consultar estadísticas",
-    "helpTopCommand": "&e/wt top &7Abrir el menú de rankings",
-    "helpConfirmCommand": "&e/wt confirm &7Confirmar un intercambio pendiente",
-    "helpCancelCommand": "&e/wt cancel &7Cancelar un intercambio pendiente",
-    "helpSlotCommand": "&e/wt <slot> &7Solicitar un intercambio con un Pokémon (1-6)",
-    "helpAdminHeader": "&cComandos de administración:",
-    "helpAdminPanelCommand": "&e/wt admin &7Abrir el panel de administración",
-    "helpAdminReloadCommand": "&e/wt reload &7Recargar configuración y datos",
-    "helpAdminClearPoolCommand": "&e/wt clearpool &7Alias para vaciar la pool",
-    "helpAdminAddCommand": "&e/wt admin add <slot> &7Añadir una copia desde tu equipo",
-    "helpAdminAddSpeciesCommand": "&e/wt admin addspecies <especie> [forma] [shiny] &7Añadir una especie",
-    "helpAdminFillCommand": "&e/wt admin fill <cantidad> [probabilidad] [nivelMin nivelMax] &7Rellenar la pool",
-    "helpAdminRemoveCommand": "&e/wt admin remove &7Eliminar Pokémon de la pool",
-    "helpAdminResetStatsCommand": "&e/wt admin resetstats <jugador|all> &7Reiniciar estadísticas",
-    "helpAdminBackupCommand": "&e/wt admin backup &7Crear una copia de seguridad",
-    "helpAdminMaintenanceCommand": "&e/wt admin maintenance &7Ejecutar mantenimiento",
-    "helpAdminHistoryCommand": "&e/wt admin history [jugador] &7Consultar historial",
-    "helpAdminRemovePlayerCommand": "&e/wt admin removeplayer <jugador> &7Eliminar sus aportaciones",
-    "helpAdminDiscordCommand": "&e/wt admin discord test &7Probar webhook de Discord",
-    "broadcastReceivedShiny": "&d{player} ha conseguido un shiny en el WonderTrade: &f{pokemon}&d!",
-    "broadcastReceivedLegendary": "&6{player} ha conseguido un Pokémon Legendario{shinySuffix} en el WonderTrade: &f{pokemon}&6!",
-    "broadcastReceivedMythical": "&d{player} ha conseguido un Pokémon Mítico{shinySuffix} en el WonderTrade: &f{pokemon}&d!",
-    "broadcastReceivedUltraBeast": "&3{player} ha conseguido un Pokémon Ultraente{shinySuffix} en el WonderTrade: &f{pokemon}&3!",
-    "broadcastReceivedParadox": "&c{player} ha conseguido un Pokémon Paradoja{shinySuffix} en el WonderTrade: &f{pokemon}&c!",
-    "helpSlotConfirmCommand": "&e/wt <slot> confirm &7Intercambiar ese slot sin confirmación adicional",
-    "helpHelpCommand": "&e/wt help &7Mostrar esta ayuda",
-    "helpAdminClearCommand": "&e/wt admin clear &7Vaciar la pool desde administración",
-    "helpAdminRemoveGeneratedCommand": "&e/wt admin removegenerated &7Eliminar solo Pokémon generados por el servidor",
-    "helpAdminRemovePlayersCommand": "&e/wt admin removeplayers &7Eliminar solo Pokémon aportados por jugadores"
-  },
+  "messages": {},
   "donation": {
     "limitMode": "monthly",
     "monthlyLimit": 20,
@@ -424,13 +298,21 @@
       "legendary": 4
     },
     "rewards": {
-      "first": ["give {player} cobblemon:rare_candy 10"],
-      "second": ["give {player} cobblemon:rare_candy 5"],
-      "third": ["give {player} cobblemon:rare_candy 3"]
+      "first": [
+        "give {player} cobblemon:rare_candy 10"
+      ],
+      "second": [
+        "give {player} cobblemon:rare_candy 5"
+      ],
+      "third": [
+        "give {player} cobblemon:rare_candy 3"
+      ]
     }
   },
   "penalties": {
-    "defaultDuration": "1d"
+    "defaultDuration": "1d",
+    "historySize": 200,
+    "reasons": []
   },
   "animations": {
     "enabled": true,

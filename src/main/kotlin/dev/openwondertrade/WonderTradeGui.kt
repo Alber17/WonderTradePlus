@@ -98,17 +98,22 @@ class GuiMenu(
     override fun canDragTo(slot: Slot): Boolean = false
 }
 
-enum class PoolSort(val label: String) {
+enum class PoolSort(private val source: String) {
     NEWEST("&eHora añadida: descendente"),
     OLDEST("&eHora añadida: ascendente");
+
+    /** Texto en el idioma activo (se calcula al usarlo para que el cambio de idioma se aplique al momento). */
+    val label: String get() = Lang.tr(source)
 
     fun next(): PoolSort = values()[(ordinal + 1) % values().size]
 }
 
-enum class PoolFilter(val label: String) {
+enum class PoolFilter(private val source: String) {
     ALL("&eTodos"),
     SPECIAL("&dEspeciales"),
     NORMAL("&7Normales");
+
+    val label: String get() = Lang.tr(source)
 
     fun next(): PoolFilter = values()[(ordinal + 1) % values().size]
 
@@ -129,7 +134,7 @@ object WonderTradeGui {
         if (!WonderTradeService.ensureEnabled(player)) return
         open(
             player,
-            if (donationMode) "&5Wonder Trade &8- &fDonar" else "&5Wonder Trade &8- &fTu equipo",
+            if (donationMode) Lang.tr("&5Wonder Trade &8- &fDonar") else Lang.tr("&5Wonder Trade &8- &fTu equipo"),
             3,
             "menuOpen"
         ) { renderMain(it, player, donationMode) }
@@ -139,7 +144,7 @@ object WonderTradeGui {
         if (!WonderTradeService.ensureEnabled(player)) return
         open(
             player,
-            if (donationMode) "&5Wonder Trade &8- &fDonar desde PC" else "&5Wonder Trade &8- &fTu PC",
+            if (donationMode) Lang.tr("&5Wonder Trade &8- &fDonar desde PC") else Lang.tr("&5Wonder Trade &8- &fTu PC"),
             6,
             "pcOpen"
         ) { renderPc(it, player, box, donationMode) }
@@ -163,7 +168,7 @@ object WonderTradeGui {
             WonderTradeService.send(player, "adminOnly")
             return
         }
-        val title = if (admin) "&5Wonder Trade &8- &fPool &c(admin)" else "&5Wonder Trade &8- &fPool"
+        val title = if (admin) Lang.tr("&5Wonder Trade &8- &fPool &c(admin)") else Lang.tr("&5Wonder Trade &8- &fPool")
         open(player, title, 6) { renderPool(it, player, page, admin, filter, deleteMode, sort, query) }
     }
 
@@ -172,12 +177,12 @@ object WonderTradeGui {
             WonderTradeService.send(player, "adminOnly")
             return
         }
-        val title = if (filter == null) "&5Wonder Trade &8- &fHistorial" else "&5Historial &8- &f$filter"
+        val title = if (filter == null) Lang.tr("&5Wonder Trade &8- &fHistorial") else Lang.t("&5Historial &8- &f{0}", filter)
         open(player, title, 6) { renderHistory(it, player, filter, page) }
     }
 
     fun openSounds(player: ServerPlayer) {
-        open(player, "&5Wonder Trade &8- &fSonidos", 3) { menu -> renderSounds(menu, player) }
+        open(player, Lang.tr("&5Wonder Trade &8- &fSonidos"), 3) { menu -> renderSounds(menu, player) }
     }
 
     private fun renderSounds(menu: GuiMenu, player: ServerPlayer) {
@@ -185,31 +190,31 @@ object WonderTradeGui {
         fill(menu, 27)
         menu.put(4, named(
             Items.JUKEBOX,
-            "&dPreferencias de sonido",
-            "&7Configura qué sonidos escuchas tú.",
-            "&8Tus cambios se guardan automáticamente."
+            Lang.tr("&dPreferencias de sonido"),
+            Lang.tr("&7Configura qué sonidos escuchas tú."),
+            Lang.tr("&8Tus cambios se guardan automáticamente.")
         ))
 
         data class SoundOption(val key: String, val slot: Int, val item: Item, val title: String, val description: String)
         val options = listOf(
-            SoundOption("menuOpen", 10, Items.CHEST, "&fApertura de menús", "&7Sonido al abrir los menús y cofres."),
-            SoundOption("pcOpen", 11, Items.ENDER_CHEST, "&fApertura del PC", "&7Sonido del cofre de Ender al abrir el PC."),
-            SoundOption("buttonClick", 12, Items.STONE_BUTTON, "&fClic de botones", "&7Sonido al pulsar botones de los menús."),
-            SoundOption("cooldownReady", 13, Items.NOTE_BLOCK, "&fAviso de cooldown", "&7Nota musical cuando vuelve a estar disponible el Wonder Trade."),
-            SoundOption("pageTurn", 14, Items.WRITABLE_BOOK, "&fCambio de página", "&7Sonido al cambiar de página."),
-            SoundOption("specialReceived", 15, Items.EXPERIENCE_BOTTLE, "&fPokémon especial", "&7Sonido al recibir un legendario, mítico, Ultraente o Paradoja."),
-            SoundOption("specialShinyReceived", 16, Items.TOTEM_OF_UNDYING, "&fEspecial shiny", "&7Sonido de tótem al recibir un legendario, mítico, Ultraente o Paradoja shiny. Un shiny normal usa el sonido de especial.")
+            SoundOption("menuOpen", 10, Items.CHEST, Lang.tr("&fApertura de menús"), Lang.tr("&7Sonido al abrir los menús y cofres.")),
+            SoundOption("pcOpen", 11, Items.ENDER_CHEST, Lang.tr("&fApertura del PC"), Lang.tr("&7Sonido del cofre de Ender al abrir el PC.")),
+            SoundOption("buttonClick", 12, Items.STONE_BUTTON, Lang.tr("&fClic de botones"), Lang.tr("&7Sonido al pulsar botones de los menús.")),
+            SoundOption("cooldownReady", 13, Items.NOTE_BLOCK, Lang.tr("&fAviso de cooldown"), Lang.tr("&7Nota musical cuando vuelve a estar disponible el Wonder Trade.")),
+            SoundOption("pageTurn", 14, Items.WRITABLE_BOOK, Lang.tr("&fCambio de página"), Lang.tr("&7Sonido al cambiar de página.")),
+            SoundOption("specialReceived", 15, Items.EXPERIENCE_BOTTLE, Lang.tr("&fPokémon especial"), Lang.tr("&7Sonido al recibir un legendario, mítico, Ultraente o Paradoja.")),
+            SoundOption("specialShinyReceived", 16, Items.TOTEM_OF_UNDYING, Lang.tr("&fEspecial shiny"), Lang.tr("&7Sonido de tótem al recibir un legendario, mítico, Ultraente o Paradoja shiny. Un shiny normal usa el sonido de especial."))
         )
         for (option in options) {
             val enabled = WonderTradeService.soundPreference(player, option.key)
-            val status = if (enabled) "&aACTIVADO" else "&cDESACTIVADO"
+            val status = if (enabled) Lang.tr("&aACTIVADO") else Lang.tr("&cDESACTIVADO")
             menu.button(option.slot, named(
                 option.item,
                 option.title,
                 option.description,
                 "",
-                "&7Estado: $status",
-                "&eClic para cambiar"
+                Lang.t("&7Estado: {0}", status),
+                Lang.tr("&eClic para cambiar")
             )) { p ->
                 val nowEnabled = WonderTradeService.toggleSoundPreference(p, option.key)
                 renderSounds(menu, p)
@@ -220,15 +225,15 @@ object WonderTradeGui {
         val allEnabled = WonderTradeService.soundPreference(player, "all")
         menu.button(22, named(
             if (allEnabled) Items.LIME_DYE else Items.RED_DYE,
-            if (allEnabled) "&aTodos los sonidos activados" else "&cTodos los sonidos silenciados",
-            "&7Activa o desactiva todos los sonidos",
-            "&eClic para cambiar"
+            if (allEnabled) Lang.tr("&aTodos los sonidos activados") else Lang.tr("&cTodos los sonidos silenciados"),
+            Lang.tr("&7Activa o desactiva todos los sonidos"),
+            Lang.tr("&eClic para cambiar")
         )) { p ->
             val nowEnabled = WonderTradeService.toggleSoundPreference(p, "all")
             renderSounds(menu, p)
             if (nowEnabled) playSound(p, "menuOpen")
         }
-        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     private fun open(player: ServerPlayer, title: String, rows: Int, openSound: String = "menuOpen", build: (GuiMenu) -> Unit) {
@@ -249,7 +254,7 @@ object WonderTradeGui {
         val bookLore = mutableListOf(
             ConfigManager.string(
                 if (donationMode) "messages.donationBookDescription" else "messages.menuBookDescription",
-                if (donationMode) "&7Elige un Pokémon para donarlo a la pool." else "&7Elige un Pokémon para ofrecerlo. Recibirás otro a cambio."
+                if (donationMode) Lang.tr("&7Elige un Pokémon para donarlo a la pool.") else Lang.tr("&7Elige un Pokémon para ofrecerlo. Recibirás otro a cambio.")
             )
         )
         if (!donationMode && ConfigManager.bool("gui.showBonusRatesInBook", true)) {
@@ -282,7 +287,7 @@ object WonderTradeGui {
         if (!donationMode) WonderTradeService.rankInfoLine(player)?.let { bookLore += it }
         menu.put(4, named(
             Items.BOOK,
-            ConfigManager.string("messages.menuBookTitle", if (donationMode) "&dDonar a Wonder Trade" else "&dWonder Trade"),
+            ConfigManager.string("messages.menuBookTitle", if (donationMode) Lang.tr("&dDonar a Wonder Trade") else Lang.tr("&dWonder Trade")),
             *bookLore.toTypedArray()
         ))
         menu.markMainMenu(0)
@@ -293,20 +298,20 @@ object WonderTradeGui {
             val guiSlot = 10 + i
             val pokemon = party.get(i)
             if (pokemon == null) {
-                menu.put(guiSlot, named(Items.LIGHT_GRAY_STAINED_GLASS_PANE, "&8Hueco vacío"))
+                menu.put(guiSlot, named(Items.LIGHT_GRAY_STAINED_GLASS_PANE, Lang.tr("&8Hueco vacío")))
             } else {
                 menu.button(guiSlot, pokemonStack(pokemon, true)) { p -> select(p, pokemon, false, donationMode) }
             }
         }
 
-        menu.button(22, named(Items.ENDER_CHEST, "&bAbrir PC", "&7Elige un Pokémon de tus cajas.")) { openPc(it, 0, donationMode) }
+        menu.button(22, named(Items.ENDER_CHEST, Lang.tr("&bAbrir PC"), Lang.tr("&7Elige un Pokémon de tus cajas."))) { openPc(it, 0, donationMode) }
         if (canViewPool(player) || player.hasPermissions(WonderTradeService.adminLevel())) {
-            menu.button(17, named(Items.CHEST, "&6Ver pool", "&7Pokémon aportados por los jugadores.")) {
+            menu.button(17, named(Items.CHEST, Lang.tr("&6Ver pool"), Lang.tr("&7Pokémon aportados por los jugadores."))) {
                 openPool(it, 0, false)
             }
         }
-        menu.button(18, named(Items.ENCHANTED_BOOK, "&dVer especiales", "&7Qué Pokémon son míticos, legendarios,", "&7Ultraentes y Paradoja.", "&eClic para ver")) { openSpecials(it) }
-        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        menu.button(18, named(Items.ENCHANTED_BOOK, Lang.tr("&dVer especiales"), Lang.tr("&7Qué Pokémon son míticos, legendarios,"), Lang.tr("&7Ultraentes y Paradoja."), Lang.tr("&eClic para ver"))) { openSpecials(it) }
+        menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     private fun renderPc(menu: GuiMenu, player: ServerPlayer, requestedBox: Int, donationMode: Boolean) {
@@ -314,7 +319,7 @@ object WonderTradeGui {
         fill(menu, 54)
         val boxes = Cobblemon.storage.getPC(player).boxes
         if (boxes.isEmpty()) {
-            menu.put(22, named(Items.BARRIER, "&cNo tienes cajas en el PC"))
+            menu.put(22, named(Items.BARRIER, Lang.tr("&cNo tienes cajas en el PC")))
         } else {
             val index = requestedBox.coerceIn(0, boxes.size - 1)
             val contents = boxes[index].getNonEmptySlots()
@@ -322,23 +327,23 @@ object WonderTradeGui {
                 val guiSlot = (i / 6) * 9 + (i % 6)
                 val pokemon = contents[i]
                 if (pokemon == null) {
-                    menu.put(guiSlot, named(Items.LIGHT_GRAY_STAINED_GLASS_PANE, "&8Vacío"))
+                    menu.put(guiSlot, named(Items.LIGHT_GRAY_STAINED_GLASS_PANE, Lang.tr("&8Vacío")))
                 } else {
                     menu.button(guiSlot, pokemonStack(pokemon, true)) { p -> select(p, pokemon, true, donationMode) }
                 }
             }
-            menu.button(48, named(Items.ARROW, "&eCaja anterior"), "pageTurn") {
+            menu.button(48, named(Items.ARROW, Lang.tr("&eCaja anterior")), "pageTurn") {
                 renderPc(menu, it, (index - 1 + boxes.size) % boxes.size, donationMode)
             }
-            menu.put(49, named(Items.PAPER, "&fCaja ${index + 1}/${boxes.size}"))
-            menu.button(50, named(Items.ARROW, "&eCaja siguiente"), "pageTurn") {
+            menu.put(49, named(Items.PAPER, Lang.t("&fCaja {0}/{1}", index + 1, boxes.size)))
+            menu.button(50, named(Items.ARROW, Lang.tr("&eCaja siguiente")), "pageTurn") {
                 renderPc(menu, it, (index + 1) % boxes.size, donationMode)
             }
         }
-        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, if (donationMode) "&aVolver a donar" else "&aVolver al equipo")) {
+        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, if (donationMode) Lang.tr("&aVolver a donar") else Lang.tr("&aVolver al equipo"))) {
             openMain(it, donationMode)
         }
-        menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        menu.button(53, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     private fun renderPool(
@@ -367,13 +372,13 @@ object WonderTradeGui {
 
         entries.drop(page * POOL_PER_PAGE).take(POOL_PER_PAGE).forEachIndexed { i, entry ->
             val extra = mutableListOf<String>()
-            if (showDonors) extra += "&7Aportado por: &f${entry.donorName}"
-            extra += "&7Fecha: &f${format.format(Date(entry.addedAt))}"
+            if (showDonors) extra += Lang.t("&7Aportado por: &f{0}", entry.donorName)
+            extra += Lang.t("&7Fecha: &f{0}", format.format(Date(entry.addedAt)))
             val pokemon = runCatching { Pokemon.loadFromJSON(registryAccess, entry.pokemonJson.deepCopy()) }.getOrNull()
-            if (admin && deleteMode) extra += "&c✖ Clic para eliminar del pool"
-            else if (admin) extra += "&7Activa &c&l«Eliminar Pokémon»&r&7 para poder borrarlo."
+            if (admin && deleteMode) extra += Lang.tr("&c✖ Clic para eliminar del pool")
+            else if (admin) extra += Lang.tr("&7Activa &c&l«Eliminar Pokémon»&r&7 para poder borrarlo.")
             val stack = if (pokemon != null) pokemonStack(pokemon, false, extra)
-            else named(Items.BARRIER, "&c${entry.species}", "&7No se pudo cargar este Pokémon.")
+            else named(Items.BARRIER, Lang.t("&c{0}", entry.species), Lang.tr("&7No se pudo cargar este Pokémon."))
             if (admin && deleteMode) {
                 menu.button(i, stack) { p ->
                     if (p.hasPermissions(WonderTradeService.adminLevel())) {
@@ -385,17 +390,17 @@ object WonderTradeGui {
                 menu.put(i, stack)
             }
         }
-        if (entries.isEmpty()) menu.put(22, named(Items.BARRIER, "&cNo hay Pokémon con este filtro"))
+        if (entries.isEmpty()) menu.put(22, named(Items.BARRIER, Lang.tr("&cNo hay Pokémon con este filtro")))
 
         val special = all.count { WonderTradeRules.isRareEntry(it) }
-        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver")) {
+        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) {
             if (admin) openAdmin(it) else openMain(it)
         }
         if (admin) {
             val deleteButton = if (deleteMode) {
-                named(Items.TNT, "&cEliminar Pokémon: ACTIVADO", "&7Haz clic en los Pokémon que quieras quitar.", "&eClic para desactivar")
+                named(Items.TNT, Lang.tr("&cEliminar Pokémon: ACTIVADO"), Lang.tr("&7Haz clic en los Pokémon que quieras quitar."), Lang.tr("&eClic para desactivar"))
             } else {
-                named(Items.SHEARS, "&cEliminar Pokémon", "&7Activa el modo de eliminación.", "&7Después haz clic en los Pokémon que quieras quitar.")
+                named(Items.SHEARS, Lang.tr("&cEliminar Pokémon"), Lang.tr("&7Activa el modo de eliminación."), Lang.tr("&7Después haz clic en los Pokémon que quieras quitar."))
             }
             menu.button(46, deleteButton) { p ->
                 if (p.hasPermissions(WonderTradeService.adminLevel())) {
@@ -403,35 +408,35 @@ object WonderTradeGui {
                 }
             }
         }
-        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior"), "pageTurn") { renderPool(menu, it, page - 1, admin, filter, deleteMode, sort, query) }
-        menu.put(49, named(Items.PAPER, "&fPágina ${page + 1}/$pages", "&7${entries.size} Pokémon con este filtro"))
-        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente"), "pageTurn") { renderPool(menu, it, page + 1, admin, filter, deleteMode, sort, query) }
+        if (page > 0) menu.button(48, named(Items.ARROW, Lang.tr("&ePágina anterior")), "pageTurn") { renderPool(menu, it, page - 1, admin, filter, deleteMode, sort, query) }
+        menu.put(49, named(Items.PAPER, Lang.t("&fPágina {0}/{1}", page + 1, pages), Lang.t("&7{0} Pokémon con este filtro", entries.size)))
+        if (page < pages - 1) menu.button(50, named(Items.ARROW, Lang.tr("&ePágina siguiente")), "pageTurn") { renderPool(menu, it, page + 1, admin, filter, deleteMode, sort, query) }
         val counts = mapOf(PoolFilter.ALL to all.size, PoolFilter.SPECIAL to special, PoolFilter.NORMAL to all.size - special)
         val options = PoolFilter.values().map { option ->
-            if (option == filter) "&e▶ ${option.label} &f${counts[option]}"
-            else "&8   ${option.label.drop(2)} ${counts[option]}"
+            if (option == filter) Lang.t("&e▶ {0} &f{1}", option.label, counts[option])
+            else Lang.t("&8   {0} {1}", option.label.drop(2), counts[option])
         }
         val sortOptions = PoolSort.values().map { option ->
-            if (option == sort) "&e▶ ${option.label}" else "&8   ${option.label.drop(2)}"
+            if (option == sort) Lang.t("&e▶ {0}", option.label) else Lang.t("&8   {0}", option.label.drop(2))
         }
-        menu.button(51, named(Items.CLOCK, "&fOrdenar pool", *sortOptions.toTypedArray(), "&7Ordena por fecha de incorporación.", "&eClic para cambiar")) {
+        menu.button(51, named(Items.CLOCK, Lang.tr("&fOrdenar pool"), *sortOptions.toTypedArray(), Lang.tr("&7Ordena por fecha de incorporación."), Lang.tr("&eClic para cambiar"))) {
             renderPool(menu, it, 0, admin, filter, deleteMode, sort.next(), query)
         }
         if (query != null) {
-            menu.button(47, named(Items.NAME_TAG, "&fBúsqueda: &e$query", "&7Mostrando solo los Pokémon que coinciden.", "&eClic para quitar la búsqueda")) {
+            menu.button(47, named(Items.NAME_TAG, Lang.t("&fBúsqueda: &e{0}", query), Lang.tr("&7Mostrando solo los Pokémon que coinciden."), Lang.tr("&eClic para quitar la búsqueda"))) {
                 renderPool(menu, it, 0, admin, filter, deleteMode, sort, null)
             }
         } else {
-            menu.button(47, named(Items.NAME_TAG, "&fBuscar por nombre o especie", "&7Encuentra un Pokémon concreto del pool.", "&eClic para buscar")) {
+            menu.button(47, named(Items.NAME_TAG, Lang.tr("&fBuscar por nombre o especie"), Lang.tr("&7Encuentra un Pokémon concreto del pool."), Lang.tr("&eClic para buscar"))) {
                 startSearch(it, admin, filter, deleteMode, sort)
             }
         }
-        menu.button(52, named(Items.HOPPER, "&fCambiar filtro de pool",
+        menu.button(52, named(Items.HOPPER, Lang.tr("&fCambiar filtro de pool"),
             *options.toTypedArray(),
-            "&eClic para cambiar")) {
+            Lang.tr("&eClic para cambiar"))) {
             renderPool(menu, it, 0, admin, filter.next(), deleteMode, sort, query)
         }
-        menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        menu.button(53, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     // ---------------------------------------------------------------- búsqueda en la pool
@@ -504,10 +509,10 @@ object WonderTradeGui {
     private fun startSearch(player: ServerPlayer, admin: Boolean, filter: PoolFilter, deleteMode: Boolean, sort: PoolSort) {
         pendingSearch[player.uuid] = SearchContext(admin, filter, deleteMode, sort, System.currentTimeMillis() + 120_000L)
         player.closeContainer()
-        val button = Component.literal("§e§n[Pulsa aquí para buscar]")
+        val button = Component.literal(Lang.tr("§e§n[Pulsa aquí para buscar]"))
             .setStyle(Style.EMPTY.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/wt pool search ")))
         player.sendSystemMessage(
-            WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + "&7Escribe el nombre o la especie del Pokémon. &8Opcional: 6x31 (IVs perfectos), 5x31… o 31spd, 31hp, 31atk, 31def, 31spatk, 31spdef. ").copy().append(button)
+            WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + Lang.tr("&7Escribe el nombre o la especie del Pokémon. &8Opcional: 6x31 (IVs perfectos), 5x31… o 31spd, 31hp, 31atk, 31def, 31spatk, 31spdef. ")).copy().append(button)
         )
     }
 
@@ -527,38 +532,38 @@ object WonderTradeGui {
     // ---------------------------------------------------------------- categorías especiales
 
     private val specialCategories = listOf(
-        Triple("ultraBeast", "&3Ultraentes", Items.ECHO_SHARD),
-        Triple("paradox", "&cParadoja", Items.ENDER_PEARL),
-        Triple("mythical", "&dMíticos", Items.AMETHYST_SHARD),
-        Triple("legendary", "&6Legendarios", Items.GOLD_INGOT)
+        Triple("ultraBeast", Lang.tr("&3Ultraentes"), Items.ECHO_SHARD),
+        Triple("paradox", Lang.tr("&cParadoja"), Items.ENDER_PEARL),
+        Triple("mythical", Lang.tr("&dMíticos"), Items.AMETHYST_SHARD),
+        Triple("legendary", Lang.tr("&6Legendarios"), Items.GOLD_INGOT)
     )
 
     fun openSpecials(player: ServerPlayer) {
         if (!WonderTradeService.ensureEnabled(player)) return
-        open(player, "&5Wonder Trade &8- &dEspeciales", 3) { menu ->
+        open(player, Lang.tr("&5Wonder Trade &8- &dEspeciales"), 3) { menu ->
             fill(menu, 27)
             menu.put(4, named(
-                Items.ENCHANTED_BOOK, "&dPokémon especiales",
-                "&7Estas categorías son las que cuentan en los",
-                "&7eventos «Arriesgar» y «Recibir» de Wonder Trade.",
-                "&7Un Pokémon shiny cuenta para los eventos Shiny."
+                Items.ENCHANTED_BOOK, Lang.tr("&dPokémon especiales"),
+                Lang.tr("&7Estas categorías son las que cuentan en los"),
+                Lang.tr("&7eventos «Arriesgar» y «Recibir» de Wonder Trade."),
+                Lang.tr("&7Un Pokémon shiny cuenta para los eventos Shiny.")
             ))
             val groups = WonderTradeService.speciesByCategory(player)
             val slots = listOf(10, 12, 14, 16)
             specialCategories.forEachIndexed { index, (key, label, icon) ->
                 val count = groups[key]?.size ?: 0
-                menu.button(slots[index], named(icon, label, "&7Pokémon en esta categoría: &f$count", "&eClic para ver la lista")) {
+                menu.button(slots[index], named(icon, label, Lang.t("&7Pokémon en esta categoría: &f{0}", count), Lang.tr("&eClic para ver la lista"))) {
                     openSpecialList(it, key, 0)
                 }
             }
-            menu.button(22, named(Items.ARROW, "&aVolver")) { openMain(it) }
-            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+            menu.button(22, named(Items.ARROW, Lang.tr("&aVolver"))) { openMain(it) }
+            menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
         }
     }
 
     private fun openSpecialList(player: ServerPlayer, key: String, page: Int) {
         val label = specialCategories.firstOrNull { it.first == key }?.second ?: key
-        open(player, "&5Especiales &8- $label", 6) { renderSpecialList(it, player, key, page) }
+        open(player, Lang.t("&5Especiales &8- {0}", label), 6) { renderSpecialList(it, player, key, page) }
     }
 
     private fun renderSpecialList(menu: GuiMenu, player: ServerPlayer, key: String, requestedPage: Int) {
@@ -572,34 +577,34 @@ object WonderTradeGui {
             val stack = runCatching { PokemonItem.from(pokemon) }.getOrElse { ItemStack(Items.PAPER) }
             val formName = WonderTradeRules.formLabel(pokemon)
             stack.set(DataComponents.CUSTOM_NAME, lit("&f" + pokemon.getDisplayName().string + (formName?.let { " &7($it)" } ?: "")))
-            val lines = mutableListOf("&7Categoría: $categoryLabel")
-            formName?.let { lines += "&7Forma: &f$it" }
-            WonderTradeRules.typesLabel(pokemon)?.let { lines += "&7Tipo: $it" }
+            val lines = mutableListOf(Lang.t("&7Categoría: {0}", categoryLabel))
+            formName?.let { lines += Lang.t("&7Forma: &f{0}", it) }
+            WonderTradeRules.typesLabel(pokemon)?.let { lines += Lang.t("&7Tipo: {0}", it) }
             stack.set(DataComponents.LORE, ItemLore(lines.map<String, Component> { lit(it) }))
             menu.put(index, stack)
         }
-        if (list.isEmpty()) menu.put(22, named(Items.BARRIER, "&cNo hay Pokémon en esta categoría"))
-        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior"), "pageTurn") { renderSpecialList(menu, it, key, page - 1) }
-        menu.put(49, named(Items.PAPER, "&7Página ${page + 1}/$pages", "&7$categoryLabel&7: &f${list.size}"))
-        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente"), "pageTurn") { renderSpecialList(menu, it, key, page + 1) }
-        menu.button(45, named(Items.ARROW, "&aVolver")) { openSpecials(it) }
-        menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        if (list.isEmpty()) menu.put(22, named(Items.BARRIER, Lang.tr("&cNo hay Pokémon en esta categoría")))
+        if (page > 0) menu.button(48, named(Items.ARROW, Lang.tr("&ePágina anterior")), "pageTurn") { renderSpecialList(menu, it, key, page - 1) }
+        menu.put(49, named(Items.PAPER, Lang.t("&7Página {0}/{1}", page + 1, pages), Lang.t("&7{0}&7: &f{1}", categoryLabel, list.size)))
+        if (page < pages - 1) menu.button(50, named(Items.ARROW, Lang.tr("&ePágina siguiente")), "pageTurn") { renderSpecialList(menu, it, key, page + 1) }
+        menu.button(45, named(Items.ARROW, Lang.tr("&aVolver"))) { openSpecials(it) }
+        menu.button(53, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     fun openTop(player: ServerPlayer) {
-        open(player, "&5Wonder Trade &8- &6Rankings", 3) { menu ->
+        open(player, Lang.tr("&5Wonder Trade &8- &6Rankings"), 3) { menu ->
             fill(menu, 27)
-            menu.put(4, named(Items.BOOK, "&6Rankings de Wonder Trade", "&7Selecciona qué clasificación quieres consultar."))
-            menu.button(11, named(Items.GOLD_INGOT, "&6Top intercambios", "&7Jugadores con más intercambios realizados.", "&eClic para consultar")) { p ->
+            menu.put(4, named(Items.BOOK, Lang.tr("&6Rankings de Wonder Trade"), Lang.tr("&7Selecciona qué clasificación quieres consultar.")))
+            menu.button(11, named(Items.GOLD_INGOT, Lang.tr("&6Top intercambios"), Lang.tr("&7Jugadores con más intercambios realizados."), Lang.tr("&eClic para consultar"))) { p ->
                 p.sendSystemMessage(WonderTradeService.topComponent("trades", p.uuid))
             }
-            menu.button(13, named(Items.DIAMOND, "&bTop especiales recibidos", "&7Jugadores que más Pokémon especiales han recibido.", "&eClic para consultar")) { p ->
+            menu.button(13, named(Items.DIAMOND, Lang.tr("&bTop especiales recibidos"), Lang.tr("&7Jugadores que más Pokémon especiales han recibido."), Lang.tr("&eClic para consultar"))) { p ->
                 p.sendSystemMessage(WonderTradeService.topComponent("received", p.uuid))
             }
-            menu.button(15, named(Items.EMERALD, "&aTop especiales aportados", "&7Jugadores que más Pokémon especiales han aportado.", "&eClic para consultar")) { p ->
+            menu.button(15, named(Items.EMERALD, Lang.tr("&aTop especiales aportados"), Lang.tr("&7Jugadores que más Pokémon especiales han aportado."), Lang.tr("&eClic para consultar"))) { p ->
                 p.sendSystemMessage(WonderTradeService.topComponent("donated", p.uuid))
             }
-            menu.button(22, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+            menu.button(22, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
         }
     }
 
@@ -613,83 +618,95 @@ object WonderTradeGui {
             val on = WonderTradeService.isEnabled()
             // Cada fila es un grupo (etiqueta a la izquierda) con los botones espaciados de dos en dos.
             // Fila 1: pool
-            menu.put(9, named(Items.ORANGE_STAINED_GLASS_PANE, "&6Pool"))
-            menu.button(11, named(Items.CHEST, ConfigManager.string("messages.adminMenuPool", "&6Gestionar pool"), "&7Ver y administrar los Pokémon.")) {
+            menu.put(9, named(Items.ORANGE_STAINED_GLASS_PANE, Lang.tr("&6Pool")))
+            menu.button(11, named(Items.CHEST, ConfigManager.string("messages.adminMenuPool", "&6Gestionar pool"), Lang.tr("&7Ver y administrar los Pokémon."))) {
                 openPool(it, 0, true)
             }
             if (ConfigManager.bool("admin.fillMenu.enabled", true)) {
-                menu.button(13, named(Items.HOPPER, "&aRellenar pool", "&7Generar Pokémon automáticamente.", "&eAbrir opciones")) {
+                menu.button(13, named(Items.HOPPER, Lang.tr("&aRellenar pool"), Lang.tr("&7Generar Pokémon automáticamente."), Lang.tr("&eAbrir opciones"))) {
                     openAdminFill(it)
                 }
             }
-            menu.button(15, named(Items.BARRIER, "&cEliminar pool", "&7Elige qué origen quieres eliminar.", "&eAbrir opciones")) {
+            menu.button(15, named(Items.BARRIER, Lang.tr("&cEliminar pool"), Lang.tr("&7Elige qué origen quieres eliminar."), Lang.tr("&eAbrir opciones"))) {
                 openAdminPoolDeleteOptions(it)
             }
 
             // Fila 2: servidor
-            menu.put(18, named(Items.MAGENTA_STAINED_GLASS_PANE, "&dServidor"))
-            menu.button(20, named(Items.NETHER_STAR, "&dGestionar eventos", "&7Crea eventos temporales para todos.", "&eClic para abrir")) {
+            menu.put(18, named(Items.MAGENTA_STAINED_GLASS_PANE, Lang.tr("&dServidor")))
+            menu.button(20, named(Items.NETHER_STAR, Lang.tr("&dGestionar eventos"), Lang.tr("&7Crea eventos temporales para todos."), Lang.tr("&eClic para abrir"))) {
                 openAdminEvents(it)
             }
             // Top Donaciones: activar o desactivar el evento mensual de donadores.
             val topOn = WonderTradeTopDonations.enabled()
             val thisMonth = java.time.YearMonth.now(WonderTradeSchedule.zone())
-            val monthState = if (WonderTradeTopDonations.isActiveMonth(thisMonth)) "&aEste mes hay Top" else "&7Este mes no hay Top"
+            val monthState = if (WonderTradeTopDonations.isActiveMonth(thisMonth)) Lang.tr("&aEste mes hay Top") else Lang.tr("&7Este mes no hay Top")
             val topStack = if (topOn) named(
-                Items.EMERALD, "&aTop Donaciones: ACTIVADO", "&7Premios mensuales a los mejores donadores.", monthState, "&eClic para desactivar"
+                Items.EMERALD, Lang.tr("&aTop Donaciones: ACTIVADO"), Lang.tr("&7Premios mensuales a los mejores donadores."), monthState, Lang.tr("&eClic para desactivar")
             ) else named(
-                Items.REDSTONE, "&cTop Donaciones: DESACTIVADO", "&7No se suman puntos ni se dan premios.", "&eClic para activar"
+                Items.REDSTONE, Lang.tr("&cTop Donaciones: DESACTIVADO"), Lang.tr("&7No se suman puntos ni se dan premios."), Lang.tr("&eClic para activar")
             )
             menu.button(22, topStack) {
                 ConfigManager.setBool("topDonations.enabled", !WonderTradeTopDonations.enabled())
                 openAdmin(it)
             }
-            val toggleStack = if (on) named(Items.LIME_DYE, "&aWonder Trade: ACTIVADO", "&7Los jugadores pueden intercambiar y donar.", "&eClic para desactivar")
-            else named(Items.RED_DYE, "&cWonder Trade: DESACTIVADO", "&7Los jugadores no pueden intercambiar ni donar.", "&eClic para activar")
+            val toggleStack = if (on) named(Items.LIME_DYE, Lang.tr("&aWonder Trade: ACTIVADO"), Lang.tr("&7Los jugadores pueden intercambiar y donar."), Lang.tr("&eClic para desactivar"))
+            else named(Items.RED_DYE, Lang.tr("&cWonder Trade: DESACTIVADO"), Lang.tr("&7Los jugadores no pueden intercambiar ni donar."), Lang.tr("&eClic para activar"))
             menu.button(24, toggleStack) {
                 WonderTradeService.setEnabled(!WonderTradeService.isEnabled())
                 openAdmin(it)
             }
             menu.button(26, named(
-                Items.IRON_BARS, "&cPenalizaciones", "&7Impide intercambiar y donar a un jugador", "&7durante un tiempo o para siempre.", "&eClic para abrir"
+                Items.IRON_BARS, Lang.tr("&cPenalizaciones"), Lang.tr("&7Impide intercambiar y donar a un jugador"), Lang.tr("&7durante un tiempo o para siempre."), Lang.tr("&eClic para abrir")
             )) { openPenalties(it, WonderTradePenalties.selection(it.uuid) ?: defaultPenaltyMillis(), 0) }
             // Fila 3: datos
-            menu.put(27, named(Items.YELLOW_STAINED_GLASS_PANE, "&eDatos"))
-            menu.button(29, named(Items.WRITABLE_BOOK, ConfigManager.string("messages.adminMenuHistory", "&eHistorial"), "&7Últimos intercambios.")) {
+            menu.put(27, named(Items.YELLOW_STAINED_GLASS_PANE, Lang.tr("&eDatos")))
+            menu.button(29, named(Items.WRITABLE_BOOK, ConfigManager.string("messages.adminMenuHistory", "&eHistorial"), Lang.tr("&7Últimos intercambios."))) {
                 openHistory(it)
             }
-            menu.button(31, named(Items.BOOK, "&eReiniciar estadísticas", "&7Reinicia todos los rankings y estadísticas.", "&cNo se puede deshacer.")) {
+            menu.button(31, named(Items.BOOK, Lang.tr("&eReiniciar estadísticas"), Lang.tr("&7Reinicia todos los rankings y estadísticas."), Lang.tr("&cNo se puede deshacer."))) {
                 openResetStatsConfirm(it)
             }
 
+            val languages = Lang.available()
+            menu.button(33, named(
+                Items.COMPASS, Lang.t("&bIdioma: &f{0}", Lang.nameOf(Lang.current())),
+                Lang.t("&7Idiomas disponibles: &f{0}", languages.joinToString(", ") { it.first }),
+                Lang.tr("&7Añade más copiando un archivo de la carpeta lang."), Lang.tr("&eClic para cambiar al siguiente")
+            )) { p ->
+                val list = Lang.available()
+                val next = list.getOrNull((list.indexOfFirst { it.first == Lang.current() } + 1) % maxOf(1, list.size))
+                if (next != null) WonderTradeService.changeLanguage(next.first)
+                openAdmin(p)
+            }
+
             // Fila 4: sistema
-            menu.put(36, named(Items.LIGHT_BLUE_STAINED_GLASS_PANE, "&bSistema"))
+            menu.put(36, named(Items.LIGHT_BLUE_STAINED_GLASS_PANE, Lang.tr("&bSistema")))
             menu.button(38, named(Items.COMPARATOR, ConfigManager.string("messages.adminMenuReload", "&bRecargar configuración"))) {
                 WonderTradeService.reload()
                 WonderTradeService.send(it, "reload")
                 openAdmin(it)
             }
-            menu.button(40, named(Items.HOPPER, ConfigManager.string("messages.adminMenuMaintenance", "&aEjecutar mantenimiento"), "&7Caducidad y purga de la pool.")) {
+            menu.button(40, named(Items.HOPPER, ConfigManager.string("messages.adminMenuMaintenance", "&aEjecutar mantenimiento"), Lang.tr("&7Caducidad y purga de la pool."))) {
                 val (expired, generated) = WonderTradeService.maintainPool(it.server)
-                it.sendSystemMessage(WonderTradeService.info("&aMantenimiento: &f$expired &aPokémon eliminados, &f$generated &agenerados."))
+                it.sendSystemMessage(WonderTradeService.info(Lang.t("&aMantenimiento: &f{0} &aPokémon eliminados, &f{1} &agenerados.", expired, generated)))
                 openAdmin(it)
             }
             menu.button(42, named(Items.PAPER, ConfigManager.string("messages.adminMenuBackup", "&dCrear copia de seguridad"))) {
                 val backup = WonderTradeService.backupNow()
-                if (backup == null) it.sendSystemMessage(WonderTradeService.info("&cNo se pudo crear la copia."))
-                else it.sendSystemMessage(WonderTradeService.info("&aCopia creada: &f$backup"))
+                if (backup == null) it.sendSystemMessage(WonderTradeService.info(Lang.tr("&cNo se pudo crear la copia.")))
+                else it.sendSystemMessage(WonderTradeService.info(Lang.t("&aCopia creada: &f{0}", backup)))
                 openAdmin(it)
             }
-            menu.button(44, discordHead("&9Probar Discord", "&7Enviar un mensaje de prueba al webhook.")) { p ->
+            menu.button(44, discordHead(Lang.tr("&9Probar Discord"), Lang.tr("&7Enviar un mensaje de prueba al webhook."))) { p ->
                 WonderTradeDiscord.test { ok, message ->
                     p.server.execute {
-                        p.sendSystemMessage(WonderTradeService.info(if (ok) "&a$message" else "&c$message"))
+                        p.sendSystemMessage(WonderTradeService.info(if (ok) Lang.t("&a{0}", message) else Lang.t("&c{0}", message)))
                     }
                 }
-                p.sendSystemMessage(WonderTradeService.info("&7Enviando mensaje de prueba a Discord…"))
+                p.sendSystemMessage(WonderTradeService.info(Lang.tr("&7Enviando mensaje de prueba a Discord…")))
             }
 
-            menu.button(49, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+            menu.button(49, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
         }
     }
 
@@ -698,50 +715,50 @@ object WonderTradeGui {
             WonderTradeService.send(player, "adminOnly")
             return
         }
-        open(player, "&5Administración &8- &dEventos", 3) { menu ->
+        open(player, Lang.tr("&5Administración &8- &dEventos"), 3) { menu ->
             fill(menu, 27)
             menu.put(4, named(
-                Items.NETHER_STAR, "&dEventos de Wonder Trade",
-                "&7Eventos temporales para todos los jugadores.",
-                "&7Valores personalizados:",
-                "&e/wt admin eventos crear <tipo> <duración> [valor] [espera]"
+                Items.NETHER_STAR, Lang.tr("&dEventos de Wonder Trade"),
+                Lang.tr("&7Eventos temporales para todos los jugadores."),
+                Lang.tr("&7Valores personalizados:"),
+                Lang.tr("&e/wt admin eventos crear <tipo> <duración> [valor] [espera]")
             ))
             if (!WonderTradeEvents.enabled()) {
-                menu.put(13, named(Items.BARRIER, "&cLos eventos están desactivados", "&7Activa events.enabled en config.json."))
+                menu.put(13, named(Items.BARRIER, Lang.tr("&cLos eventos están desactivados"), Lang.tr("&7Activa events.enabled en config.json.")))
             } else {
                 val icons = mapOf(EventType.RISK to Items.GOLD_NUGGET, EventType.RECEIVE to Items.AMETHYST_SHARD)
                 val types = EventType.values()
                 types.forEachIndexed { index, type ->
                     menu.button(if (index == 0) 10 else 12, named(
-                        icons[type] ?: Items.PAPER, "&d${type.title}",
-                        *eventTypeDescription(type).toTypedArray(), "&eClic para elegir la categoría"
+                        icons[type] ?: Items.PAPER, Lang.t("&d{0}", type.title),
+                        *eventTypeDescription(type).toTypedArray(), Lang.tr("&eClic para elegir la categoría")
                     )) { openEventCategory(it, type) }
                 }
                 val now = System.currentTimeMillis()
                 WonderTradeEvents.running(now).take(3).forEachIndexed { index, event ->
                     val left = WonderTradeEvents.formatDuration((event.endAt - (if (event.paused) event.pausedAt else now) + 999L) / 1000L)
                     menu.button(14 + index, named(
-                        if (event.paused) Items.BARRIER else Items.CLOCK, "&d★ #${event.id} ${event.title}" + if (event.paused) " &6(pausado)" else "",
-                        "&7Tiempo restante: &f$left",
-                        "&7WT hechos: &f${event.trades} &7· jugadores: &f${event.playerIds.size}",
-                        "&eClic para gestionar"
+                        if (event.paused) Items.BARRIER else Items.CLOCK, Lang.t("&d★ #{0} {1}", event.id, event.title) + if (event.paused) Lang.tr(" &6(pausado)") else "",
+                        Lang.t("&7Tiempo restante: &f{0}", left),
+                        Lang.t("&7WT hechos: &f{0} &7· jugadores: &f{1}", event.trades, event.playerIds.size),
+                        Lang.tr("&eClic para gestionar")
                     )) { openEventDetail(it, event.id) }
                 }
             }
             val scheduledCount = WonderTradeSchedule.all().size
             menu.button(20, named(
-                Items.COMPASS, "&6Eventos programados",
-                "&7Programados: &f$scheduledCount",
-                "&7Programa eventos desde los menús de tipo y categoría.",
-                "&7También puedes elegir duración, día, horario y repetición.",
-                "&eClic para ver y cancelar"
+                Items.COMPASS, Lang.tr("&6Eventos programados"),
+                Lang.t("&7Programados: &f{0}", scheduledCount),
+                Lang.tr("&7Programa eventos desde los menús de tipo y categoría."),
+                Lang.tr("&7También puedes elegir duración, día, horario y repetición."),
+                Lang.tr("&eClic para ver y cancelar")
             )) { openAdminScheduled(it) }
             menu.button(24, named(
-                Items.WRITABLE_BOOK, "&dHistorial de eventos",
-                "&7Eventos terminados con sus WT y jugadores.", "&eClic para ver"
+                Items.WRITABLE_BOOK, Lang.tr("&dHistorial de eventos"),
+                Lang.tr("&7Eventos terminados con sus WT y jugadores."), Lang.tr("&eClic para ver")
             )) { openEventHistory(it) }
-            menu.button(22, named(Items.ARROW, "&aVolver al panel admin")) { openAdmin(it) }
-            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+            menu.button(22, named(Items.ARROW, Lang.tr("&aVolver al panel admin"))) { openAdmin(it) }
+            menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
         }
     }
 
@@ -751,7 +768,7 @@ object WonderTradeGui {
             WonderTradeService.send(player, "adminOnly")
             return
         }
-        open(player, "&5Eventos &8- &dGestionar", 3) { menu -> renderEventDetail(menu, id) }
+        open(player, Lang.tr("&5Eventos &8- &dGestionar"), 3) { menu -> renderEventDetail(menu, id) }
     }
 
     private fun renderEventDetail(menu: GuiMenu, id: Int) {
@@ -760,36 +777,36 @@ object WonderTradeGui {
         val now = System.currentTimeMillis()
         val event = WonderTradeEvents.running(now).firstOrNull { it.id == id }
         if (event == null) {
-            menu.put(13, named(Items.BARRIER, "&cEste evento ya no está en marcha"))
-            menu.button(22, named(Items.ARROW, "&aVolver")) { openAdminEvents(it) }
+            menu.put(13, named(Items.BARRIER, Lang.tr("&cEste evento ya no está en marcha")))
+            menu.button(22, named(Items.ARROW, Lang.tr("&aVolver"))) { openAdminEvents(it) }
             return
         }
         val left = WonderTradeEvents.formatDuration((event.endAt - (if (event.paused) event.pausedAt else now) + 999L) / 1000L)
         menu.put(4, named(
-            Items.NETHER_STAR, "&d#${event.id} ${event.title}",
-            "&7Estado: " + if (event.paused) "&6PAUSADO" else "&aen marcha",
-            "&7Tiempo restante: &f$left",
-            "&7WT de evento hechos: &f${event.trades}",
-            "&7Jugadores distintos: &f${event.playerIds.size}",
-            "&7Creado por: &f${event.createdBy}"
+            Items.NETHER_STAR, Lang.t("&d#{0} {1}", event.id, event.title),
+            Lang.tr("&7Estado: ") + if (event.paused) Lang.tr("&6PAUSADO") else Lang.tr("&aen marcha"),
+            Lang.t("&7Tiempo restante: &f{0}", left),
+            Lang.t("&7WT de evento hechos: &f{0}", event.trades),
+            Lang.t("&7Jugadores distintos: &f{0}", event.playerIds.size),
+            Lang.t("&7Creado por: &f{0}", event.createdBy)
         ))
         if (event.paused) {
-            menu.button(11, named(Items.LIME_CONCRETE, "&aReanudar", "&7El tiempo restante y las esperas", "&7de los jugadores se conservan.")) { p ->
+            menu.button(11, named(Items.LIME_CONCRETE, Lang.tr("&aReanudar"), Lang.tr("&7El tiempo restante y las esperas"), Lang.tr("&7de los jugadores se conservan."))) { p ->
                 WonderTradeEvents.resume(p.server, id)
                 renderEventDetail(menu, id)
             }
         } else {
-            menu.button(11, named(Items.YELLOW_CONCRETE, "&6Pausar", "&7Congela el tiempo y desactiva el evento", "&7hasta que lo reanudes.")) { p ->
+            menu.button(11, named(Items.YELLOW_CONCRETE, Lang.tr("&6Pausar"), Lang.tr("&7Congela el tiempo y desactiva el evento"), Lang.tr("&7hasta que lo reanudes."))) { p ->
                 WonderTradeEvents.pause(p.server, id)
                 renderEventDetail(menu, id)
             }
         }
-        menu.button(15, named(Items.RED_CONCRETE, "&cFinalizar", "&7Termina el evento ahora.")) { p ->
+        menu.button(15, named(Items.RED_CONCRETE, Lang.tr("&cFinalizar"), Lang.tr("&7Termina el evento ahora."))) { p ->
             WonderTradeEvents.stop(p.server, id)
             openAdminEvents(p)
         }
-        menu.button(22, named(Items.ARROW, "&aVolver")) { openAdminEvents(it) }
-        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        menu.button(22, named(Items.ARROW, Lang.tr("&aVolver"))) { openAdminEvents(it) }
+        menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     private fun openEventHistory(player: ServerPlayer) {
@@ -797,22 +814,22 @@ object WonderTradeGui {
             WonderTradeService.send(player, "adminOnly")
             return
         }
-        open(player, "&5Eventos &8- &dHistorial", 6) { menu ->
+        open(player, Lang.tr("&5Eventos &8- &dHistorial"), 6) { menu ->
             fill(menu, 54)
             val list = WonderTradeEvents.history(45)
-            if (list.isEmpty()) menu.put(22, named(Items.BARRIER, "&cTodavía no hay eventos en el historial"))
+            if (list.isEmpty()) menu.put(22, named(Items.BARRIER, Lang.tr("&cTodavía no hay eventos en el historial")))
             list.forEachIndexed { index, r ->
                 menu.put(index, named(
-                    Items.BOOK, "&d#${r.id} ${r.title}",
-                    "&7WT de evento hechos: &f${r.trades}",
-                    "&7Jugadores distintos: &f${r.players}",
-                    "&7Inicio: &f${WonderTradeEvents.historyDate(r.startAt)}",
-                    "&7Fin: &f${WonderTradeEvents.historyDate(r.endedAt)}",
-                    "&8${r.reason}"
+                    Items.BOOK, Lang.t("&d#{0} {1}", r.id, r.title),
+                    Lang.t("&7WT de evento hechos: &f{0}", r.trades),
+                    Lang.t("&7Jugadores distintos: &f{0}", r.players),
+                    Lang.t("&7Inicio: &f{0}", WonderTradeEvents.historyDate(r.startAt)),
+                    Lang.t("&7Fin: &f{0}", WonderTradeEvents.historyDate(r.endedAt)),
+                    Lang.t("&8{0}", r.reason)
                 ))
             }
-            menu.button(45, named(Items.ARROW, "&aVolver")) { openAdminEvents(it) }
-            menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+            menu.button(45, named(Items.ARROW, Lang.tr("&aVolver"))) { openAdminEvents(it) }
+            menu.button(53, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
         }
     }
 
@@ -821,7 +838,7 @@ object WonderTradeGui {
             WonderTradeService.send(player, "adminOnly")
             return
         }
-        open(player, "&5Eventos &8- &6Programados", 6) { renderAdminScheduled(it) }
+        open(player, Lang.tr("&5Eventos &8- &6Programados"), 6) { renderAdminScheduled(it) }
     }
 
     private fun renderAdminScheduled(menu: GuiMenu) {
@@ -830,32 +847,32 @@ object WonderTradeGui {
         val list = WonderTradeSchedule.all().take(45)
         if (list.isEmpty()) {
             menu.put(22, named(
-                Items.BARRIER, "&cNo hay eventos programados",
-                "&7Crea uno desde Gestionar eventos → tipo → categoría.",
-                "&7Podrás elegir día, hora y repetición."
+                Items.BARRIER, Lang.tr("&cNo hay eventos programados"),
+                Lang.tr("&7Crea uno desde Gestionar eventos → tipo → categoría."),
+                Lang.tr("&7Podrás elegir día, hora y repetición.")
             ))
         }
         list.forEachIndexed { index, item ->
             val details = mutableListOf(
-                "&7Cuándo: &f${WonderTradeSchedule.describeWhen(item)}",
-                "&7Duración: &f${WonderTradeEvents.formatDuration(item.durationSeconds)}"
+                Lang.t("&7Cuándo: &f{0}", WonderTradeSchedule.describeWhen(item)),
+                Lang.t("&7Duración: &f{0}", WonderTradeEvents.formatDuration(item.durationSeconds))
             )
-            item.value?.let { details += "&7Valor: &f${WonderTradeEvents.valueText(it)}%" }
-            item.cooldownSeconds?.let { details += "&7Espera: &f${WonderTradeEvents.formatDuration(it)}" }
-            details += "&7Creado por: &f${item.createdBy}"
-            details += "&cClic para cancelar"
-            menu.button(index, named(Items.CLOCK, "&d#P${item.id} ${item.title}", *details.toTypedArray())) {
+            item.value?.let { details += Lang.t("&7Valor: &f{0}%", WonderTradeEvents.valueText(it)) }
+            item.cooldownSeconds?.let { details += Lang.t("&7Espera: &f{0}", WonderTradeEvents.formatDuration(it)) }
+            details += Lang.t("&7Creado por: &f{0}", item.createdBy)
+            details += Lang.tr("&cClic para cancelar")
+            menu.button(index, named(Items.CLOCK, Lang.t("&d#P{0} {1}", item.id, item.title), *details.toTypedArray())) {
                 WonderTradeSchedule.remove(item.id)
                 renderAdminScheduled(menu)
             }
         }
-        menu.button(48, named(Items.ARROW, "&aVolver")) { openAdminEvents(it) }
-        menu.button(50, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        menu.button(48, named(Items.ARROW, Lang.tr("&aVolver"))) { openAdminEvents(it) }
+        menu.button(50, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     private fun eventTypeDescription(type: EventType): List<String> = when (type) {
-        EventType.RISK -> listOf("&7Ofrecer Pokémon de la categoría elegida", "&7suma un % extra a tu probabilidad.")
-        EventType.RECEIVE -> listOf("&7Aumenta la probabilidad de recibir", "&7Pokémon de la categoría elegida.")
+        EventType.RISK -> listOf(Lang.tr("&7Ofrecer Pokémon de la categoría elegida"), Lang.tr("&7suma un % extra a tu probabilidad."))
+        EventType.RECEIVE -> listOf(Lang.tr("&7Aumenta la probabilidad de recibir"), Lang.tr("&7Pokémon de la categoría elegida."))
     }
 
     private val eventCategoryIcons = mapOf(
@@ -869,7 +886,7 @@ object WonderTradeGui {
     private fun eventTitle(type: EventType, categories: List<EventCategory>) = eventName(type, categories)
 
     private fun openEventCategory(player: ServerPlayer, type: EventType, selected: List<EventCategory> = emptyList()) {
-        open(player, "&5Eventos &8- &d${type.title}", 3) { renderEventCategory(it, type, selected) }
+        open(player, Lang.t("&5Eventos &8- &d{0}", type.title), 3) { renderEventCategory(it, type, selected) }
     }
 
     /** Selección múltiple: cada clic añade o quita una categoría y el menú se actualiza sin cerrarse. */
@@ -878,9 +895,9 @@ object WonderTradeGui {
         fill(menu, 27)
         val chosen = normalizeCategories(selected)
         menu.put(4, named(
-            Items.NETHER_STAR, "&d${type.title}", *eventTypeDescription(type).toTypedArray(),
-            "&7Elige una o varias categorías.",
-            "&7Seleccionadas: " + if (chosen.isEmpty()) "&8ninguna" else "&f" + categoriesTitle(chosen)
+            Items.NETHER_STAR, Lang.t("&d{0}", type.title), *eventTypeDescription(type).toTypedArray(),
+            Lang.tr("&7Elige una o varias categorías."),
+            Lang.tr("&7Seleccionadas: ") + if (chosen.isEmpty()) Lang.tr("&8ninguna") else "&f" + categoriesTitle(chosen)
         ))
         val slots = listOf(11, 12, 13, 14, 15)
         EventCategory.values().forEachIndexed { index, category ->
@@ -888,29 +905,29 @@ object WonderTradeGui {
             menu.button(slots[index], named(
                 eventCategoryIcons[category] ?: Items.PAPER,
                 (if (isChosen) "&a✔ " else "&7") + category.label,
-                if (isChosen) "&eClic para quitarla" else "&eClic para añadirla"
+                if (isChosen) Lang.tr("&eClic para quitarla") else Lang.tr("&eClic para añadirla")
             )) {
                 val next = if (isChosen) chosen - category else chosen + category
                 renderEventCategory(menu, type, next)
             }
         }
         if (chosen.isEmpty()) {
-            menu.put(22, named(Items.GRAY_CONCRETE, "&7Continuar", "&cElige al menos una categoría."))
+            menu.put(22, named(Items.GRAY_CONCRETE, Lang.tr("&7Continuar"), Lang.tr("&cElige al menos una categoría.")))
         } else {
             menu.button(22, named(
-                Items.LIME_CONCRETE, "&aContinuar",
-                "&7Categorías: &f" + categoriesTitle(chosen), "&eClic para elegir la duración"
+                Items.LIME_CONCRETE, Lang.tr("&aContinuar"),
+                Lang.tr("&7Categorías: &f") + categoriesTitle(chosen), Lang.tr("&eClic para elegir la duración")
             )) { openEventDuration(it, type, chosen) }
         }
-        menu.button(18, named(Items.ARROW, "&aVolver")) { openAdminEvents(it) }
-        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        menu.button(18, named(Items.ARROW, Lang.tr("&aVolver"))) { openAdminEvents(it) }
+        menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     private fun openEventDuration(player: ServerPlayer, type: EventType, categories: List<EventCategory>) {
         val title = eventTitle(type, categories)
-        open(player, "&5Eventos &8- &dDuración", 3) { menu ->
+        open(player, Lang.tr("&5Eventos &8- &dDuración"), 3) { menu ->
             fill(menu, 27)
-            menu.put(4, named(Items.NETHER_STAR, "&d$title", *WonderTradeEvents.describeDefault(type, categories).toTypedArray(), "&7Elige cuánto debe durar."))
+            menu.put(4, named(Items.NETHER_STAR, Lang.t("&d{0}", title), *WonderTradeEvents.describeDefault(type, categories).toTypedArray(), Lang.tr("&7Elige cuánto debe durar.")))
             val maximum = WonderTradeEvents.maximumDurationSeconds()
             val options = ConfigManager.strings("events.menuDurations")
                 .mapNotNull { text -> WonderTradeEvents.parseDuration(text)?.takeIf { it <= maximum } }
@@ -919,48 +936,48 @@ object WonderTradeGui {
             val slots = listOf(9, 10, 11, 12, 14, 15, 16)
             options.forEachIndexed { index, seconds ->
                 menu.button(slots[index], named(
-                    Items.CLOCK, "&e${WonderTradeEvents.formatDuration(seconds)}",
-                    "&7Iniciar «$title» durante este tiempo.", "&eClic para iniciar"
+                    Items.CLOCK, Lang.t("&e{0}", WonderTradeEvents.formatDuration(seconds)),
+                    Lang.t("&7Iniciar «{0}» durante este tiempo.", title), Lang.tr("&eClic para iniciar")
                 )) { p ->
                     val event = WonderTradeEvents.create(p.server, type, categories, seconds, null, null, p.gameProfile.name)
-                    if (event == null) p.sendSystemMessage(WonderTradeService.info("&cLos eventos están desactivados."))
+                    if (event == null) p.sendSystemMessage(WonderTradeService.info(Lang.tr("&cLos eventos están desactivados.")))
                     openAdminEvents(p)
                 }
             }
             menu.button(13, named(
-                Items.CLOCK, "&6Tiempo personalizado",
-                "&7Ajusta la duración exacta con botones", "&7de minutos, horas y días.", "&eClic para elegir"
+                Items.CLOCK, Lang.tr("&6Tiempo personalizado"),
+                Lang.tr("&7Ajusta la duración exacta con botones"), Lang.tr("&7de minutos, horas y días."), Lang.tr("&eClic para elegir")
             )) { openEventCustomDuration(it, type, categories) }
-            menu.button(22, named(Items.ARROW, "&aVolver")) { openEventCategory(it, type, categories) }
-            menu.button(26, named(Items.CLOCK, "&6Programar evento", "&7En lugar de iniciarlo ahora, elige", "&7cuándo debe comenzar.", "&eAbrir programación")) { openEventScheduleDuration(it, type, categories) }
-            menu.button(25, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+            menu.button(22, named(Items.ARROW, Lang.tr("&aVolver"))) { openEventCategory(it, type, categories) }
+            menu.button(26, named(Items.CLOCK, Lang.tr("&6Programar evento"), Lang.tr("&7En lugar de iniciarlo ahora, elige"), Lang.tr("&7cuándo debe comenzar."), Lang.tr("&eAbrir programación"))) { openEventScheduleDuration(it, type, categories) }
+            menu.button(25, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
         }
     }
 
     /** Asistente de programación: un único menú que cambia de contenido (duración → día → hora → repetición). */
     private fun openEventScheduleDuration(player: ServerPlayer, type: EventType, categories: List<EventCategory>) {
-        open(player, "&5Programar evento", 3) { menu -> renderScheduleDuration(menu, type, categories) }
+        open(player, Lang.tr("&5Programar evento"), 3) { menu -> renderScheduleDuration(menu, type, categories) }
     }
 
     private fun renderScheduleDuration(menu: GuiMenu, type: EventType, categories: List<EventCategory>) {
         menu.wipe()
         fill(menu, 27)
-        menu.put(4, named(Items.CLOCK, "&6Duración del evento", "&7Cuánto durará cada ejecución.", "&7Después elegirás día y horario."))
+        menu.put(4, named(Items.CLOCK, Lang.tr("&6Duración del evento"), Lang.tr("&7Cuánto durará cada ejecución."), Lang.tr("&7Después elegirás día y horario.")))
         val maximum = WonderTradeEvents.maximumDurationSeconds()
         val options = ConfigManager.strings("events.menuDurations")
             .mapNotNull { WonderTradeEvents.parseDuration(it)?.takeIf { value -> value <= maximum } }
             .distinct().take(7)
         val slots = listOf(9, 10, 11, 12, 14, 15, 16)
         options.forEachIndexed { index, seconds ->
-            menu.button(slots[index], named(Items.CLOCK, "&e${WonderTradeEvents.formatDuration(seconds)}", "&7Duración de cada ejecución.", "&eClic para continuar")) {
+            menu.button(slots[index], named(Items.CLOCK, Lang.t("&e{0}", WonderTradeEvents.formatDuration(seconds)), Lang.tr("&7Duración de cada ejecución."), Lang.tr("&eClic para continuar"))) {
                 renderScheduleDay(menu, type, categories, seconds)
             }
         }
-        menu.button(13, named(Items.REPEATER, "&6Tiempo personalizado", "&7Ajusta la duración con botones + y -.", "&eClic para personalizar")) {
+        menu.button(13, named(Items.REPEATER, Lang.tr("&6Tiempo personalizado"), Lang.tr("&7Ajusta la duración con botones + y -."), Lang.tr("&eClic para personalizar"))) {
             renderScheduleCustomDuration(menu, type, categories, 3600L)
         }
-        menu.button(22, named(Items.ARROW, "&aVolver")) { openEventDuration(it, type, categories) }
-        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        menu.button(22, named(Items.ARROW, Lang.tr("&aVolver"))) { openEventDuration(it, type, categories) }
+        menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     private fun renderScheduleCustomDuration(menu: GuiMenu, type: EventType, categories: List<EventCategory>, seconds: Long) {
@@ -968,39 +985,39 @@ object WonderTradeGui {
         val current = seconds.coerceIn(60L, maximum)
         menu.wipe()
         fill(menu, 27)
-        menu.put(4, named(Items.CLOCK, "&6Duración personalizada", "&7Duración actual: &f${WonderTradeEvents.formatDuration(current)}"))
+        menu.put(4, named(Items.CLOCK, Lang.tr("&6Duración personalizada"), Lang.t("&7Duración actual: &f{0}", WonderTradeEvents.formatDuration(current))))
         val steps = listOf(9 to -86_400L, 10 to -3_600L, 11 to -600L, 12 to -60L, 14 to 60L, 15 to 600L, 16 to 3_600L, 17 to 86_400L)
         for ((slot, delta) in steps) {
             val sign = if (delta < 0) "-" else "+"
             val icon = if (delta < 0) Items.RED_STAINED_GLASS_PANE else Items.LIME_STAINED_GLASS_PANE
             val label = WonderTradeEvents.formatDuration(kotlin.math.abs(delta))
-            menu.button(slot, named(icon, (if (delta < 0) "&c" else "&a") + "$sign$label", "&7Actual: &f${WonderTradeEvents.formatDuration(current)}")) {
+            menu.button(slot, named(icon, (if (delta < 0) "&c" else "&a") + "$sign$label", Lang.t("&7Actual: &f{0}", WonderTradeEvents.formatDuration(current)))) {
                 renderScheduleCustomDuration(menu, type, categories, (current + delta).coerceIn(60L, maximum))
             }
         }
-        menu.put(13, named(Items.CLOCK, "&b${WonderTradeEvents.formatDuration(current)}", "&7Esta será la duración de cada repetición."))
-        menu.button(22, named(Items.LIME_CONCRETE, "&aContinuar", "&7Duración: &f${WonderTradeEvents.formatDuration(current)}")) {
+        menu.put(13, named(Items.CLOCK, Lang.t("&b{0}", WonderTradeEvents.formatDuration(current)), Lang.tr("&7Esta será la duración de cada repetición.")))
+        menu.button(22, named(Items.LIME_CONCRETE, Lang.tr("&aContinuar"), Lang.t("&7Duración: &f{0}", WonderTradeEvents.formatDuration(current)))) {
             renderScheduleDay(menu, type, categories, current)
         }
-        menu.button(18, named(Items.ARROW, "&aVolver")) { renderScheduleDuration(menu, type, categories) }
-        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        menu.button(18, named(Items.ARROW, Lang.tr("&aVolver"))) { renderScheduleDuration(menu, type, categories) }
+        menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     private fun renderScheduleDay(menu: GuiMenu, type: EventType, categories: List<EventCategory>, durationSeconds: Long) {
         menu.wipe()
         fill(menu, 27)
-        menu.put(4, named(Items.CLOCK, "&6Elegir día de la semana", "&7Selecciona el día de la primera ejecución.", "&7Duración: &f${WonderTradeEvents.formatDuration(durationSeconds)}"))
+        menu.put(4, named(Items.CLOCK, Lang.tr("&6Elegir día de la semana"), Lang.tr("&7Selecciona el día de la primera ejecución."), Lang.t("&7Duración: &f{0}", WonderTradeEvents.formatDuration(durationSeconds))))
         val days = listOf(
             DayOfWeek.MONDAY to "Lunes", DayOfWeek.TUESDAY to "Martes", DayOfWeek.WEDNESDAY to "Miércoles",
             DayOfWeek.THURSDAY to "Jueves", DayOfWeek.FRIDAY to "Viernes", DayOfWeek.SATURDAY to "Sábado", DayOfWeek.SUNDAY to "Domingo"
         )
         days.forEachIndexed { index, (day, label) ->
-            menu.button(10 + index, named(Items.PAPER, "&e$label", "&7Próximo $label a la hora elegida.", "&eClic para continuar")) {
+            menu.button(10 + index, named(Items.PAPER, Lang.t("&e{0}", label), Lang.t("&7Próximo {0} a la hora elegida.", label), Lang.tr("&eClic para continuar"))) {
                 renderEventScheduleTime(menu, type, categories, durationSeconds, day, LocalTime.of(20, 0))
             }
         }
-        menu.button(22, named(Items.ARROW, "&aVolver")) { renderScheduleDuration(menu, type, categories) }
-        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        menu.button(22, named(Items.ARROW, Lang.tr("&aVolver"))) { renderScheduleDuration(menu, type, categories) }
+        menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     /** Selector de horario: suma o resta minutos/horas sin salir del menú. */
@@ -1012,28 +1029,28 @@ object WonderTradeGui {
         fill(menu, 27)
         val dayLabel = WonderTradeSchedule.dayName(day)
         val formatted = time.format(DateTimeFormatter.ofPattern("HH:mm"))
-        menu.put(4, named(Items.CLOCK, "&6Horario del evento", "&7Día: &f$dayLabel", "&7Hora: &b$formatted", "&7Duración: &f${WonderTradeEvents.formatDuration(durationSeconds)}"))
+        menu.put(4, named(Items.CLOCK, Lang.tr("&6Horario del evento"), Lang.t("&7Día: &f{0}", dayLabel), Lang.t("&7Hora: &b{0}", formatted), Lang.t("&7Duración: &f{0}", WonderTradeEvents.formatDuration(durationSeconds))))
         val steps = listOf(9 to -60L, 10 to -15L, 11 to -5L, 12 to -1L, 14 to 1L, 15 to 5L, 16 to 15L, 17 to 60L)
         for ((slot, delta) in steps) {
             val sign = if (delta < 0) "-" else "+"
             val amount = kotlin.math.abs(delta)
-            val label = when (amount) { 1L -> "1 minuto"; 5L -> "5 minutos"; 15L -> "15 minutos"; else -> "1 hora" }
+            val label = when (amount) { 1L -> Lang.tr("1 minuto"); 5L -> Lang.tr("5 minutos"); 15L -> Lang.tr("15 minutos"); else -> Lang.tr("1 hora") }
             val icon = if (delta < 0) Items.RED_STAINED_GLASS_PANE else Items.LIME_STAINED_GLASS_PANE
-            menu.button(slot, named(icon, (if (delta < 0) "&c" else "&a") + "$sign$label", "&7Horario actual: &f$formatted")) {
+            menu.button(slot, named(icon, (if (delta < 0) "&c" else "&a") + "$sign$label", Lang.t("&7Horario actual: &f{0}", formatted))) {
                 renderEventScheduleTime(menu, type, categories, durationSeconds, day, time.plusMinutes(delta))
             }
         }
-        menu.put(13, named(Items.CLOCK, "&bHora: &f$formatted", "&7Usa los botones para ajustar el horario.", "&8Zona horaria del servidor."))
-        menu.button(22, named(Items.LIME_CONCRETE, "&aContinuar", "&7Día: &f$dayLabel", "&7Hora: &f$formatted", "&eElegir repetición")) {
+        menu.put(13, named(Items.CLOCK, Lang.t("&bHora: &f{0}", formatted), Lang.tr("&7Usa los botones para ajustar el horario."), Lang.tr("&8Zona horaria del servidor.")))
+        menu.button(22, named(Items.LIME_CONCRETE, Lang.tr("&aContinuar"), Lang.t("&7Día: &f{0}", dayLabel), Lang.t("&7Hora: &f{0}", formatted), Lang.tr("&eElegir repetición"))) {
             renderScheduleRepeat(menu, type, categories, durationSeconds, day, time)
         }
-        menu.button(18, named(Items.ARROW, "&aVolver")) { renderScheduleDay(menu, type, categories, durationSeconds) }
-        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        menu.button(18, named(Items.ARROW, Lang.tr("&aVolver"))) { renderScheduleDay(menu, type, categories, durationSeconds) }
+        menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     private fun finishSchedule(p: ServerPlayer, type: EventType, categories: List<EventCategory>, durationSeconds: Long, spec: ScheduleSpec) {
         val scheduled = WonderTradeSchedule.add(type, categories, durationSeconds, spec, p.gameProfile.name)
-        p.sendSystemMessage(WonderTradeService.info("&aEvento &f${scheduled.title} &aprogramado: &f${WonderTradeSchedule.describeWhen(scheduled)}&a."))
+        p.sendSystemMessage(WonderTradeService.info(Lang.t("&aEvento &f{0} &aprogramado: &f{1}&a.", scheduled.title, WonderTradeSchedule.describeWhen(scheduled))))
         openAdminScheduled(p)
     }
 
@@ -1045,9 +1062,9 @@ object WonderTradeGui {
         fill(menu, 27)
         val dayLabel = WonderTradeSchedule.dayName(day)
         val formatted = time.format(DateTimeFormatter.ofPattern("HH:mm"))
-        menu.put(4, named(Items.REPEATER, "&dRepetición del evento", "&7Primer inicio: &f$dayLabel $formatted", "&7Duración: &f${WonderTradeEvents.formatDuration(durationSeconds)}", "&8Mensual: se elige qué $dayLabel del mes."))
+        menu.put(4, named(Items.REPEATER, Lang.tr("&dRepetición del evento"), Lang.t("&7Primer inicio: &f{0} {1}", dayLabel, formatted), Lang.t("&7Duración: &f{0}", WonderTradeEvents.formatDuration(durationSeconds)), Lang.t("&8Mensual: se elige qué {0} del mes.", dayLabel)))
         val choices = listOf(
-            Triple(ScheduleRepeat.NONE, Items.CLOCK, "Una sola vez"),
+            Triple(ScheduleRepeat.NONE, Items.CLOCK, Lang.tr("Una sola vez")),
             Triple(ScheduleRepeat.DAILY, Items.SUNFLOWER, "Diario"),
             Triple(ScheduleRepeat.WEEKLY, Items.COMPASS, "Semanal"),
             Triple(ScheduleRepeat.MONTHLY, Items.CLOCK, "Mensual"),
@@ -1055,14 +1072,14 @@ object WonderTradeGui {
         )
         val slots = listOf(10, 11, 13, 15, 16)
         choices.forEachIndexed { index, (repeat, icon, label) ->
-            val hint = if (repeat == ScheduleRepeat.MONTHLY) "&eClic para elegir la semana" else "&eClic para programar"
-            menu.button(slots[index], named(icon, "&e$label", "&7${repeat.label}", hint)) { p ->
+            val hint = if (repeat == ScheduleRepeat.MONTHLY) Lang.tr("&eClic para elegir la semana") else Lang.tr("&eClic para programar")
+            menu.button(slots[index], named(icon, Lang.t("&e{0}", label), Lang.t("&7{0}", repeat.label), hint)) { p ->
                 if (repeat == ScheduleRepeat.MONTHLY) renderScheduleMonthly(menu, type, categories, durationSeconds, day, time)
                 else finishSchedule(p, type, categories, durationSeconds, WonderTradeSchedule.fromMenu(day, time.hour, time.minute, repeat))
             }
         }
-        menu.button(22, named(Items.ARROW, "&aVolver")) { renderEventScheduleTime(menu, type, categories, durationSeconds, day, time) }
-        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        menu.button(22, named(Items.ARROW, Lang.tr("&aVolver"))) { renderEventScheduleTime(menu, type, categories, durationSeconds, day, time) }
+        menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     /** Repetición mensual por día de la semana: primer, segundo, tercer, cuarto o último. */
@@ -1073,29 +1090,32 @@ object WonderTradeGui {
         menu.wipe()
         fill(menu, 27)
         val formatted = time.format(DateTimeFormatter.ofPattern("HH:mm"))
-        menu.put(4, named(Items.CLOCK, "&dMensual: ¿qué ${WonderTradeSchedule.dayName(day)}?", "&7Hora: &f$formatted", "&7Duración: &f${WonderTradeEvents.formatDuration(durationSeconds)}"))
+        menu.put(4, named(Items.CLOCK, Lang.t("&dMensual: ¿qué {0}?", WonderTradeSchedule.dayName(day)), Lang.t("&7Hora: &f{0}", formatted), Lang.t("&7Duración: &f{0}", WonderTradeEvents.formatDuration(durationSeconds))))
         val slots = listOf(1 to 10, 2 to 11, 3 to 13, 4 to 15, 5 to 16)
         for ((ordinal, slot) in slots) {
             val text = WonderTradeSchedule.ordinalText(ordinal, day)
-            menu.button(slot, named(Items.PAPER, "&e${text.replaceFirstChar { it.uppercase() }}", "&7Cada $text del mes", "&eClic para programar")) { p ->
+            menu.button(slot, named(Items.PAPER, "&e${text.replaceFirstChar { it.uppercase() }}", Lang.t("&7Cada {0} del mes", text), Lang.tr("&eClic para programar"))) { p ->
                 finishSchedule(p, type, categories, durationSeconds, WonderTradeSchedule.fromMenu(day, time.hour, time.minute, ScheduleRepeat.MONTHLY, ordinal))
             }
         }
-        menu.button(22, named(Items.ARROW, "&aVolver")) { renderScheduleRepeat(menu, type, categories, durationSeconds, day, time) }
-        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        menu.button(22, named(Items.ARROW, Lang.tr("&aVolver"))) { renderScheduleRepeat(menu, type, categories, durationSeconds, day, time) }
+        menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     private fun openEventCustomDuration(player: ServerPlayer, type: EventType, categories: List<EventCategory>) {
-        open(player, "&5Eventos &8- &6Tiempo", 3) { renderEventCustomDuration(it, type, categories, 3600L) }
+        open(player, Lang.tr("&5Eventos &8- &6Tiempo"), 3) { renderEventCustomDuration(it, type, categories, 3600L) }
     }
 
     /** Selector de duración: los botones suman o restan tiempo y el menú se actualiza sin cerrarse. */
+    /** Abre el menú de penalizaciones con el tiempo que este admin tenía elegido. */
+    fun openPenaltiesFor(player: ServerPlayer) = openPenalties(player, WonderTradePenalties.selection(player.uuid) ?: defaultPenaltyMillis(), 0)
+
     private fun defaultPenaltyMillis(): Long =
         WonderTradePenalties.parseDuration(ConfigManager.string("penalties.defaultDuration", "1d")) ?: 86_400_000L
 
     /** Menú de penalizaciones: cabezas de los jugadores conectados, selector de tiempo, «permanente» y «por nombre». */
     private fun openPenalties(player: ServerPlayer, millis: Long, page: Int) {
-        open(player, "&5Administración &8- &cPenalizaciones", 6) { menu -> renderPenalties(menu, player, millis, page) }
+        open(player, Lang.tr("&5Administración &8- &cPenalizaciones"), 6) { menu -> renderPenalties(menu, player, millis, page) }
     }
 
     private fun renderPenalties(menu: GuiMenu, admin: ServerPlayer, millis: Long, page: Int) {
@@ -1103,24 +1123,26 @@ object WonderTradeGui {
         val maximum = 365L * 86_400_000L
         val permanent = millis <= 0L
         val current = if (permanent) 0L else millis.coerceIn(minimum, maximum)
-        val label = if (permanent) "permanente" else WonderTradeEvents.formatDuration(current / 1000L)
+        val label = if (permanent) Lang.tr("permanente") else WonderTradeEvents.formatDuration(current / 1000L)
+        val reason = WonderTradePenalties.reason(admin.uuid)
+        val reasonLabel = if (reason.isBlank()) Lang.tr("&7(sin motivo)") else "&f$reason"
         val players = admin.server.playerList.players.filter { it.uuid != admin.uuid }.sortedBy { it.gameProfile.name.lowercase() }
         val pages = maxOf(1, (players.size + 35) / 36)
         val shown = page.coerceIn(0, pages - 1)
         menu.wipe()
         fill(menu, 54)
-        if (players.isEmpty()) menu.put(13, named(Items.PAPER, "&7No hay otros jugadores conectados", "&8Usa «Por nombre» para jugadores desconectados."))
+        if (players.isEmpty()) menu.put(13, named(Items.PAPER, Lang.tr("&7No hay otros jugadores conectados"), Lang.tr("&8Usa «Por nombre» para jugadores desconectados.")))
         players.drop(shown * 36).take(36).forEachIndexed { index, target ->
             val active = WonderTradePenalties.active(target.uuid)
-            val state = if (active != null) "&cYa penalizado: &f${WonderTradePenalties.remainingText(active)}" else "&7Sin penalización"
+            val state = if (active != null) Lang.t("&cYa penalizado: &f{0}", WonderTradePenalties.remainingText(active)) else Lang.tr("&7Sin penalización")
             val head = playerHead(
-                target.gameProfile.name, target.uuid, WonderTradeService.profileSkin(target), "&f${target.gameProfile.name}",
-                state, "&7Penalizar durante: &f$label", "&eClic para penalizar"
+                target.gameProfile.name, target.uuid, WonderTradeService.profileSkin(target), Lang.t("&f{0}", target.gameProfile.name),
+                state, Lang.t("&7Penalizar durante: &f{0}", label), Lang.t("&7Motivo: {0}", reasonLabel), Lang.tr("&eClic para penalizar")
             )
             menu.button(index, head) { p ->
-                val penalty = WonderTradePenalties.penalize(target.uuid, target.gameProfile.name, if (permanent) null else current, p.gameProfile.name)
-                WonderTradeService.send(target, "penaltyNotice", mapOf("time" to WonderTradePenalties.remainingText(penalty)))
-                p.sendSystemMessage(WonderTradeService.info("&a${target.gameProfile.name} &apenalizado: &f${WonderTradePenalties.remainingText(penalty)}&a."))
+                val penalty = WonderTradePenalties.penalize(target.uuid, target.gameProfile.name, if (permanent) null else current, p.gameProfile.name, reason)
+                WonderTradeService.send(target, "penaltyNotice", mapOf("time" to WonderTradePenalties.remainingText(penalty), "reason" to WonderTradePenalties.reasonSuffix(penalty)))
+                p.sendSystemMessage(WonderTradeService.info(Lang.t("&a{0} &apenalizado: &f{1}&a.", target.gameProfile.name, WonderTradePenalties.remainingText(penalty))))
                 renderPenalties(menu, p, millis, shown)
             }
         }
@@ -1128,57 +1150,86 @@ object WonderTradeGui {
         for ((slot, delta) in steps) {
             val text = WonderTradeEvents.formatDuration(kotlin.math.abs(delta) / 1000L)
             val item = if (delta < 0) Items.RED_STAINED_GLASS_PANE else Items.LIME_STAINED_GLASS_PANE
-            menu.button(slot, named(item, (if (delta < 0) "&c-" else "&a+") + text, "&7Duración actual: &f$label")) { p ->
+            menu.button(slot, named(item, (if (delta < 0) "&c-" else "&a+") + text, Lang.t("&7Duración actual: &f{0}", label))) { p ->
                 val base = if (permanent) defaultPenaltyMillis() else current
                 val next = (base + delta).coerceIn(minimum, maximum)
                 WonderTradePenalties.rememberSelection(p.uuid, next)
                 renderPenalties(menu, p, next, shown)
             }
         }
-        menu.put(39, named(Items.CLOCK, "&6Tiempo: &f$label", "&7Mínimo 1 minuto, máximo 365 días."))
+        menu.put(39, named(Items.CLOCK, Lang.t("&6Tiempo: &f{0}", label), Lang.tr("&7Mínimo 1 minuto, máximo 365 días.")))
         menu.button(43, named(
-            if (permanent) Items.LIME_CONCRETE else Items.GRAY_CONCRETE, if (permanent) "&aPermanente: SÍ" else "&7Permanente: NO",
-            "&7Hasta que lo perdones manualmente.", "&eClic para cambiar"
+            if (permanent) Items.LIME_CONCRETE else Items.GRAY_CONCRETE, if (permanent) Lang.tr("&aPermanente: SÍ") else Lang.tr("&7Permanente: NO"),
+            Lang.tr("&7Hasta que lo perdones manualmente."), Lang.tr("&eClic para cambiar")
         )) { p ->
             val next = if (permanent) defaultPenaltyMillis() else 0L
             WonderTradePenalties.rememberSelection(p.uuid, next)
             renderPenalties(menu, p, next, shown)
         }
-        menu.button(44, named(Items.NAME_TAG, "&ePor nombre", "&7Para jugadores desconectados.", "&7Usa el tiempo elegido: &f$label", "&eClic para escribir el nombre")) { p ->
+        menu.button(44, named(Items.NAME_TAG, Lang.tr("&ePor nombre"), Lang.tr("&7Para jugadores desconectados."), Lang.t("&7Usa el tiempo elegido: &f{0}", label), Lang.tr("&eClic para escribir el nombre"))) { p ->
             WonderTradePenalties.rememberSelection(p.uuid, if (permanent) 0L else current)
             p.closeContainer()
-            val button = Component.literal("§e§n[Pulsa aquí para escribir el nombre]")
+            val button = Component.literal(Lang.tr("§e§n[Pulsa aquí para escribir el nombre]"))
                 .setStyle(Style.EMPTY.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/wt admin penalizar ")))
             p.sendSystemMessage(
-                WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + "&7Escribe el nombre del jugador (tiempo: &f$label&7). ").copy().append(button)
+                WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + Lang.t("&7Escribe el nombre del jugador (tiempo: &f{0}&7). ", label)).copy().append(button)
             )
         }
-        menu.button(45, named(Items.ARROW, "&aVolver")) { openAdmin(it) }
-        menu.button(47, named(Items.BOOK, "&6Penalizados", "&7Ver y perdonar penalizaciones vigentes.")) { openPenalized(it, millis) }
-        if (shown > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior")) { renderPenalties(menu, it, millis, shown - 1) }
-        if (shown < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente")) { renderPenalties(menu, it, millis, shown + 1) }
-        menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        menu.button(45, named(Items.ARROW, Lang.tr("&aVolver"))) { openAdmin(it) }
+        // Motivo: un clic recorre los motivos rápidos (el último es «sin motivo»); «Escribir motivo» pide uno propio.
+        menu.button(46, named(Items.WRITABLE_BOOK, Lang.t("&6Motivo: {0}", reasonLabel), Lang.tr("&7Se muestra al jugador y queda en el historial."), Lang.tr("&eClic para cambiar de motivo rápido"))) { p ->
+            val presets = WonderTradePenalties.presetReasons()
+            val index = presets.indexOf(reason)
+            WonderTradePenalties.rememberReason(p.uuid, if (index + 1 < presets.size) presets[index + 1] else if (reason.isBlank()) presets.firstOrNull() ?: "" else "")
+            renderPenalties(menu, p, millis, shown)
+        }
+        menu.button(49, named(Items.OAK_SIGN, Lang.tr("&eEscribir motivo"), Lang.tr("&7Escríbelo en el chat con /wt admin motivo."), Lang.tr("&eClic para escribir"))) { p ->
+            WonderTradePenalties.rememberSelection(p.uuid, if (permanent) 0L else current)
+            p.closeContainer()
+            val button = Component.literal("§e§n" + Lang.tr("[Pulsa aquí para escribir el motivo]"))
+                .setStyle(Style.EMPTY.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/wt admin motivo ")))
+            p.sendSystemMessage(WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + Lang.tr("&7Escribe el motivo (o «ninguno»). ")).copy().append(button))
+        }
+        menu.button(47, named(Items.BOOK, Lang.tr("&6Penalizados"), Lang.tr("&7Ver y perdonar penalizaciones vigentes."))) { openPenalized(it, millis) }
+        if (shown > 0) menu.button(48, named(Items.ARROW, Lang.tr("&ePágina anterior"))) { renderPenalties(menu, it, millis, shown - 1) }
+        if (shown < pages - 1) menu.button(50, named(Items.ARROW, Lang.tr("&ePágina siguiente"))) { renderPenalties(menu, it, millis, shown + 1) }
+        menu.button(53, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     /** Penalizaciones vigentes: clic en una cabeza para perdonar. */
     private fun openPenalized(player: ServerPlayer, millis: Long) {
-        open(player, "&5Penalizaciones &8- &cVigentes", 6) { menu ->
+        open(player, Lang.tr("&5Penalizaciones &8- &cVigentes"), 6) { menu ->
             fill(menu, 54)
             val list = WonderTradePenalties.list().take(45)
-            if (list.isEmpty()) menu.put(22, named(Items.PAPER, "&7No hay jugadores penalizados"))
+            if (list.isEmpty()) menu.put(22, named(Items.PAPER, Lang.tr("&7No hay jugadores penalizados")))
             list.forEachIndexed { index, penalty ->
                 val head = playerHead(
-                    penalty.name, penalty.uuid, WonderTradeService.donorSkin(penalty.uuid), "&f${penalty.name}",
-                    "&cTiempo restante: &f${WonderTradePenalties.remainingText(penalty)}", "&7Por: &f${penalty.by}", "&eClic para perdonar"
+                    penalty.name, penalty.uuid, WonderTradeService.donorSkin(penalty.uuid), Lang.t("&f{0}", penalty.name),
+                    Lang.t("&cTiempo restante: &f{0}", WonderTradePenalties.remainingText(penalty)), Lang.t("&7Por: &f{0}", penalty.by), Lang.tr("&eClic para perdonar")
                 )
                 menu.button(index, head) { p ->
-                    WonderTradePenalties.pardon(penalty.uuid)
+                    WonderTradePenalties.pardon(penalty.uuid, p.gameProfile.name)
                     p.server.playerList.getPlayer(penalty.uuid)?.let { WonderTradeService.send(it, "penaltyLifted") }
-                    p.sendSystemMessage(WonderTradeService.info("&aPenalización de &f${penalty.name} &aretirada."))
+                    p.sendSystemMessage(WonderTradeService.info(Lang.t("&aPenalización de &f{0} &aretirada.", penalty.name)))
                     openPenalized(p, millis)
                 }
             }
-            menu.button(49, named(Items.ARROW, "&aVolver")) { openPenalties(it, millis, 0) }
+            menu.button(49, named(Items.ARROW, Lang.tr("&aVolver"))) { openPenalties(it, millis, 0) }
+            menu.button(53, named(Items.CLOCK, Lang.tr("&eHistorial"), Lang.tr("&7Últimas penalizaciones, perdones y caducidades."))) { openPenaltyHistory(it, millis) }
+        }
+    }
+
+    /** Historial de penalizaciones (las 45 últimas acciones). */
+    private fun openPenaltyHistory(player: ServerPlayer, millis: Long) {
+        open(player, Lang.tr("&5Penalizaciones &8- &eHistorial"), 6) { menu ->
+            fill(menu, 54)
+            val records = WonderTradePenalties.history(45)
+            if (records.isEmpty()) menu.put(22, named(Items.PAPER, Lang.tr("&7El historial está vacío")))
+            records.forEachIndexed { index, record ->
+                val item = when (record.action) { "pardoned" -> Items.LIME_DYE; "expired" -> Items.GRAY_DYE; else -> Items.RED_DYE }
+                menu.put(index, named(item, "&f${record.name}", WonderTradePenalties.describeRecord(record)))
+            }
+            menu.button(49, named(Items.ARROW, Lang.tr("&aVolver"))) { openPenalized(it, millis) }
         }
     }
 
@@ -1189,7 +1240,7 @@ object WonderTradeGui {
         val current = seconds.coerceIn(minimum, maximum)
         menu.wipe()
         fill(menu, 27)
-        menu.put(4, named(Items.NETHER_STAR, "&d$title", *WonderTradeEvents.describeDefault(type, categories).toTypedArray()))
+        menu.put(4, named(Items.NETHER_STAR, Lang.t("&d{0}", title), *WonderTradeEvents.describeDefault(type, categories).toTypedArray()))
         val steps = listOf(
             9 to -86_400L, 10 to -3_600L, 11 to -600L, 12 to -60L,
             14 to 60L, 15 to 600L, 16 to 3_600L, 17 to 86_400L
@@ -1198,35 +1249,35 @@ object WonderTradeGui {
             val label = WonderTradeEvents.formatDuration(kotlin.math.abs(delta))
             val sign = if (delta < 0) "-" else "+"
             val item = if (delta < 0) Items.RED_STAINED_GLASS_PANE else Items.LIME_STAINED_GLASS_PANE
-            menu.button(slot, named(item, (if (delta < 0) "&c" else "&a") + "$sign$label", "&7Duración actual: &f${WonderTradeEvents.formatDuration(current)}")) {
+            menu.button(slot, named(item, (if (delta < 0) "&c" else "&a") + "$sign$label", Lang.t("&7Duración actual: &f{0}", WonderTradeEvents.formatDuration(current)))) {
                 renderEventCustomDuration(menu, type, categories, current + delta)
             }
         }
         menu.put(13, named(
-            Items.CLOCK, "&6Duración: &f${WonderTradeEvents.formatDuration(current)}",
-            "&7Mínimo: &f${WonderTradeEvents.formatDuration(minimum)}&7  Máximo: &f${WonderTradeEvents.formatDuration(maximum)}"
+            Items.CLOCK, Lang.t("&6Duración: &f{0}", WonderTradeEvents.formatDuration(current)),
+            Lang.t("&7Mínimo: &f{0}&7  Máximo: &f{1}", WonderTradeEvents.formatDuration(minimum), WonderTradeEvents.formatDuration(maximum))
         ))
         menu.button(22, named(
-            Items.LIME_CONCRETE, "&aIniciar «$title»",
-            "&7Durante &f${WonderTradeEvents.formatDuration(current)}&7.", "&eClic para iniciar"
+            Items.LIME_CONCRETE, Lang.t("&aIniciar «{0}»", title),
+            Lang.t("&7Durante &f{0}&7.", WonderTradeEvents.formatDuration(current)), Lang.tr("&eClic para iniciar")
         )) { p ->
             val event = WonderTradeEvents.create(p.server, type, categories, current, null, null, p.gameProfile.name)
-            if (event == null) p.sendSystemMessage(WonderTradeService.info("&cLos eventos están desactivados."))
+            if (event == null) p.sendSystemMessage(WonderTradeService.info(Lang.tr("&cLos eventos están desactivados.")))
             openAdminEvents(p)
         }
-        menu.button(18, named(Items.ARROW, "&aVolver")) { openEventDuration(it, type, categories) }
-        menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        menu.button(18, named(Items.ARROW, Lang.tr("&aVolver"))) { openEventDuration(it, type, categories) }
+        menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     private fun openAdminFill(player: ServerPlayer) {
-        open(player, "&5Administración &8- &aRellenar pool", 3) { renderAdminFill(it) }
+        open(player, Lang.tr("&5Administración &8- &aRellenar pool"), 3) { renderAdminFill(it) }
     }
 
     private fun renderAdminFill(menu: GuiMenu) {
         run {
             menu.wipe()
             fill(menu, 27)
-            menu.put(4, named(Items.HOPPER, "&aRellenar la pool", "&7Probabilidad automática configurada.", "&7Niveles: ${ConfigManager.int("fallback.minimumLevel", 1)}-${ConfigManager.int("fallback.maximumLevel", 100)}"))
+            menu.put(4, named(Items.HOPPER, Lang.tr("&aRellenar la pool"), Lang.tr("&7Probabilidad automática configurada."), Lang.t("&7Niveles: {0}-{1}", ConfigManager.int("fallback.minimumLevel", 1), ConfigManager.int("fallback.maximumLevel", 100))))
             val maximumPool = ConfigManager.int("pool.maximumEntries", 500).coerceAtLeast(1)
             val remaining = WonderTradeService.poolRemainingCapacity()
             val amounts = ConfigManager.ints("admin.fillMenu.amounts")
@@ -1236,48 +1287,48 @@ object WonderTradeGui {
                 .take(7)
             val slots = listOf(9, 10, 11, 12, 14, 15, 16)
             if (amounts.isEmpty()) {
-                menu.put(13, named(Items.BARRIER, "&cNo hay cantidades configuradas", "&7Edita admin.fillMenu.amounts en config.json."))
+                menu.put(13, named(Items.BARRIER, Lang.tr("&cNo hay cantidades configuradas"), Lang.tr("&7Edita admin.fillMenu.amounts en config.json.")))
             } else {
                 amounts.forEachIndexed { index, amount ->
                     val effectiveAmount = minOf(amount, remaining)
                     val lore = if (remaining <= 0) {
-                        listOf("&cLa pool está completa.", "&7Máximo: $maximumPool Pokémon.")
+                        listOf(Lang.tr("&cLa pool está completa."), Lang.t("&7Máximo: {0} Pokémon.", maximumPool))
                     } else {
-                        listOf("&7Añadirá hasta &f$effectiveAmount &7Pokémon.", "&7Huecos disponibles: &f$remaining", "&eClic para rellenar")
+                        listOf(Lang.t("&7Añadirá hasta &f{0} &7Pokémon.", effectiveAmount), Lang.t("&7Huecos disponibles: &f{0}", remaining), Lang.tr("&eClic para rellenar"))
                     }
-                    menu.button(slots[index], named(Items.CHEST_MINECART, "&eAñadir $amount Pokémon", *lore.toTypedArray())) { p ->
+                    menu.button(slots[index], named(Items.CHEST_MINECART, Lang.t("&eAñadir {0} Pokémon", amount), *lore.toTypedArray())) { p ->
                         val minLevel = ConfigManager.int("fallback.minimumLevel", 1).coerceIn(1, 100)
                         val maxLevel = ConfigManager.int("fallback.maximumLevel", 100).coerceIn(minLevel, 100)
                         val availableNow = minOf(amount, WonderTradeService.poolRemainingCapacity())
                         val result = WonderTradeService.adminFill(p, amount, null, minLevel, maxLevel)
                         val chance = String.format("%.2f", result.chancePercent)
-                        p.sendSystemMessage(WonderTradeService.info("&aGenerados &f${result.added}/$availableNow &aPokémon; especiales: &d${result.special} &7(probabilidad: $chance%)."))
+                        p.sendSystemMessage(WonderTradeService.info(Lang.t("&aGenerados &f{0}/{1} &aPokémon; especiales: &d{2} &7(probabilidad: {3}%).", result.added, availableNow, result.special, chance)))
                         renderAdminFill(menu)
                     }
                 }
             }
-            menu.button(22, named(Items.ARROW, "&aVolver al panel admin")) { openAdmin(it) }
-            menu.button(26, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+            menu.button(22, named(Items.ARROW, Lang.tr("&aVolver al panel admin"))) { openAdmin(it) }
+            menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
         }
     }
 
     private fun openAdminPoolDeleteOptions(player: ServerPlayer) {
-        open(player, "&5Administración &8- &cEliminar pool", 3) { menu ->
+        open(player, Lang.tr("&5Administración &8- &cEliminar pool"), 3) { menu ->
             fill(menu, 27)
             val generated = WonderTradeService.poolEntries().count { it.donorName.equals("Servidor", ignoreCase = true) }
             val playerEntries = WonderTradeService.poolEntries().count { !it.donorName.equals("Servidor", ignoreCase = true) }
-            menu.put(4, named(Items.BARRIER, "&cEliminar por origen", "&7Elige qué Pokémon retirar de la pool.", "&7Generados por servidor: &f$generated", "&7Aportados por jugadores: &f$playerEntries"))
-            menu.button(11, named(Items.COMMAND_BLOCK, "&cSolo generados por el servidor", "&7Elimina únicamente los Pokémon", "&7generados automáticamente por el servidor.", "&cPide confirmación.")) { p ->
+            menu.put(4, named(Items.BARRIER, Lang.tr("&cEliminar por origen"), Lang.tr("&7Elige qué Pokémon retirar de la pool."), Lang.t("&7Generados por servidor: &f{0}", generated), Lang.t("&7Aportados por jugadores: &f{0}", playerEntries)))
+            menu.button(11, named(Items.COMMAND_BLOCK, Lang.tr("&cSolo generados por el servidor"), Lang.tr("&7Elimina únicamente los Pokémon"), Lang.tr("&7generados automáticamente por el servidor."), Lang.tr("&cPide confirmación."))) { p ->
                 openRemoveGeneratedPoolConfirm(p)
             }
             val playersHead = configHead(
-                "gui.heads.players", "&cSolo generados por jugadores", "&7Abre la lista de jugadores que han aportado.", "&7Selecciona uno para eliminar sus Pokémon."
-            ) ?: playerHead(player.gameProfile.name, player.uuid, WonderTradeService.profileSkin(player), "&cSolo generados por jugadores", "&7Abre la lista de jugadores que han aportado.", "&7Selecciona uno para eliminar sus Pokémon.")
+                "gui.heads.players", Lang.tr("&cSolo generados por jugadores"), Lang.tr("&7Abre la lista de jugadores que han aportado."), Lang.tr("&7Selecciona uno para eliminar sus Pokémon.")
+            ) ?: playerHead(player.gameProfile.name, player.uuid, WonderTradeService.profileSkin(player), Lang.tr("&cSolo generados por jugadores"), Lang.tr("&7Abre la lista de jugadores que han aportado."), Lang.tr("&7Selecciona uno para eliminar sus Pokémon."))
             menu.button(13, playersHead) { p ->
                 openAdminDonors(p)
             }
-            menu.button(15, named(Items.TNT, "&4Eliminar toda la pool", "&7Elimina todas las entradas, sin importar su origen.", "&cPide confirmación.")) { openClearPoolConfirm(it) }
-            menu.button(22, named(Items.ARROW, "&aVolver al panel admin")) { openAdmin(it) }
+            menu.button(15, named(Items.TNT, Lang.tr("&4Eliminar toda la pool"), Lang.tr("&7Elimina todas las entradas, sin importar su origen."), Lang.tr("&cPide confirmación."))) { openClearPoolConfirm(it) }
+            menu.button(22, named(Items.ARROW, Lang.tr("&aVolver al panel admin"))) { openAdmin(it) }
         }
     }
 
@@ -1286,61 +1337,61 @@ object WonderTradeGui {
             .sortedWith(compareBy({ !it.first.equals("Servidor", ignoreCase = true) }, { it.first.lowercase() }))
         val pages = maxOf(1, (donors.size + 44) / 45)
         val current = page.coerceIn(0, pages - 1)
-        open(player, "&5Administración &8- &cAportaciones", 6) { menu ->
+        open(player, Lang.tr("&5Administración &8- &cAportaciones"), 6) { menu ->
             fill(menu, 54)
             if (donors.isEmpty()) {
-                menu.put(22, named(Items.PAPER, "&7No hay aportaciones", "&8No hay donantes registrados en la pool."))
+                menu.put(22, named(Items.PAPER, Lang.tr("&7No hay aportaciones"), Lang.tr("&8No hay donantes registrados en la pool.")))
             }
             donors.drop(current * 45).take(45).forEachIndexed { index, (donor, donorUuid) ->
                 val isServer = donor.equals("Servidor", ignoreCase = true)
                 val head = if (isServer) {
-                    configHead("gui.heads.server", "&6Servidor", "&7Pokémon generados por el servidor.", "&cClic para eliminar")
-                        ?: named(Items.DRAGON_HEAD, "&6Servidor", "&7Pokémon generados por el servidor.", "&cClic para eliminar")
+                    configHead("gui.heads.server", Lang.tr("&6Servidor"), Lang.tr("&7Pokémon generados por el servidor."), Lang.tr("&cClic para eliminar"))
+                        ?: named(Items.DRAGON_HEAD, Lang.tr("&6Servidor"), Lang.tr("&7Pokémon generados por el servidor."), Lang.tr("&cClic para eliminar"))
                 } else {
                     // Con UUID y textura guardados la cabeza se ve aunque el jugador esté desconectado; si no, se resuelve por nombre.
                     val skin = donorUuid?.let { WonderTradeService.donorSkin(it) }
-                    playerHead(donor, donorUuid, skin, "&f$donor", "&7Eliminar todos sus Pokémon aportados.", "&cClic para eliminar")
+                    playerHead(donor, donorUuid, skin, Lang.t("&f{0}", donor), Lang.tr("&7Eliminar todos sus Pokémon aportados."), Lang.tr("&cClic para eliminar"))
                 }
                 menu.button(index, head) { p ->
                     val removed = WonderTradeService.removeDonorEntries(donor)
-                    p.sendSystemMessage(WonderTradeService.info("&aEliminados &f$removed &aPokémon aportados por &f$donor&a."))
+                    p.sendSystemMessage(WonderTradeService.info(Lang.t("&aEliminados &f{0} &aPokémon aportados por &f{1}&a.", removed, donor)))
                     openAdminDonors(p, current)
                 }
             }
-            if (current > 0) menu.button(45, named(Items.ARROW, "&ePágina anterior")) { openAdminDonors(it, current - 1) }
-            menu.button(49, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver a eliminar pool")) { openAdminPoolDeleteOptions(it) }
-            if (current < pages - 1) menu.button(53, named(Items.ARROW, "&ePágina siguiente")) { openAdminDonors(it, current + 1) }
+            if (current > 0) menu.button(45, named(Items.ARROW, Lang.tr("&ePágina anterior"))) { openAdminDonors(it, current - 1) }
+            menu.button(49, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver a eliminar pool"))) { openAdminPoolDeleteOptions(it) }
+            if (current < pages - 1) menu.button(53, named(Items.ARROW, Lang.tr("&ePágina siguiente"))) { openAdminDonors(it, current + 1) }
         }
     }
 
     private fun openResetStatsConfirm(player: ServerPlayer) {
-        open(player, "&cConfirmar reinicio de estadísticas", 3) { menu ->
+        open(player, Lang.tr("&cConfirmar reinicio de estadísticas"), 3) { menu ->
             fill(menu, 27)
-            menu.button(11, named(Items.TNT, "&cSí, reiniciar todo", "&7Se reiniciarán los tres rankings.")) { p ->
+            menu.button(11, named(Items.TNT, Lang.tr("&cSí, reiniciar todo"), Lang.tr("&7Se reiniciarán los tres rankings."))) { p ->
                 val affected = WonderTradeService.adminResetAllStats()
-                p.sendSystemMessage(WonderTradeService.info("&aEstadísticas reiniciadas para &f$affected &ajugadores."))
+                p.sendSystemMessage(WonderTradeService.info(Lang.t("&aEstadísticas reiniciadas para &f{0} &ajugadores.", affected)))
                 openAdmin(p)
             }
-            menu.button(15, named(Items.ARROW, "&aCancelar")) { openAdmin(it) }
+            menu.button(15, named(Items.ARROW, Lang.tr("&aCancelar"))) { openAdmin(it) }
         }
     }
 
     private fun openRemoveGeneratedPoolConfirm(player: ServerPlayer) {
         val generated = WonderTradeService.poolEntries().count { it.donorName.equals("Servidor", ignoreCase = true) }
-        open(player, "&cConfirmar eliminación", 3) { menu ->
+        open(player, Lang.tr("&cConfirmar eliminación"), 3) { menu ->
             fill(menu, 27)
-            menu.put(4, named(Items.COMMAND_BLOCK, "&cEliminar Pokémon del servidor", "&7Se eliminarán &f$generated &7Pokémon", "&7generados automáticamente.", "&cLas aportaciones de jugadores se conservarán."))
-            menu.button(11, named(Items.TNT, "&cSí, eliminar", "&7Eliminar los Pokémon generados por el servidor.")) { p ->
+            menu.put(4, named(Items.COMMAND_BLOCK, Lang.tr("&cEliminar Pokémon del servidor"), Lang.t("&7Se eliminarán &f{0} &7Pokémon", generated), Lang.tr("&7generados automáticamente."), Lang.tr("&cLas aportaciones de jugadores se conservarán.")))
+            menu.button(11, named(Items.TNT, Lang.tr("&cSí, eliminar"), Lang.tr("&7Eliminar los Pokémon generados por el servidor."))) { p ->
                 val removed = WonderTradeService.removeGeneratedPoolEntries()
-                p.sendSystemMessage(WonderTradeService.info("&aSe han eliminado &f$removed &aPokémon generados por el servidor."))
+                p.sendSystemMessage(WonderTradeService.info(Lang.t("&aSe han eliminado &f{0} &aPokémon generados por el servidor.", removed)))
                 openAdminPoolDeleteOptions(p)
             }
-            menu.button(15, named(Items.LIME_STAINED_GLASS_PANE, "&aCancelar", "&7Volver a la selección de eliminaciones.")) { openAdminPoolDeleteOptions(it) }
+            menu.button(15, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aCancelar"), Lang.tr("&7Volver a la selección de eliminaciones."))) { openAdminPoolDeleteOptions(it) }
         }
     }
 
     private fun openClearPoolConfirm(player: ServerPlayer) {
-        open(player, "&cConfirmar vaciado de pool", 3) { menu ->
+        open(player, Lang.tr("&cConfirmar vaciado de pool"), 3) { menu ->
             fill(menu, 27)
             menu.button(11, named(Items.TNT, ConfigManager.string("messages.adminMenuClearConfirm", "&cConfirmar vaciado"))) {
                 WonderTradeService.clearPool()
@@ -1402,13 +1453,13 @@ object WonderTradeGui {
         entries.drop(page * POOL_PER_PAGE).take(POOL_PER_PAGE).forEachIndexed { i, entry ->
             menu.put(i, historyStack(player, entry, dateFormat))
         }
-        if (entries.isEmpty()) menu.put(22, named(Items.BARRIER, "&cNo hay intercambios registrados"))
+        if (entries.isEmpty()) menu.put(22, named(Items.BARRIER, Lang.tr("&cNo hay intercambios registrados")))
 
-        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, "&aVolver al panel admin")) { openAdmin(it) }
-        if (page > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior"), "pageTurn") { renderHistory(menu, it, filter, page - 1) }
-        menu.put(49, named(Items.PAPER, "&fPágina ${page + 1}/$pages", "&7${entries.size} intercambios" + if (filter != null) " de $filter" else ""))
-        if (page < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente"), "pageTurn") { renderHistory(menu, it, filter, page + 1) }
-        menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver al panel admin"))) { openAdmin(it) }
+        if (page > 0) menu.button(48, named(Items.ARROW, Lang.tr("&ePágina anterior")), "pageTurn") { renderHistory(menu, it, filter, page - 1) }
+        menu.put(49, named(Items.PAPER, Lang.t("&fPágina {0}/{1}", page + 1, pages), Lang.t("&7{0} intercambios", entries.size) + if (filter != null) Lang.t(" de {0}", filter) else ""))
+        if (page < pages - 1) menu.button(50, named(Items.ARROW, Lang.tr("&ePágina siguiente")), "pageTurn") { renderHistory(menu, it, filter, page + 1) }
+        menu.button(53, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     private fun historyStack(player: ServerPlayer, entry: HistoryEntry, dateFormat: SimpleDateFormat): ItemStack {
@@ -1423,16 +1474,16 @@ object WonderTradeGui {
         val icon = pokemon?.let { runCatching { PokemonItem.from(it) }.getOrNull() } ?: ItemStack(Items.PAPER)
         val receivedTypes = pokemon?.let { WonderTradeRules.typesLabel(it) }
 
-        val shinyLabel = "&e[Shiny]"
-        icon.set(DataComponents.CUSTOM_NAME, lit("&b${entry.player}"))
+        val shinyLabel = Lang.tr("&e[Shiny]")
+        icon.set(DataComponents.CUSTOM_NAME, lit(Lang.t("&b{0}", entry.player)))
         val lines = listOf(
             "&8────────────────",
-            "&c▼ Dio: &f${entry.sentName} &7Nv.${entry.sentLevel}" + if (entry.sentShiny) " $shinyLabel" else "",
-            "&a▲ Recibió: &f${entry.receivedName} &7Nv.${entry.receivedLevel}" + if (entry.receivedShiny) " $shinyLabel" else "",
-            "&7Tipo: " + (receivedTypes ?: "&8desconocido"),
+            Lang.t("&c▼ Dio: &f{0} &7Nv.{1}", entry.sentName, entry.sentLevel) + if (entry.sentShiny) " $shinyLabel" else "",
+            Lang.t("&a▲ Recibió: &f{0} &7Nv.{1}", entry.receivedName, entry.receivedLevel) + if (entry.receivedShiny) " $shinyLabel" else "",
+            Lang.tr("&7Tipo: ") + (receivedTypes ?: Lang.tr("&8desconocido")),
             "&8────────────────",
-            "&7Origen: &f" + if (entry.fromPool) "pool de jugadores" else "generado al azar",
-            "&7Fecha: &f${dateFormat.format(Date(entry.time))}"
+            Lang.tr("&7Origen: &f") + if (entry.fromPool) Lang.tr("pool de jugadores") else Lang.tr("generado al azar"),
+            Lang.t("&7Fecha: &f{0}", dateFormat.format(Date(entry.time)))
         )
         icon.set(DataComponents.LORE, ItemLore(lines.map<String, Component> { lit(it) }))
         return icon
@@ -1441,7 +1492,7 @@ object WonderTradeGui {
     private fun openConfirm(player: ServerPlayer, pokemon: Pokemon, fromPc: Boolean, donationMode: Boolean) {
         open(
             player,
-            if (donationMode) "&5Wonder Trade &8- &fConfirmar donación" else "&5Wonder Trade &8- &fConfirmar",
+            if (donationMode) Lang.tr("&5Wonder Trade &8- &fConfirmar donación") else Lang.tr("&5Wonder Trade &8- &fConfirmar"),
             3
         ) { menu ->
             fill(menu, 27)
@@ -1456,15 +1507,15 @@ object WonderTradeGui {
             }
             menu.button(11, named(
                 Items.LIME_CONCRETE,
-                if (donationMode) "&aConfirmar donación" else "&aConfirmar intercambio",
-                "&7Ofreces: &f${pokemon.getDisplayName().string}",
-                if (donationMode) "&7No recibirás ningún Pokémon a cambio." else "&7Recibirás otro Pokémon de la pool."
+                if (donationMode) Lang.tr("&aConfirmar donación") else Lang.tr("&aConfirmar intercambio"),
+                Lang.t("&7Ofreces: &f{0}", pokemon.getDisplayName().string),
+                if (donationMode) Lang.tr("&7No recibirás ningún Pokémon a cambio.") else Lang.tr("&7Recibirás otro Pokémon de la pool.")
             )) { p ->
                 if (donationMode) WonderTradeService.donateFromStore(p, fromPc, pokemon.uuid)
                 else WonderTradeService.tradeFromStore(p, fromPc, pokemon.uuid)
                 p.closeContainer()
             }
-            menu.button(15, named(Items.RED_CONCRETE, "&cCancelar")) { openMain(it, donationMode) }
+            menu.button(15, named(Items.RED_CONCRETE, Lang.tr("&cCancelar"))) { openMain(it, donationMode) }
         }
     }
 
@@ -1556,12 +1607,12 @@ object WonderTradeGui {
         val parts = stats.map { (stat, label, color) ->
             val base = pokemon.ivs[stat] ?: 0
             val effective = pokemon.ivs.getEffectiveBattleIV(stat)
-            val value = if (base >= 31) "&f&l$base" else "&f$base"
-            val bonus = if (effective != base) " &7(&b$effective&7)" else ""
-            "$color$label &r$value$bonus"
+            val value = if (base >= 31) Lang.t("&f&l{0}", base) else Lang.t("&f{0}", base)
+            val bonus = if (effective != base) Lang.t(" &7(&b{0}&7)", effective) else ""
+            Lang.t("{0}{1} &r{2}{3}", color, label, value, bonus)
         }
         val perfect = perfectIvCount(pokemon)
-        val header = if (perfect >= 6) "&7IVs: &6★ perfectos &8(6x31)" else if (perfect > 0) "&7IVs: &8(${perfect}x31)" else "&7IVs:"
+        val header = if (perfect >= 6) Lang.tr("&7IVs: &6★ perfectos &8(6x31)") else if (perfect > 0) Lang.t("&7IVs: &8({0}x31)", perfect) else Lang.tr("&7IVs:")
         listOf(header, "  " + parts.take(3).joinToString(" &8| "), "  " + parts.drop(3).joinToString(" &8| "))
     }.getOrDefault(emptyList())
 
@@ -1580,7 +1631,7 @@ object WonderTradeGui {
     private fun natureLine(pokemon: Pokemon): String? = runCatching {
         val own = natureLabel(pokemon.nature)
         val minted = pokemon.mintedNature?.takeIf { it != pokemon.nature }
-        "&7Naturaleza: &f$own" + if (minted != null) " &7(menta: &b${natureLabel(minted)}&7)" else ""
+        Lang.t("&7Naturaleza: &f{0}", own) + if (minted != null) Lang.t(" &7(menta: &b{0}&7)", natureLabel(minted)) else ""
     }.getOrNull()
 
     private fun pokemonStack(pokemon: Pokemon, showOfferHint: Boolean, extra: List<String> = emptyList()): ItemStack {
@@ -1588,19 +1639,19 @@ object WonderTradeGui {
         val name = pokemon.getDisplayName().string
         stack.set(DataComponents.CUSTOM_NAME, lit((if (pokemon.shiny) "&e" else "&f") + name))
 
-        val lines = mutableListOf("&7Nivel: &f${pokemon.level}")
-        WonderTradeRules.typesLabel(pokemon)?.let { lines += "&7Tipo: $it" }
-        WonderTradeRules.formLabel(pokemon)?.let { lines += "&7Forma: &f$it" }
+        val lines = mutableListOf(Lang.t("&7Nivel: &f{0}", pokemon.level))
+        WonderTradeRules.typesLabel(pokemon)?.let { lines += Lang.t("&7Tipo: {0}", it) }
+        WonderTradeRules.formLabel(pokemon)?.let { lines += Lang.t("&7Forma: &f{0}", it) }
         val labels = mutableListOf<String>()
         WonderTradeRules.categoryLabel(pokemon)?.let { labels += it }
-        if (pokemon.shiny) labels += "&eShiny"
-        if (labels.isNotEmpty()) lines += "&7Categoría: " + labels.joinToString(" &7· ")
-        if (pokemon.isAlpha) lines += "&cAlfa"
+        if (pokemon.shiny) labels += Lang.tr("&eShiny")
+        if (labels.isNotEmpty()) lines += Lang.tr("&7Categoría: ") + labels.joinToString(" &7· ")
+        if (pokemon.isAlpha) lines += Lang.tr("&cAlfa")
         natureLine(pokemon)?.let { lines += it }
         if (ConfigManager.bool("menu.showIvs", true)) lines += ivLines(pokemon)
         lines += extra
         if (showOfferHint) {
-            lines += if (WonderTradeRules.validateOffer(pokemon) != null) "&c✖ No se puede ofrecer ahora" else "&a▶ Clic para ofrecer"
+            lines += if (WonderTradeRules.validateOffer(pokemon) != null) Lang.tr("&c✖ No se puede ofrecer ahora") else Lang.tr("&a▶ Clic para ofrecer")
         }
         stack.set(DataComponents.LORE, ItemLore(lines.map<String, Component> { lit(it) }))
         return stack

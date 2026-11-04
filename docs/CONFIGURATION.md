@@ -191,3 +191,9 @@ Los avisos se envían a todos los jugadores que puedan intercambiar, no solo a a
 - `penalties.defaultDuration`: duración por defecto de `/wt admin penalizar` (ej. `1d`).
 - `animations.enabled`, `specialReceived`, `eventStart`, `topDonations`, `durationSeconds` (1–10).
 - `topDonations.tieBreak`: `firstToReach`, `mostDonations` o `share`.
+
+## Idioma (0.20.0)
+
+- `general.language`: `es_es` (por defecto) o `en_us`. Archivos en `config/wondertradeplus/lang/`. Para otro idioma, copia `en_us.json`, traduce los valores y usa su nombre como código.
+- Un texto escrito a mano en `config.json` (`messages.*`, `discord.*Message`, `events.names.*`) tiene prioridad sobre el idioma.
+- `penalties.reasons` (motivos rápidos del menú) y `penalties.historySize` (límite del historial).

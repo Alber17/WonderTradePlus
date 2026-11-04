@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.19.0**.
+- Versión actual: **0.20.0**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -317,4 +317,13 @@
 - Comandos: `/wt admin penalizar <jugador> [duración|permanente]`, `/wt admin perdonar <jugador>` y `/wt admin penalizaciones`. Sin duración se usa la elegida en el menú o `penalties.defaultDuration`.
 - Animaciones discretas en la barra de acción (ola dorada de unos 3 s) al recibir un Pokémon especial, al empezar un evento y al cerrar el Top Donaciones. Configurables en `animations`.
 - Empates: `/wt top` ordena ahora a igualdad por nombre y los empatados comparten puesto (1, 1, 3). Top Donaciones: nuevo `topDonations.tieBreak` (`firstToReach` por defecto = gana quien llegó antes; `mostDonations`; `share` = empatados comparten puesto y premio).
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.20.0
+
+- Idiomas: nueva opción `general.language` (`es_es` español de España, principal, y `en_us`). Se cambia con `/wt admin idioma [código]` o con el botón «Idioma» del panel de administración. Los textos viven en `config/wondertradeplus/lang/<código>.json`; para añadir otro idioma basta con copiar `en_us.json` con otro nombre (p. ej. `de_de.json`), traducir los valores y elegirlo. Lo que falte en un idioma se muestra en español.
+- Los textos ya no se guardan en `config.json`: al actualizar se quitan de ahí los que seguían sin personalizar y se conservan (con prioridad sobre el idioma) los que hayas cambiado a mano. Se traducen menús, mensajes, ayudas, avisos de Discord, nombres de eventos y categorías, y los nombres de días y meses.
+- Penalizaciones: motivo opcional (`/wt admin penalizar <jugador> [duración] [motivo]`, `/wt admin motivo <texto>` y botones «Motivo» en el menú, con motivos rápidos configurables en `penalties.reasons`). El motivo se muestra al jugador y en las listas.
+- Historial de penalizaciones (`/wt admin penalizaciones historial [jugador]` y botón «Historial» en el menú «Penalizados»): penalizaciones, perdones y caducidades, con límite `penalties.historySize`.
+- Aviso al terminar una penalización: al instante si el jugador está conectado, y al entrar si caducó mientras estaba fuera.
 - Gradle no se ha ejecutado en el entorno de edición.

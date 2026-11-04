@@ -43,6 +43,12 @@ object WonderTradeService {
         WonderTradePlus.LOGGER.info("WonderTrade Plus {} preparado.", WonderTradePlus.MOD_VERSION)
     }
 
+    /** Cambia el idioma del servidor (general.language) y recarga los textos. */
+    fun changeLanguage(code: String) {
+        ConfigManager.setString("general.language", code)
+        ConfigManager.load()
+    }
+
     fun reload() {
         ConfigManager.load()
         entryCategoryCache.clear()
@@ -75,7 +81,7 @@ object WonderTradeService {
     /** false (y avisa) si el jugador tiene una penalización vigente: no puede intercambiar ni donar. */
     fun ensureNotPenalized(player: ServerPlayer): Boolean {
         val penalty = WonderTradePenalties.active(player.uuid) ?: return true
-        send(player, "penalized", mapOf("time" to WonderTradePenalties.remainingText(penalty)))
+        send(player, "penalized", mapOf("time" to WonderTradePenalties.remainingText(penalty), "reason" to WonderTradePenalties.reasonSuffix(penalty)))
         return false
     }
 
@@ -176,6 +182,7 @@ object WonderTradeService {
             lines += ConfigManager.string("messages.helpAdminScheduleCommand", "&e/wt admin eventos programar <tipo> <categorías> <duración> <cuándo> &7Programar un evento (también desde Gestionar eventos)")
             lines += ConfigManager.string("messages.helpAdminPenalizeCommand", "&e/wt admin penalizar <jugador> [duración|permanente] &7Penalizar a un jugador (también desde el panel)")
             lines += ConfigManager.string("messages.helpAdminPardonCommand", "&e/wt admin perdonar <jugador> &7Retirar una penalización; &e/wt admin penalizaciones &7lista las vigentes")
+            lines += ConfigManager.string("messages.helpAdminLanguageCommand", "&e/wt admin idioma [código] &7Ver o cambiar el idioma del servidor")
             lines += ConfigManager.string("messages.helpAdminPauseCommand", "&e/wt admin eventos pausar|reanudar <id> &7Pausar o reanudar el tiempo de un evento")
             lines += ConfigManager.string("messages.helpAdminEventHistoryCommand", "&e/wt admin eventos historial &7Ver eventos terminados con sus WT")
             lines += ConfigManager.string("messages.helpAdminUnscheduleCommand", "&e/wt admin eventos desprogramar <id> &7Cancelar un evento programado")
@@ -267,12 +274,12 @@ object WonderTradeService {
         else java.time.YearMonth.from(java.time.Instant.ofEpochMilli(moment).atZone(zone)) == java.time.YearMonth.now(zone)
         val species = pokemon.species.resourceIdentifier.path.lowercase()
         playerData.lastDonatedSpecies(player.uuid, species)?.takeIf { within(it) }?.let {
-            send(player, "donationSameSpecies", mapOf("period" to if (period == "week") "esta semana" else "este mes"))
+            send(player, "donationSameSpecies", mapOf("period" to if (period == "week") Lang.tr("esta semana") else Lang.tr("este mes")))
             return true
         }
         if (ConfigManager.bool("donation.blockSameIndividual", true)) {
             playerData.lastDonatedIndividual(player.uuid, pokemon.uuid.toString())?.takeIf { within(it) }?.let {
-                send(player, "donationSameIndividual", mapOf("period" to if (period == "week") "esta semana" else "este mes"))
+                send(player, "donationSameIndividual", mapOf("period" to if (period == "week") Lang.tr("esta semana") else Lang.tr("este mes")))
                 return true
             }
         }
@@ -736,7 +743,7 @@ object WonderTradeService {
     private fun performTrade(player: ServerPlayer, party: PokemonStore<*>, offered: Pokemon) {
         if (!canTrade(player)) return
         if (!ConfigManager.bool("general.allowInBattle", false) && Cobblemon.battleRegistry.getBattleByParticipatingPlayer(player) != null) {
-            player.sendSystemMessage(colour("${ConfigManager.string("messages.prefix")} &cNo puedes intercambiar Pokémon durante un combate."))
+            player.sendSystemMessage(colour(Lang.t("{0} &cNo puedes intercambiar Pokémon durante un combate.", ConfigManager.string("messages.prefix"))))
             return
         }
         WonderTradeRules.validateOffer(offered)?.let { key ->
@@ -1064,8 +1071,8 @@ object WonderTradeService {
                 val loaded = runCatching { Pokemon.loadFromJSON(registryAccess, entry.pokemonJson.deepCopy()) }.getOrNull()
                 val name = loaded?.getDisplayName()?.string ?: entry.species.substringAfter(':')
                 val star = if (entry.shiny && EventCategory.SHINY !in event.categories) "&e★" else ""
-                val level = if (showLevel) " &7Nv.${entry.level}" else ""
-                "$star&f$name$level"
+                val level = if (showLevel) Lang.t(" &7Nv.{0}", entry.level) else ""
+                Lang.t("{0}&f{1}{2}", star, name, level)
             }
             lines += names.joinToString("&7, ")
             if (matching.size > maxListed) {
@@ -1194,6 +1201,7 @@ object WonderTradeService {
         if (tickCounter % 20 != 0) return
         secondCounter++
         runCatching { WonderTradeEvents.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el control de eventos.", it) }
+        runCatching { WonderTradePenalties.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el control de penalizaciones.", it) }
         runCatching { WonderTradeTopDonations.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el Top Donaciones.", it) }
         server.playerList.players.forEach { WonderTradeGui.refreshCooldown(it) }
         runCatching { checkCooldownNotices(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el aviso de disponibilidad.", it) }
@@ -1354,26 +1362,26 @@ object WonderTradeService {
     fun statsComponent(uuid: UUID, name: String): Component {
         val bonus = if (ConfigManager.bool("bonus.enabled", true)) playerData.bonus(uuid) else 0.0
         val lines = listOf(
-            "&8━━ &dEstadísticas de &f$name &8━━",
-            "&7Intercambios: &f${playerData.stat(uuid, "trades")}",
-            "&7Especiales recibidos: &d${playerData.stat(uuid, "specialsReceived")}",
-            "&7Especiales aportados: &d${playerData.stat(uuid, "specialsDonated")}",
-            "&7Donaciones directas: &f${playerData.stat(uuid, "donations")}",
-            "&7Probabilidad acumulada: &d${percentText(bonus)}%"
+            Lang.t("&8━━ &dEstadísticas de &f{0} &8━━", name),
+            Lang.t("&7Intercambios: &f{0}", playerData.stat(uuid, "trades")),
+            Lang.t("&7Especiales recibidos: &d{0}", playerData.stat(uuid, "specialsReceived")),
+            Lang.t("&7Especiales aportados: &d{0}", playerData.stat(uuid, "specialsDonated")),
+            Lang.t("&7Donaciones directas: &f{0}", playerData.stat(uuid, "donations")),
+            Lang.t("&7Probabilidad acumulada: &d{0}%", percentText(bonus))
         )
         return colour(lines.joinToString("\n"))
     }
 
     fun topComponent(category: String, viewer: UUID?): Component {
         val (key, title) = when (category) {
-            "received" -> "specialsReceived" to "Especiales recibidos"
-            "donated" -> "specialsDonated" to "Especiales aportados"
+            "received" -> "specialsReceived" to Lang.tr("Especiales recibidos")
+            "donated" -> "specialsDonated" to Lang.tr("Especiales aportados")
             else -> "trades" to "Intercambios"
         }
         val ranking = playerData.ranking(key)
-        val lines = mutableListOf("&8━━ &dTop Wonder Trade &8— &f$title &8━━")
+        val lines = mutableListOf(Lang.t("&8━━ &dTop Wonder Trade &8— &f{0} &8━━", title))
         if (ranking.isEmpty()) {
-            lines += "&7Todavía no hay datos."
+            lines += Lang.tr("&7Todavía no hay datos.")
         } else {
             val colours = listOf("&6", "&7", "&c")
             // Los empatados comparten puesto (1, 1, 3...) y se ordenan por nombre.
@@ -1384,7 +1392,7 @@ object WonderTradeService {
             }
             if (viewer != null) {
                 val position = ranking.indexOfFirst { it.first == viewer }
-                if (position >= 10) lines += "&7Tu posición: &f#${placeOf(position)} &8— &d${ranking[position].third}"
+                if (position >= 10) lines += Lang.t("&7Tu posición: &f#{0} &8— &d{1}", placeOf(position), ranking[position].third)
             }
         }
         return colour(lines.joinToString("\n"))
@@ -1442,7 +1450,7 @@ object WonderTradeService {
         } else {
             lines += rankInfoLine(player) ?: ConfigManager.string("messages.rankNone", "&7No tienes ningún rango con ventajas en Wonder Trade.")
             if (player.hasPermissions(adminLevel())) {
-                lines += "&8Detección de permisos: ${WonderTradeRanks.backendName()}"
+                lines += Lang.t("&8Detección de permisos: {0}", WonderTradeRanks.backendName())
             }
         }
         return colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
@@ -1634,11 +1642,11 @@ object WonderTradeService {
             else -> "broadcastReceivedShiny"
         }
         val fallback = when (category) {
-            "ultraBeast" -> "&3{player} ha conseguido un Pokémon Ultraente{shinySuffix} en el WonderTrade: &f{pokemon}&3!"
-            "paradox" -> "&c{player} ha conseguido un Pokémon Paradoja{shinySuffix} en el WonderTrade: &f{pokemon}&c!"
-            "mythical" -> "&d{player} ha conseguido un Pokémon Mítico{shinySuffix} en el WonderTrade: &f{pokemon}&d!"
-            "legendary" -> "&6{player} ha conseguido un Pokémon Legendario{shinySuffix} en el WonderTrade: &f{pokemon}&6!"
-            else -> "&d{player} ha conseguido un shiny en el WonderTrade: &f{pokemon}&d!"
+            "ultraBeast" -> Lang.tr("&3{player} ha conseguido un Pokémon Ultraente{shinySuffix} en el WonderTrade: &f{pokemon}&3!")
+            "paradox" -> Lang.tr("&c{player} ha conseguido un Pokémon Paradoja{shinySuffix} en el WonderTrade: &f{pokemon}&c!")
+            "mythical" -> Lang.tr("&d{player} ha conseguido un Pokémon Mítico{shinySuffix} en el WonderTrade: &f{pokemon}&d!")
+            "legendary" -> Lang.tr("&6{player} ha conseguido un Pokémon Legendario{shinySuffix} en el WonderTrade: &f{pokemon}&6!")
+            else -> Lang.tr("&d{player} ha conseguido un shiny en el WonderTrade: &f{pokemon}&d!")
         }
         val suffix = if (pokemon.shiny && category != "shiny") " shiny" else ""
         val message = format(ConfigManager.string("messages.$key", fallback), mapOf(
@@ -1671,7 +1679,7 @@ object WonderTradeService {
 
     /** Envía el éxito y el cambio del bonus en una sola línea; mantiene compatibles mensajes personalizados antiguos. */
     private fun sendTradeSuccess(player: ServerPlayer, values: Map<String, Any>, bonusText: String) {
-        val fallback = "&aIntercambio completado: has recibido &f{received}&a. {bonusText}"
+        val fallback = Lang.tr("&aIntercambio completado: has recibido &f{received}&a. {bonusText}")
         val template = ConfigManager.string("messages.success", fallback)
         var message = format(template, values)
         if (!template.contains("{bonusText}") && bonusText.isNotBlank()) message += " $bonusText"
@@ -1693,17 +1701,17 @@ object WonderTradeService {
     fun colour(value: String): Component = Component.literal(value.replace('&', '§'))
 
     private fun defaultMessage(key: String): String = when (key) {
-        "tradeDisabled" -> "&cWonder Trade está desactivado temporalmente."
-        "cooldownFinished" -> "&a¡Ya puedes hacer Wonder Trade otra vez! Usa &e/wt&a."
-        "emptySlot" -> "&cNo tienes ningún Pokémon en ese slot."
-        "invalidSlot" -> "&cEl slot debe estar entre 1 y 6."
-        "confirmationExpired" -> "&cLa confirmación ha caducado."
-        "nothingToConfirm" -> "&cNo tienes ningún intercambio pendiente."
-        "success" -> "&aIntercambio completado: has recibido &f{received}&a. {bonusText}"
-        "donationDisabled" -> "&cLas donaciones a la pool están desactivadas."
-        "donationPoolFull" -> "&cNo puedes donar porque la pool ya está completa ({size}/{maximum})."
-        "donationInBattle" -> "&cNo puedes donar Pokémon durante un combate."
-        "donationSuccess" -> "&aDonación completada: &f{pokemon} &ase ha añadido a la pool. ¡Gracias!"
-        else -> "&cNo se ha podido completar el intercambio."
+        "tradeDisabled" -> Lang.tr("&cWonder Trade está desactivado temporalmente.")
+        "cooldownFinished" -> Lang.tr("&a¡Ya puedes hacer Wonder Trade otra vez! Usa &e/wt&a.")
+        "emptySlot" -> Lang.tr("&cNo tienes ningún Pokémon en ese slot.")
+        "invalidSlot" -> Lang.tr("&cEl slot debe estar entre 1 y 6.")
+        "confirmationExpired" -> Lang.tr("&cLa confirmación ha caducado.")
+        "nothingToConfirm" -> Lang.tr("&cNo tienes ningún intercambio pendiente.")
+        "success" -> Lang.tr("&aIntercambio completado: has recibido &f{received}&a. {bonusText}")
+        "donationDisabled" -> Lang.tr("&cLas donaciones a la pool están desactivadas.")
+        "donationPoolFull" -> Lang.tr("&cNo puedes donar porque la pool ya está completa ({size}/{maximum}).")
+        "donationInBattle" -> Lang.tr("&cNo puedes donar Pokémon durante un combate.")
+        "donationSuccess" -> Lang.tr("&aDonación completada: &f{pokemon} &ase ha añadido a la pool. ¡Gracias!")
+        else -> Lang.tr("&cNo se ha podido completar el intercambio.")
     }
 }

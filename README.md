@@ -402,6 +402,16 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 - Gradle no se ha ejecutado en el entorno de edición.
 
 
+## 0.20.0
+
+- Idiomas: nueva opción `general.language` (`es_es` español de España, principal, y `en_us`). Se cambia con `/wt admin idioma [código]` o con el botón «Idioma» del panel de administración. Los textos viven en `config/wondertradeplus/lang/<código>.json`; para añadir otro idioma basta con copiar `en_us.json` con otro nombre (p. ej. `de_de.json`), traducir los valores y elegirlo. Lo que falte en un idioma se muestra en español.
+- Los textos ya no se guardan en `config.json`: al actualizar se quitan de ahí los que seguían sin personalizar y se conservan (con prioridad sobre el idioma) los que hayas cambiado a mano. Se traducen menús, mensajes, ayudas, avisos de Discord, nombres de eventos y categorías, y los nombres de días y meses.
+- Penalizaciones: motivo opcional (`/wt admin penalizar <jugador> [duración] [motivo]`, `/wt admin motivo <texto>` y botones «Motivo» en el menú, con motivos rápidos configurables en `penalties.reasons`). El motivo se muestra al jugador y en las listas.
+- Historial de penalizaciones (`/wt admin penalizaciones historial [jugador]` y botón «Historial» en el menú «Penalizados»): penalizaciones, perdones y caducidades, con límite `penalties.historySize`.
+- Aviso al terminar una penalización: al instante si el jugador está conectado, y al entrar si caducó mientras estaba fuera.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
 ## 0.19.0
 
 - Penalizaciones: nuevo menú «Penalizaciones» en el panel de administración (hierro). Muestra las cabezas de los jugadores conectados (clic = penalizar), un selector de tiempo (±1 d, ±1 h, ±10 min), el botón «Permanente», «Por nombre» (jugadores desconectados) y la lista de penalizados para perdonar. Un jugador penalizado no puede intercambiar ni donar. Se guarda en `penalties.json`.

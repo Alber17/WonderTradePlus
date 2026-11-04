@@ -133,7 +133,7 @@ object WonderTradeTopDonations {
     }
 
     private fun monthName(period: YearMonth): String =
-        period.month.getDisplayName(TextStyle.FULL, Locale("es", "ES")).replaceFirstChar { it.uppercase() } + " " + period.year
+        period.month.getDisplayName(TextStyle.FULL, Lang.locale()).replaceFirstChar { it.uppercase() } + " " + period.year
 
     /** Siguiente mes activo a partir de [from] (incluido). */
     private fun nextActive(from: YearMonth): YearMonth? =

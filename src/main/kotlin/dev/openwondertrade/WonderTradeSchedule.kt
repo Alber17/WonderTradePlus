@@ -18,12 +18,14 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /** Cada cuánto se repite un evento programado. */
-enum class ScheduleRepeat(val key: String, val label: String) {
+enum class ScheduleRepeat(val key: String, private val source: String) {
     NONE("none", "una vez"),
     DAILY("diario", "cada día"),
     WEEKLY("semanal", "cada semana"),
     MONTHLY("mensual", "cada mes"),
     YEARLY("anual", "cada año");
+
+    val label: String get() = Lang.tr(source)
 
     companion object {
         fun parse(text: String): ScheduleRepeat = when (text.lowercase()) {
@@ -192,12 +194,12 @@ object WonderTradeSchedule {
 
     /** Texto como «sáb 07/11 20:00 (cada semana)». */
     fun describeWhen(item: ScheduledEvent): String {
-        val formatter = DateTimeFormatter.ofPattern("EEE dd/MM HH:mm", Locale("es", "ES"))
+        val formatter = DateTimeFormatter.ofPattern("EEE dd/MM HH:mm", Lang.locale())
         val moment = ZonedDateTime.ofInstant(Instant.ofEpochMilli(item.nextRunAt), zone()).format(formatter)
         val countdown = countdownText(item.nextRunAt - System.currentTimeMillis())
         if (item.repeat == ScheduleRepeat.NONE) return "$moment (hora del servidor) · empieza en $countdown"
         val day = ZonedDateTime.ofInstant(Instant.ofEpochMilli(item.nextRunAt), zone()).dayOfWeek
-        val label = if (item.repeat == ScheduleRepeat.MONTHLY && item.weekOrdinal in 1..5) "cada ${ordinalText(item.weekOrdinal, day)} del mes" else item.repeat.label
+        val label = if (item.repeat == ScheduleRepeat.MONTHLY && item.weekOrdinal in 1..5) Lang.t("cada {0} del mes", ordinalText(item.weekOrdinal, day)) else item.repeat.label
         return "$moment (hora del servidor) · empieza en $countdown ($label)"
     }
 
@@ -238,12 +240,12 @@ object WonderTradeSchedule {
     }
 
     fun dayName(day: DayOfWeek): String =
-        day.getDisplayName(java.time.format.TextStyle.FULL, Locale("es", "ES")).replaceFirstChar { it.uppercase(Locale("es", "ES")) }
+        day.getDisplayName(java.time.format.TextStyle.FULL, Lang.locale()).replaceFirstChar { it.uppercase(Lang.locale()) }
 
     /** «primer viernes», «último domingo»… */
     fun ordinalText(ordinal: Int, day: DayOfWeek): String {
-        val word = when (ordinal) { 1 -> "primer"; 2 -> "segundo"; 3 -> "tercer"; 4 -> "cuarto"; else -> "último" }
-        return "$word ${dayName(day).lowercase(Locale("es", "ES"))}"
+        val word = when (ordinal) { 1 -> Lang.tr("primer"); 2 -> Lang.tr("segundo"); 3 -> Lang.tr("tercer"); 4 -> Lang.tr("cuarto"); else -> Lang.tr("último") }
+        return "$word ${dayName(day).lowercase(Lang.locale())}"
     }
 
     /** Número de ocurrencia del día de la semana dentro de su mes (5 = último). */
@@ -404,7 +406,7 @@ object WonderTradeSchedule {
             when {
                 timeMatch != null -> {
                     time = runCatching { LocalTime.of(timeMatch.groupValues[1].toInt(), timeMatch.groupValues[2].toInt()) }.getOrNull()
-                        ?: return failure("Hora no válida: $raw (usa HH:mm, por ejemplo 20:00).")
+                        ?: return failure(Lang.t("Hora no válida: {0} (usa HH:mm, por ejemplo 20:00).", raw))
                 }
                 dateMatch != null -> {
                     val year = dateMatch.groupValues[3].ifEmpty { null }?.toInt()
@@ -417,26 +419,26 @@ object WonderTradeSchedule {
                 token == "anual" || token == "cadaano" -> repeat = ScheduleRepeat.YEARLY
                 token.startsWith("valor=") -> {
                     value = token.substringAfter('=').replace(',', '.').toDoubleOrNull()?.takeIf { it in 0.0..100.0 }
-                        ?: return failure("Valor no válido: $raw (0 a 100).")
+                        ?: return failure(Lang.t("Valor no válido: {0} (0 a 100).", raw))
                 }
                 token.startsWith("espera=") -> {
                     cooldown = WonderTradeEvents.parseDuration(token.substringAfter('='))
-                        ?: return failure("Espera no válida: $raw (ejemplos: 30s, 1m, 5m).")
+                        ?: return failure(Lang.t("Espera no válida: {0} (ejemplos: 30s, 1m, 5m).", raw))
                 }
-                else -> return failure("No entiendo «$raw». Usa una hora (20:00), un día (sabado o 15/11), diario, semanal, mensual o anual, valor=N y espera=1m.")
+                else -> return failure(Lang.t("No entiendo «{0}». Usa una hora (20:00), un día (sabado o 15/11), diario, semanal, mensual o anual, valor=N y espera=1m.", raw))
             }
         }
-        val chosenTime = time ?: return failure("Falta la hora, por ejemplo 20:00.")
+        val chosenTime = time ?: return failure(Lang.tr("Falta la hora, por ejemplo 20:00."))
         val zone = zone()
         val now = ZonedDateTime.now(zone)
         val first: ZonedDateTime
         if (dateParts != null) {
             val (dayOfMonth, month, year) = dateParts
             val date = runCatching { LocalDate.of(year ?: now.year, month, dayOfMonth) }.getOrNull()
-                ?: return failure("Fecha no válida (usa día/mes o día/mes/año).")
+                ?: return failure(Lang.tr("Fecha no válida (usa día/mes o día/mes/año)."))
             var moment = ZonedDateTime.of(date, chosenTime, zone)
             if (!moment.isAfter(now)) {
-                if (year == null) moment = moment.plusYears(1) else return failure("Esa fecha ya ha pasado.")
+                if (year == null) moment = moment.plusYears(1) else return failure(Lang.tr("Esa fecha ya ha pasado."))
             }
             first = moment
         } else if (day != null) {

@@ -25,13 +25,16 @@ enum class EventType(val key: String, val title: String) {
 }
 
 /** Categoría a la que afecta un evento. */
-enum class EventCategory(val key: String, val label: String, private val speciesKey: String?) {
+enum class EventCategory(val key: String, private val source: String, private val speciesKey: String?) {
     // El orden de esta lista es el orden en que aparecen en el menú.
     SHINY("shiny", "Shiny", null),
     ULTRABEAST("ultraente", "Ultraente", "ultraBeast"),
     PARADOX("paradoja", "Paradoja", "paradox"),
     MYTHICAL("mitico", "Mítico", "mythical"),
     LEGENDARY("legendario", "Legendario", "legendary");
+
+    /** Nombre en el idioma activo. */
+    val label: String get() = Lang.tr(source)
 
     fun matches(pokemon: com.cobblemon.mod.common.pokemon.Pokemon): Boolean =
         if (this == SHINY) pokemon.shiny else WonderTradeRules.speciesCategoryKey(pokemon) == speciesKey
@@ -43,7 +46,7 @@ enum class EventCategory(val key: String, val label: String, private val species
         fun parse(text: String): EventCategory? {
             val clean = text.lowercase().replace('í', 'i').replace('é', 'e')
             return values().firstOrNull {
-                it.key == clean || it.name.lowercase() == clean || it.label.lowercase().replace('í', 'i') == clean
+                it.key == clean || it.name.lowercase() == clean || it.label.lowercase().replace('í', 'i') == clean || it.source.lowercase().replace('í', 'i') == clean
             }
         }
     }
@@ -223,7 +226,7 @@ object WonderTradeEvents {
             for (node in root.getAsJsonArray("events") ?: JsonArray()) {
                 val event = runCatching { WtEvent.fromJson(node.asJsonObject) }.getOrNull() ?: continue
                 if (event.paused || event.endAt > now) events.add(event)
-                else record(event, "caducó mientras el servidor estaba apagado", event.endAt)
+                else record(event, Lang.tr("caducó mientras el servidor estaba apagado"), event.endAt)
                 if (event.id >= nextId) nextId = event.id + 1
             }
             // Esperas por jugador guardadas: solo las de eventos que siguen activos y que aún no han terminado.
@@ -383,7 +386,7 @@ object WonderTradeEvents {
         events.remove(event)
         lastUse.keys.removeAll { it.endsWith(":${event.id}") }
         pendingSetup.remove(event.id)
-        record(event, "finalizado por un administrador")
+        record(event, Lang.tr("finalizado por un administrador"))
         save()
         announceEnd(server, event)
         return event
@@ -424,7 +427,7 @@ object WonderTradeEvents {
         val ended = events.filter { !it.paused && it.endAt <= now }
         if (ended.isNotEmpty()) {
             events.removeAll(ended.toSet())
-            ended.forEach { record(it, "terminó su tiempo", it.endAt) }
+            ended.forEach { record(it, Lang.tr("terminó su tiempo"), it.endAt) }
             ended.forEach { event -> lastUse.keys.removeAll { it.endsWith(":${event.id}") } }
             save()
             ended.forEach { announceEnd(server, it) }
@@ -490,7 +493,7 @@ object WonderTradeEvents {
     fun describeDefault(type: EventType, categories: List<EventCategory>): List<String> {
         val sample = WtEvent(0, type, normalizeCategories(categories), 0L, 3600_000L, defaultValue(type), defaultCooldownSeconds(3600L), "")
         val percent = tradeIntervalPercent()
-        return describe(sample).dropLast(1) + "&7Intervalo automático: &f${percentText(percent)}% &7de la duración total."
+        return describe(sample).dropLast(1) + Lang.t("&7Intervalo automático: &f{0}% &7de la duración total.", percentText(percent))
     }
 
     private fun percentText(value: Double): String = if (value % 1.0 == 0.0) value.toInt().toString() else value.toString()
@@ -505,11 +508,11 @@ object WonderTradeEvents {
         } else {
             lines += ConfigManager.string("messages.eventsHeader", "&d&lEventos activos:")
             list.forEach { event ->
-                lines += "&d★ &f${event.title} &7— termina en &f${formatDuration((event.endAt - now + 999L) / 1000L)}"
+                lines += Lang.t("&d★ &f{0} &7— termina en &f{1}", event.title, formatDuration((event.endAt - now + 999L) / 1000L))
                 describe(event).forEach { lines += "  $it" }
                 if (player != null) {
                     val left = remainingSeconds(player, event, now)
-                    val state = if (left <= 0L) "&aDisponible" else "&f${formatDuration(left)}"
+                    val state = if (left <= 0L) Lang.tr("&aDisponible") else Lang.t("&f{0}", formatDuration(left))
                     lines += "  " + WonderTradeService.format(
                         ConfigManager.string("messages.eventYourCooldown", "&7Tu próximo intercambio de evento: {state}"),
                         mapOf("state" to state)
@@ -526,25 +529,25 @@ object WonderTradeEvents {
         val now = System.currentTimeMillis()
         val list = running(now)
         val lines = mutableListOf<String>()
-        if (list.isEmpty()) lines += "&7No hay eventos activos."
+        if (list.isEmpty()) lines += Lang.tr("&7No hay eventos activos.")
         else {
-            lines += "&d&lEventos activos:"
+            lines += Lang.tr("&d&lEventos activos:")
             list.forEach { event ->
                 val left = formatDuration((event.endAt - (if (event.paused) event.pausedAt else now) + 999L) / 1000L)
-                val state = if (event.paused) "&6PAUSADO &7quedan &f$left" else "&7termina en &f$left"
-                lines += "&8#${event.id} &d${event.title} &7valor &f${valueText(event.value)}% &7espera &f${formatDuration(event.cooldownSeconds)} $state &8(${event.createdBy})"
-                lines += "   &7WT hechos: &f${event.trades} &7· jugadores: &f${event.playerIds.size}"
+                val state = if (event.paused) Lang.t("&6PAUSADO &7quedan &f{0}", left) else Lang.t("&7termina en &f{0}", left)
+                lines += Lang.t("&8#{0} &d{1} &7valor &f{2}% &7espera &f{3} {4} &8({5})", event.id, event.title, valueText(event.value), formatDuration(event.cooldownSeconds), state, event.createdBy)
+                lines += Lang.t("   &7WT hechos: &f{0} &7· jugadores: &f{1}", event.trades, event.playerIds.size)
             }
-            lines += "&7Pausar/reanudar: &e/wt admin eventos pausar|reanudar <id> &7· Historial: &e/wt admin eventos historial"
-            lines += "&7Finalizar: &e/wt admin eventos parar <id>"
+            lines += Lang.tr("&7Pausar/reanudar: &e/wt admin eventos pausar|reanudar <id> &7· Historial: &e/wt admin eventos historial")
+            lines += Lang.tr("&7Finalizar: &e/wt admin eventos parar <id>")
         }
         val scheduled = WonderTradeSchedule.all()
         if (scheduled.isNotEmpty()) {
-            lines += "&d&lProgramados:"
+            lines += Lang.tr("&d&lProgramados:")
             scheduled.forEach { item ->
-                lines += "&8P${item.id} &d${item.title} &7dura &f${formatDuration(item.durationSeconds)} &7— &f${WonderTradeSchedule.describeWhen(item)} &8(${item.createdBy})"
+                lines += Lang.t("&8P{0} &d{1} &7dura &f{2} &7— &f{3} &8({4})", item.id, item.title, formatDuration(item.durationSeconds), WonderTradeSchedule.describeWhen(item), item.createdBy)
             }
-            lines += "&7Cancelar: &e/wt admin eventos desprogramar <id>"
+            lines += Lang.tr("&7Cancelar: &e/wt admin eventos desprogramar <id>")
         }
         return WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
     }
@@ -553,11 +556,11 @@ object WonderTradeEvents {
     fun historyComponent(limit: Int = 15): Component {
         val list = history(limit)
         val lines = mutableListOf<String>()
-        if (list.isEmpty()) lines += "&7Todavía no hay eventos en el historial."
+        if (list.isEmpty()) lines += Lang.tr("&7Todavía no hay eventos en el historial.")
         else {
-            lines += "&d&lHistorial de eventos &7(últimos ${list.size}):"
+            lines += Lang.t("&d&lHistorial de eventos &7(últimos {0}):", list.size)
             list.forEach { r ->
-                lines += "&8#${r.id} &d${r.title} &7— WT: &f${r.trades} &7· jugadores: &f${r.players} &7· ${historyDate(r.endedAt)} &8(${r.reason})"
+                lines += Lang.t("&8#{0} &d{1} &7— WT: &f{2} &7· jugadores: &f{3} &7· {4} &8({5})", r.id, r.title, r.trades, r.players, historyDate(r.endedAt), r.reason)
             }
         }
         return WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
@@ -572,8 +575,8 @@ object WonderTradeEvents {
         val now = System.currentTimeMillis()
         return active(now).map { event ->
             val left = remainingSeconds(player, event, now)
-            val state = if (left <= 0L) "&aDisponible" else "&f${formatDuration(left)}"
-            "&d★ ${event.title} &8— $state"
+            val state = if (left <= 0L) Lang.tr("&aDisponible") else Lang.t("&f{0}", formatDuration(left))
+            Lang.t("&d★ {0} &8— {1}", event.title, state)
         }
     }
 

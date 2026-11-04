@@ -29,6 +29,8 @@ object ConfigManager {
         } else JsonObject()
 
         root = mergeMissing(defaults, loaded)
+        // Idiomas: carga es_es (principal) y el idioma elegido en general.language.
+        Lang.load(configPath.parent, string("general.language", Lang.DEFAULT))
 
         // Migration: 5000 was accidentally shipped as the pool default in 0.8.6.
         // The intended maximum is 500, so update that legacy default in existing configs too.
@@ -94,8 +96,34 @@ object ConfigManager {
                 if (current == pair.first) messages.addProperty(key, pair.second)
             }
         }
+        // Migración 0.20.0: los textos ya no se guardan en config.json, salen del idioma elegido (carpeta lang).
+        // Se quitan de config.json los que siguen iguales al texto de es_es; los que hayas personalizado se conservan
+        // y tienen prioridad sobre el idioma.
+        for ((path, text) in Lang.baseEntries()) {
+            if (string(path, "\u0000") == text) removePath(path)
+        }
         save()
         writeGuide()
+    }
+
+    private fun removePath(path: String) {
+        val segments = path.split('.')
+        var current: JsonObject = root
+        for (segment in segments.dropLast(1)) current = current.get(segment)?.takeIf { it.isJsonObject }?.asJsonObject ?: return
+        current.remove(segments.last())
+    }
+
+    /** Cambia un texto en memoria y lo guarda en config.json (crea los apartados que falten). */
+    fun setString(path: String, value: String) {
+        val segments = path.split('.')
+        var current = root
+        for (segment in segments.dropLast(1)) {
+            val next = current.get(segment)
+            current = if (next != null && next.isJsonObject) next.asJsonObject
+            else JsonObject().also { current.add(segment, it) }
+        }
+        current.addProperty(segments.last(), value)
+        save()
     }
 
     /** Copia config-guide.txt (explicación de cada apartado) junto a config.json. Se regenera en cada arranque. */
@@ -151,9 +179,14 @@ object ConfigManager {
         runCatching { it.asLong }.getOrDefault(fallback)
     } ?: fallback
 
-    fun string(path: String, fallback: String = ""): String = element(path)?.let {
-        runCatching { it.asString }.getOrDefault(fallback)
-    } ?: fallback
+    /**
+     * Texto o ajuste. Prioridad: lo que haya en config.json, el texto del idioma activo (carpeta lang) y por último
+     * el valor por defecto del código (traducido si el idioma lo tiene).
+     */
+    fun string(path: String, fallback: String = ""): String {
+        element(path)?.let { node -> runCatching { node.asString }.getOrNull()?.let { return it } }
+        return Lang.text(path) ?: Lang.tr(fallback)
+    }
 
     fun strings(path: String): List<String> = element(path)?.takeIf { it.isJsonArray }?.asJsonArray
         ?.mapNotNull { runCatching { it.asString }.getOrNull() } ?: emptyList()

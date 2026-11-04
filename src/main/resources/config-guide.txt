@@ -289,8 +289,13 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
  penalties - Penalizaciones
 --------------------------------------------------------------------------------
  defaultDuration            Duracion si no se indica (30m, 2h, 1d, 7d, permanente).
- (Se gestionan desde el panel de administracion o con /wt admin penalizar,
-  perdonar y penalizaciones. Se guardan en penalties.json.)
+ historySize                Entradas que guarda el historial de penalizaciones (10-5000).
+ reasons                    Motivos rapidos del menu (lista de textos). Vacia = los
+                            de serie (se traducen segun el idioma).
+ (Se gestionan desde el panel de administracion o con /wt admin penalizar
+  <jugador> [duracion] [motivo], motivo <texto>, perdonar, penalizaciones
+  [historial [jugador]]. Se guardan en penalties.json. Al terminar una
+  penalizacion se avisa al jugador, o al entrar si estaba desconectado.)
 
 --------------------------------------------------------------------------------
  animations - Animaciones en la barra de accion
@@ -305,10 +310,27 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
                             comparten puesto y premio).
 
 --------------------------------------------------------------------------------
+ general.language - Idioma
+--------------------------------------------------------------------------------
+ es_es (principal, espanol de Espana) o en_us. Tambien se cambia con
+ /wt admin idioma <codigo> o desde el boton Idioma del panel de administracion.
+ Los textos viven en la carpeta config/wondertradeplus/lang/<codigo>.json:
+  - Claves como messages.success, discord.donationMessage o events.names.risk:
+    el texto de ese ajuste.
+  - El resto de claves son el texto original en espanol y su traduccion.
+ Para anadir un idioma: copia en_us.json con otro nombre (por ejemplo de_de.json),
+ cambia "_name" y traduce los valores; despues pon general.language a ese codigo
+ (o usa /wt admin idioma de_de). Lo que falte en un idioma se muestra en espanol.
+ Si cambias un texto en un archivo de lang, se respeta; en las actualizaciones
+ solo se anaden las claves nuevas. Un texto escrito a mano en config.json
+ (por ejemplo messages.success) tiene prioridad sobre el idioma.
+
+--------------------------------------------------------------------------------
  messages - Todos los textos
 --------------------------------------------------------------------------------
- Cada mensaje del mod se puede cambiar aqui. Si lo dejas como esta de fabrica,
- las actualizaciones pueden mejorarlo; si lo personalizas, se respeta siempre.
+ Desde la 0.20.0 los textos de fabrica viven en la carpeta lang (uno por idioma).
+ En config.json solo hace falta "messages" si quieres cambiar un texto concreto
+ (por ejemplo {"messages": {"prefix": "&d[WT] "}}); ese texto manda sobre el idioma.
 
 --------------------------------------------------------------------------------
  ARCHIVOS DEL MOD (carpeta config/wondertradeplus)
@@ -319,7 +341,8 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
  history.json            Historial de intercambios.
  event.json              Eventos activos, esperas, estadisticas e historial.
  event-schedule.json     Eventos programados.
- penalties.json          Penalizaciones vigentes.
+ penalties.json          Penalizaciones vigentes, historial y avisos pendientes.
+ lang/                   Idiomas (es_es.json, en_us.json y los que anadas).
  maintenance-state.json  Control del reinicio mensual de la pool.
  backups/                Copias automaticas.
  config-guide.txt        Esta guia (se regenera).
