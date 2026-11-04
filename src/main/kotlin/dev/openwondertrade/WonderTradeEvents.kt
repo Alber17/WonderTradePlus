@@ -372,6 +372,7 @@ object WonderTradeEvents {
         broadcast(server, ConfigManager.string("messages.eventStarted", "&d★ ¡Evento «{name}» activo durante {duration}! &7Usa &e/wt eventos &7para ver los detalles."),
             mapOf("name" to event.title, "duration" to formatDuration(durationSeconds)))
         runCatching { WonderTradeDiscord.eventStarted(event) }
+        runCatching { WonderTradeAnimations.playAll(server, "eventStart", "★ ${event.title} ★") }
         // Asegura Pokémon de la categoría en la pool y anuncia cuáles hay; si no hay jugadores, se hace al entrar el primero.
         if (!runCatching { WonderTradeService.prepareEvent(server, event) }.getOrDefault(true)) pendingSetup.add(event.id)
         return event

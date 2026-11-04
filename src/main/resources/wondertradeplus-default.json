@@ -343,6 +343,12 @@
     "topDonationsNobody": "&d★ Top Donaciones de {month}: nadie ha donado este mes.",
     "topDonationsFooter": "&7¡Gracias a todos por donar! Los premios se entregan a los ganadores.",
     "topDonationsReward": "&d★ ¡Has quedado &f#{rank} &den el Top Donaciones con &e{points} puntos&d! Tu recompensa ya está en tu inventario.",
+    "penalized": "&cEstás penalizado en Wonder Trade ({time}). No puedes intercambiar ni donar.",
+    "penaltyNotice": "&cHas sido penalizado en Wonder Trade durante &f{time}&c. No podrás intercambiar ni donar.",
+    "penaltyLifted": "&aTu penalización de Wonder Trade se ha retirado. ¡Ya puedes volver a intercambiar!",
+    "penaltyPermanent": "permanente",
+    "helpAdminPenalizeCommand": "&e/wt admin penalizar <jugador> [duración|permanente] &7Penalizar a un jugador (también desde el panel)",
+    "helpAdminPardonCommand": "&e/wt admin perdonar <jugador> &7Retirar una penalización; &e/wt admin penalizaciones &7lista las vigentes",
     "donationWeeklyLimit": "&cYa has alcanzado el límite de &f{limit} &cdonaciones en los últimos 7 días.",
     "donationSpeciesBlocked": "&cEsta especie no está permitida para donaciones.",
     "cooldownReady": "&aDisponible para intercambiar",
@@ -408,6 +414,7 @@
     "oddMonthsInFirstYear": true,
     "alternateYears": true,
     "announceHour": 20,
+    "tieBreak": "firstToReach",
     "points": {
       "normal": 1,
       "shiny": 2,
@@ -421,6 +428,16 @@
       "second": ["give {player} cobblemon:rare_candy 5"],
       "third": ["give {player} cobblemon:rare_candy 3"]
     }
+  },
+  "penalties": {
+    "defaultDuration": "1d"
+  },
+  "animations": {
+    "enabled": true,
+    "specialReceived": true,
+    "eventStart": true,
+    "topDonations": true,
+    "durationSeconds": 3
   },
   "sounds": {
     "enabled": true,

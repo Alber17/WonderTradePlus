@@ -161,7 +161,8 @@ class PlayerDataStore(private val file: Path) {
             val uuid = runCatching { UUID.fromString(id) }.getOrNull() ?: continue
             result.add(Triple(uuid, obj.get("name")?.asString ?: id.take(8), value))
         }
-        return result.sortedByDescending { it.third }
+        // Desempate estable: más valor primero y, a igualdad, por nombre.
+        return result.sortedWith(compareByDescending<Triple<UUID, String, Int>> { it.third }.thenBy { it.second.lowercase() })
     }
 
     /** Porcentaje acumulado (0–100) de que el próximo intercambio dé un Pokémon especial. */

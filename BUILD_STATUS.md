@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.18.2**.
+- Versión actual: **0.19.0**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -309,4 +309,12 @@
 ## 0.18.2
 
 - Panel de administración redistribuido: se quita el objeto «Panel de administración» del centro superior y los botones quedan en cuatro filas con espacio entre ellos (Pool, Servidor, Datos y Sistema). Historial y Reiniciar estadísticas pasan a la nueva fila «Datos».
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.19.0
+
+- Penalizaciones: nuevo menú «Penalizaciones» en el panel de administración (hierro). Muestra las cabezas de los jugadores conectados (clic = penalizar), un selector de tiempo (±1 d, ±1 h, ±10 min), el botón «Permanente», «Por nombre» (jugadores desconectados) y la lista de penalizados para perdonar. Un jugador penalizado no puede intercambiar ni donar. Se guarda en `penalties.json`.
+- Comandos: `/wt admin penalizar <jugador> [duración|permanente]`, `/wt admin perdonar <jugador>` y `/wt admin penalizaciones`. Sin duración se usa la elegida en el menú o `penalties.defaultDuration`.
+- Animaciones discretas en la barra de acción (ola dorada de unos 3 s) al recibir un Pokémon especial, al empezar un evento y al cerrar el Top Donaciones. Configurables en `animations`.
+- Empates: `/wt top` ordena ahora a igualdad por nombre y los empatados comparten puesto (1, 1, 3). Top Donaciones: nuevo `topDonations.tieBreak` (`firstToReach` por defecto = gana quien llegó antes; `mostDonations`; `share` = empatados comparten puesto y premio).
 - Gradle no se ha ejecutado en el entorno de edición.

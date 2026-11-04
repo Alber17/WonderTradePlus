@@ -650,6 +650,9 @@ object WonderTradeGui {
                 WonderTradeService.setEnabled(!WonderTradeService.isEnabled())
                 openAdmin(it)
             }
+            menu.button(26, named(
+                Items.IRON_BARS, "&cPenalizaciones", "&7Impide intercambiar y donar a un jugador", "&7durante un tiempo o para siempre.", "&eClic para abrir"
+            )) { openPenalties(it, WonderTradePenalties.selection(it.uuid) ?: defaultPenaltyMillis(), 0) }
             // Fila 3: datos
             menu.put(27, named(Items.YELLOW_STAINED_GLASS_PANE, "&eDatos"))
             menu.button(29, named(Items.WRITABLE_BOOK, ConfigManager.string("messages.adminMenuHistory", "&eHistorial"), "&7Últimos intercambios.")) {
@@ -1087,6 +1090,98 @@ object WonderTradeGui {
     }
 
     /** Selector de duración: los botones suman o restan tiempo y el menú se actualiza sin cerrarse. */
+    private fun defaultPenaltyMillis(): Long =
+        WonderTradePenalties.parseDuration(ConfigManager.string("penalties.defaultDuration", "1d")) ?: 86_400_000L
+
+    /** Menú de penalizaciones: cabezas de los jugadores conectados, selector de tiempo, «permanente» y «por nombre». */
+    private fun openPenalties(player: ServerPlayer, millis: Long, page: Int) {
+        open(player, "&5Administración &8- &cPenalizaciones", 6) { menu -> renderPenalties(menu, player, millis, page) }
+    }
+
+    private fun renderPenalties(menu: GuiMenu, admin: ServerPlayer, millis: Long, page: Int) {
+        val minimum = 60_000L
+        val maximum = 365L * 86_400_000L
+        val permanent = millis <= 0L
+        val current = if (permanent) 0L else millis.coerceIn(minimum, maximum)
+        val label = if (permanent) "permanente" else WonderTradeEvents.formatDuration(current / 1000L)
+        val players = admin.server.playerList.players.filter { it.uuid != admin.uuid }.sortedBy { it.gameProfile.name.lowercase() }
+        val pages = maxOf(1, (players.size + 35) / 36)
+        val shown = page.coerceIn(0, pages - 1)
+        menu.wipe()
+        fill(menu, 54)
+        if (players.isEmpty()) menu.put(13, named(Items.PAPER, "&7No hay otros jugadores conectados", "&8Usa «Por nombre» para jugadores desconectados."))
+        players.drop(shown * 36).take(36).forEachIndexed { index, target ->
+            val active = WonderTradePenalties.active(target.uuid)
+            val state = if (active != null) "&cYa penalizado: &f${WonderTradePenalties.remainingText(active)}" else "&7Sin penalización"
+            val head = playerHead(
+                target.gameProfile.name, target.uuid, WonderTradeService.profileSkin(target), "&f${target.gameProfile.name}",
+                state, "&7Penalizar durante: &f$label", "&eClic para penalizar"
+            )
+            menu.button(index, head) { p ->
+                val penalty = WonderTradePenalties.penalize(target.uuid, target.gameProfile.name, if (permanent) null else current, p.gameProfile.name)
+                WonderTradeService.send(target, "penaltyNotice", mapOf("time" to WonderTradePenalties.remainingText(penalty)))
+                p.sendSystemMessage(WonderTradeService.info("&a${target.gameProfile.name} &apenalizado: &f${WonderTradePenalties.remainingText(penalty)}&a."))
+                renderPenalties(menu, p, millis, shown)
+            }
+        }
+        val steps = listOf(36 to -86_400_000L, 37 to -3_600_000L, 38 to -600_000L, 40 to 600_000L, 41 to 3_600_000L, 42 to 86_400_000L)
+        for ((slot, delta) in steps) {
+            val text = WonderTradeEvents.formatDuration(kotlin.math.abs(delta) / 1000L)
+            val item = if (delta < 0) Items.RED_STAINED_GLASS_PANE else Items.LIME_STAINED_GLASS_PANE
+            menu.button(slot, named(item, (if (delta < 0) "&c-" else "&a+") + text, "&7Duración actual: &f$label")) { p ->
+                val base = if (permanent) defaultPenaltyMillis() else current
+                val next = (base + delta).coerceIn(minimum, maximum)
+                WonderTradePenalties.rememberSelection(p.uuid, next)
+                renderPenalties(menu, p, next, shown)
+            }
+        }
+        menu.put(39, named(Items.CLOCK, "&6Tiempo: &f$label", "&7Mínimo 1 minuto, máximo 365 días."))
+        menu.button(43, named(
+            if (permanent) Items.LIME_CONCRETE else Items.GRAY_CONCRETE, if (permanent) "&aPermanente: SÍ" else "&7Permanente: NO",
+            "&7Hasta que lo perdones manualmente.", "&eClic para cambiar"
+        )) { p ->
+            val next = if (permanent) defaultPenaltyMillis() else 0L
+            WonderTradePenalties.rememberSelection(p.uuid, next)
+            renderPenalties(menu, p, next, shown)
+        }
+        menu.button(44, named(Items.NAME_TAG, "&ePor nombre", "&7Para jugadores desconectados.", "&7Usa el tiempo elegido: &f$label", "&eClic para escribir el nombre")) { p ->
+            WonderTradePenalties.rememberSelection(p.uuid, if (permanent) 0L else current)
+            p.closeContainer()
+            val button = Component.literal("§e§n[Pulsa aquí para escribir el nombre]")
+                .setStyle(Style.EMPTY.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/wt admin penalizar ")))
+            p.sendSystemMessage(
+                WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + "&7Escribe el nombre del jugador (tiempo: &f$label&7). ").copy().append(button)
+            )
+        }
+        menu.button(45, named(Items.ARROW, "&aVolver")) { openAdmin(it) }
+        menu.button(47, named(Items.BOOK, "&6Penalizados", "&7Ver y perdonar penalizaciones vigentes.")) { openPenalized(it, millis) }
+        if (shown > 0) menu.button(48, named(Items.ARROW, "&ePágina anterior")) { renderPenalties(menu, it, millis, shown - 1) }
+        if (shown < pages - 1) menu.button(50, named(Items.ARROW, "&ePágina siguiente")) { renderPenalties(menu, it, millis, shown + 1) }
+        menu.button(53, named(Items.BARRIER, "&cCerrar")) { it.closeContainer() }
+    }
+
+    /** Penalizaciones vigentes: clic en una cabeza para perdonar. */
+    private fun openPenalized(player: ServerPlayer, millis: Long) {
+        open(player, "&5Penalizaciones &8- &cVigentes", 6) { menu ->
+            fill(menu, 54)
+            val list = WonderTradePenalties.list().take(45)
+            if (list.isEmpty()) menu.put(22, named(Items.PAPER, "&7No hay jugadores penalizados"))
+            list.forEachIndexed { index, penalty ->
+                val head = playerHead(
+                    penalty.name, penalty.uuid, WonderTradeService.donorSkin(penalty.uuid), "&f${penalty.name}",
+                    "&cTiempo restante: &f${WonderTradePenalties.remainingText(penalty)}", "&7Por: &f${penalty.by}", "&eClic para perdonar"
+                )
+                menu.button(index, head) { p ->
+                    WonderTradePenalties.pardon(penalty.uuid)
+                    p.server.playerList.getPlayer(penalty.uuid)?.let { WonderTradeService.send(it, "penaltyLifted") }
+                    p.sendSystemMessage(WonderTradeService.info("&aPenalización de &f${penalty.name} &aretirada."))
+                    openPenalized(p, millis)
+                }
+            }
+            menu.button(49, named(Items.ARROW, "&aVolver")) { openPenalties(it, millis, 0) }
+        }
+    }
+
     private fun renderEventCustomDuration(menu: GuiMenu, type: EventType, categories: List<EventCategory>, seconds: Long) {
         val title = eventTitle(type, categories)
         val maximum = WonderTradeEvents.maximumDurationSeconds()

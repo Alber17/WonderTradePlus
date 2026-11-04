@@ -286,6 +286,25 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
  volume / pitch             Volumen y tono.
 
 --------------------------------------------------------------------------------
+ penalties - Penalizaciones
+--------------------------------------------------------------------------------
+ defaultDuration            Duracion si no se indica (30m, 2h, 1d, 7d, permanente).
+ (Se gestionan desde el panel de administracion o con /wt admin penalizar,
+  perdonar y penalizaciones. Se guardan en penalties.json.)
+
+--------------------------------------------------------------------------------
+ animations - Animaciones en la barra de accion
+--------------------------------------------------------------------------------
+ enabled                    Interruptor global.
+ specialReceived / eventStart / topDonations
+                            Activa cada animacion.
+ durationSeconds            Duracion (1 a 10 segundos).
+
+ topDonations.tieBreak      Desempate: firstToReach (gana quien llego antes),
+                            mostDonations (mas donaciones) o share (empatados
+                            comparten puesto y premio).
+
+--------------------------------------------------------------------------------
  messages - Todos los textos
 --------------------------------------------------------------------------------
  Cada mensaje del mod se puede cambiar aqui. Si lo dejas como esta de fabrica,
@@ -300,6 +319,7 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
  history.json            Historial de intercambios.
  event.json              Eventos activos, esperas, estadisticas e historial.
  event-schedule.json     Eventos programados.
+ penalties.json          Penalizaciones vigentes.
  maintenance-state.json  Control del reinicio mensual de la pool.
  backups/                Copias automaticas.
  config-guide.txt        Esta guia (se regenera).

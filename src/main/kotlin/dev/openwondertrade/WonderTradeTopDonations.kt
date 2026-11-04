@@ -170,10 +170,32 @@ object WonderTradeTopDonations {
         runCatching { save() }.onFailure { WonderTradePlus.LOGGER.error("No se pudo guardar top-donations.json.", it) }
     }
 
-    private fun ranking(key: String): List<Pair<String, Entry>> =
-        (periods[key] ?: emptyMap()).entries.map { it.key to it.value }
-            .filter { it.second.points > 0 }
-            .sortedWith(compareByDescending<Pair<String, Entry>> { it.second.points }.thenBy { it.second.reachedAt })
+    /**
+     * Desempate (`topDonations.tieBreak`): «firstToReach» (por defecto) gana quien llegó antes a esos puntos;
+     * «mostDonations» gana quien hizo más donaciones (y, si siguen igualados, quien llegó antes); «share» deja a los
+     * empatados con el mismo puesto y todos reciben el premio de ese puesto.
+     */
+    private fun tieBreak(): String = ConfigManager.string("topDonations.tieBreak", "firstToReach").lowercase()
+
+    private fun ranking(key: String): List<Pair<String, Entry>> {
+        val list = (periods[key] ?: emptyMap()).entries.map { it.key to it.value }.filter { it.second.points > 0 }
+        val comparator = if (tieBreak() == "mostdonations")
+            compareByDescending<Pair<String, Entry>> { it.second.points }.thenByDescending { it.second.donations }.thenBy { it.second.reachedAt }
+        else compareByDescending<Pair<String, Entry>> { it.second.points }.thenBy { it.second.reachedAt }
+        return list.sortedWith(comparator)
+    }
+
+    private class Placed(val rank: Int, val uuid: String, val entry: Entry)
+
+    /** Puestos: consecutivos (1, 2, 3...) salvo en modo «share», donde los empatados a puntos comparten puesto (1, 1, 3...). */
+    private fun placed(key: String): List<Placed> {
+        val list = ranking(key)
+        val share = tieBreak() == "share"
+        return list.mapIndexed { index, (uuid, entry) ->
+            val rank = if (share) list.indexOfFirst { it.second.points == entry.points } + 1 else index + 1
+            Placed(rank, uuid, entry)
+        }
+    }
 
     // ------------------------------------------------------------ consulta
 
@@ -194,12 +216,12 @@ object WonderTradeTopDonations {
                 ConfigManager.string("messages.topDonationsCurrentHeader", "&d&lTop Donaciones de {month} &7(termina el {end}):"),
                 mapOf("month" to monthName(period), "end" to "${period.atEndOfMonth().dayOfMonth}/${period.monthValue}")
             )
-            val list = ranking(key)
+            val list = placed(key)
             if (list.isEmpty()) lines += ConfigManager.string("messages.topDonationsEmpty", "&7Todavía nadie ha donado este mes. ¡Usa &e/wt donar&7!")
-            list.take(10).forEachIndexed { index, (_, entry) ->
+            list.take(10).forEach { item ->
                 lines += WonderTradeService.format(
                     ConfigManager.string("messages.topDonationsLine", "&6#{rank} &f{player} &7— &e{points} puntos &8({donations} donaciones)"),
-                    mapOf("rank" to index + 1, "player" to entry.name, "points" to entry.points, "donations" to entry.donations)
+                    mapOf("rank" to item.rank, "player" to item.entry.name, "points" to item.entry.points, "donations" to item.entry.donations)
                 )
             }
             if (player != null) {
@@ -237,7 +259,7 @@ object WonderTradeTopDonations {
     }
 
     private fun finish(server: MinecraftServer, key: String, period: YearMonth) {
-        val winners = ranking(key).take(3)
+        val winners = placed(key).filter { it.rank <= 3 }
         closed.add(key)
         val lines = mutableListOf<String>()
         if (winners.isEmpty()) {
@@ -250,12 +272,12 @@ object WonderTradeTopDonations {
                 ConfigManager.string("messages.topDonationsHeader", "&d&l★ ¡Top Donaciones de {month}!"),
                 mapOf("month" to monthName(period))
             )
-            winners.forEachIndexed { index, (uuid, entry) ->
+            winners.forEach { item ->
                 lines += WonderTradeService.format(
                     ConfigManager.string("messages.topDonationsLine", "&6#{rank} &f{player} &7— &e{points} puntos &8({donations} donaciones)"),
-                    mapOf("rank" to index + 1, "player" to entry.name, "points" to entry.points, "donations" to entry.donations)
+                    mapOf("rank" to item.rank, "player" to item.entry.name, "points" to item.entry.points, "donations" to item.entry.donations)
                 )
-                pending.add(Pending(uuid, entry.name, index + 1, key, entry.points))
+                pending.add(Pending(item.uuid, item.entry.name, item.rank, key, item.entry.points))
             }
             lines += ConfigManager.string("messages.topDonationsFooter", "&7¡Gracias a todos por donar! Los premios se entregan al ganador.")
         }
@@ -263,6 +285,7 @@ object WonderTradeTopDonations {
         server.playerList.broadcastSystemMessage(
             WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n")), false
         )
+        winners.firstOrNull()?.let { runCatching { WonderTradeAnimations.playAll(server, "topDonations", "★ Top Donaciones: ${it.entry.name} ★") } }
         runCatching { WonderTradeDiscord.topDonations(lines.map { it.replace(Regex("&."), "") }) }
         WonderTradePlus.LOGGER.info("Top Donaciones {} cerrado con {} ganadores.", key, winners.size)
     }

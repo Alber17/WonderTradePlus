@@ -198,6 +198,29 @@ class WonderTradePlus : ModInitializer {
         return 1
     }
 
+    /** /wt admin penalizar <jugador> [duración]: sin duración usa la elegida en el menú o penalties.defaultDuration. */
+    private fun penalizeCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>, durationText: String?): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, "jugador")
+        val found = WonderTradeService.resolvePlayer(source.server, name)
+            ?: runCatching { source.server.profileCache?.get(name)?.orElse(null)?.let { it.id to it.name } }.getOrNull()
+        if (found == null) {
+            source.sendFailure(WonderTradeService.info("&cNo conozco a &f$name&c: debe haber entrado al servidor o usado Wonder Trade."))
+            return 0
+        }
+        val duration: Long? = if (durationText != null) WonderTradePenalties.parseDuration(durationText)
+        else (source.player?.let { WonderTradePenalties.selection(it.uuid) }
+            ?: WonderTradePenalties.parseDuration(ConfigManager.string("penalties.defaultDuration", "1d")))
+        if (duration == null) {
+            source.sendFailure(WonderTradeService.info("&cDuración no válida: usa por ejemplo 30m, 2h, 7d o permanente."))
+            return 0
+        }
+        val penalty = WonderTradePenalties.penalize(found.first, found.second, duration, source.textName)
+        source.server.playerList.getPlayer(found.first)?.let { WonderTradeService.send(it, "penaltyNotice", mapOf("time" to WonderTradePenalties.remainingText(penalty))) }
+        source.sendSuccess({ WonderTradeService.info("&a${found.second} &apenalizado: &f${WonderTradePenalties.remainingText(penalty)}&a.") }, true)
+        return 1
+    }
+
     private fun listEventsCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>): Int {
         context.source.sendSuccess({ WonderTradeEvents.adminListComponent() }, false)
         return 1
@@ -218,6 +241,35 @@ class WonderTradePlus : ModInitializer {
             else WonderTradeGui.openAdmin(player)
             1
         }
+        // Penalizaciones: el jugador no puede intercambiar ni donar durante un tiempo o para siempre.
+        .then(literal("penalizar").then(argument("jugador", StringArgumentType.word())
+            .suggests { context, builder -> SharedSuggestionProvider.suggest(context.source.onlinePlayerNames, builder) }
+            .executes { context -> penalizeCommand(context, null) }
+            .then(argument("duracion", StringArgumentType.word())
+                .suggests { _, builder -> SharedSuggestionProvider.suggest(listOf("30m", "1h", "1d", "7d", "30d", "permanente"), builder) }
+                .executes { context -> penalizeCommand(context, StringArgumentType.getString(context, "duracion")) })))
+        .then(literal("perdonar").then(argument("jugador", StringArgumentType.word())
+            .suggests { _, builder -> SharedSuggestionProvider.suggest(WonderTradePenalties.list().map { it.name }, builder) }
+            .executes { context ->
+                val name = StringArgumentType.getString(context, "jugador")
+                val target = WonderTradePenalties.list().firstOrNull { it.name.equals(name, ignoreCase = true) }
+                if (target == null) context.source.sendFailure(WonderTradeService.info("&c$name no tiene ninguna penalización."))
+                else {
+                    WonderTradePenalties.pardon(target.uuid)
+                    context.source.server.playerList.getPlayer(target.uuid)?.let { WonderTradeService.send(it, "penaltyLifted") }
+                    context.source.sendSuccess({ WonderTradeService.info("&aPenalización de &f${target.name} &aretirada.") }, true)
+                }
+                1
+            }))
+        .then(literal("penalizaciones").executes { context ->
+            val list = WonderTradePenalties.list()
+            if (list.isEmpty()) context.source.sendSuccess({ WonderTradeService.info("&7No hay jugadores penalizados.") }, false)
+            else context.source.sendSuccess({
+                WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + "&d&lPenalizados:\n" +
+                    list.joinToString("\n") { "&f${it.name} &7— &c${WonderTradePenalties.remainingText(it)} &8(por ${it.by})" })
+            }, false)
+            1
+        })
         // PERMISO: admin.permissionLevel.
         .then(literal("add").then(argument("slot", IntegerArgumentType.integer(1, 6)).executes { context ->
             val player = context.source.player
@@ -595,7 +647,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.18.2"
+        const val MOD_VERSION = "0.19.0"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

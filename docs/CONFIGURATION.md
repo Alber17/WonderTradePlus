@@ -185,3 +185,9 @@ Cada jugador puede usar `/wt sonidos` (o `/wt sounds`) para configurar los sonid
 - `eventReminderMinutes`: intervalo mientras haya al menos un evento activo (2 minutos por defecto).
 
 Los avisos se envían a todos los jugadores que puedan intercambiar, no solo a administradores. El sonido de disponibilidad usa el orbe de experiencia y respeta las preferencias de sonido individuales.
+
+## penalties / animations / empates
+
+- `penalties.defaultDuration`: duración por defecto de `/wt admin penalizar` (ej. `1d`).
+- `animations.enabled`, `specialReceived`, `eventStart`, `topDonations`, `durationSeconds` (1–10).
+- `topDonations.tieBreak`: `firstToReach`, `mostDonations` o `share`.

@@ -33,6 +33,7 @@ object WonderTradeService {
         WonderTradeEvents.load(directory)
         WonderTradeSchedule.load(directory)
         WonderTradeTopDonations.load(directory)
+        WonderTradePenalties.load(directory)
         pool.load()
         trimAndSave()
         playerData.load()
@@ -48,6 +49,7 @@ object WonderTradeService {
         WonderTradeEvents.load()
         WonderTradeSchedule.load()
         WonderTradeTopDonations.load()
+        WonderTradePenalties.load()
         pool.load()
         trimAndSave()
         playerData.load()
@@ -70,8 +72,18 @@ object WonderTradeService {
         return false
     }
 
+    /** false (y avisa) si el jugador tiene una penalización vigente: no puede intercambiar ni donar. */
+    fun ensureNotPenalized(player: ServerPlayer): Boolean {
+        val penalty = WonderTradePenalties.active(player.uuid) ?: return true
+        send(player, "penalized", mapOf("time" to WonderTradePenalties.remainingText(penalty)))
+        return false
+    }
+
+    /** Wonder Trade activo y jugador sin penalización. */
+    private fun canTrade(player: ServerPlayer): Boolean = ensureEnabled(player) && ensureNotPenalized(player)
+
     fun request(player: ServerPlayer, slotNumber: Int) {
-        if (!ensureEnabled(player)) return
+        if (!canTrade(player)) return
         val pokemon = getPartyPokemon(player, slotNumber) ?: run {
             send(player, "emptySlot")
             return
@@ -95,7 +107,7 @@ object WonderTradeService {
     }
 
     fun confirm(player: ServerPlayer) {
-        if (!ensureEnabled(player)) return
+        if (!canTrade(player)) return
         val request = pending.remove(player.uuid)
         if (request == null) {
             send(player, "nothingToConfirm")
@@ -109,7 +121,7 @@ object WonderTradeService {
     }
 
     fun tradeNow(player: ServerPlayer, slotNumber: Int) {
-        if (!ensureEnabled(player)) return
+        if (!canTrade(player)) return
         val pokemon = getPartyPokemon(player, slotNumber) ?: run {
             send(player, "emptySlot")
             return
@@ -162,6 +174,8 @@ object WonderTradeService {
             lines += ConfigManager.string("messages.helpAdminEventCreateCommand", "&e/wt admin eventos crear <arriesgar|recibir> <categorías> <duración> [valor] [espera] &7Crear un evento (varias categorías con +)")
             lines += ConfigManager.string("messages.helpAdminEventStopCommand", "&e/wt admin eventos parar <id> &7Finalizar un evento")
             lines += ConfigManager.string("messages.helpAdminScheduleCommand", "&e/wt admin eventos programar <tipo> <categorías> <duración> <cuándo> &7Programar un evento (también desde Gestionar eventos)")
+            lines += ConfigManager.string("messages.helpAdminPenalizeCommand", "&e/wt admin penalizar <jugador> [duración|permanente] &7Penalizar a un jugador (también desde el panel)")
+            lines += ConfigManager.string("messages.helpAdminPardonCommand", "&e/wt admin perdonar <jugador> &7Retirar una penalización; &e/wt admin penalizaciones &7lista las vigentes")
             lines += ConfigManager.string("messages.helpAdminPauseCommand", "&e/wt admin eventos pausar|reanudar <id> &7Pausar o reanudar el tiempo de un evento")
             lines += ConfigManager.string("messages.helpAdminEventHistoryCommand", "&e/wt admin eventos historial &7Ver eventos terminados con sus WT")
             lines += ConfigManager.string("messages.helpAdminUnscheduleCommand", "&e/wt admin eventos desprogramar <id> &7Cancelar un evento programado")
@@ -214,7 +228,7 @@ object WonderTradeService {
 
     /** Comprueba la disponibilidad al abrir el menú y de nuevo al confirmar una donación. */
     fun canOpenDonation(player: ServerPlayer): Boolean {
-        if (!ensureEnabled(player)) return false
+        if (!canTrade(player)) return false
         if (!playerDonationsEnabled()) {
             send(player, "donationDisabled")
             return false
@@ -325,7 +339,7 @@ object WonderTradeService {
 
     /** Dona el Pokémon seleccionado desde el equipo o PC; no entrega nada a cambio ni consume cooldown. */
     fun donateFromStore(player: ServerPlayer, fromPc: Boolean, pokemonId: UUID) {
-        if (!ensureEnabled(player)) return
+        if (!canTrade(player)) return
         val store: PokemonStore<*> = if (fromPc) Cobblemon.storage.getPC(player) else Cobblemon.storage.getParty(player)
         val offered = store.firstOrNull { it.uuid == pokemonId }
         if (offered == null) {
@@ -338,7 +352,7 @@ object WonderTradeService {
 
     /** Comprueba reglas, cooldown y límite diario antes de abrir la confirmación de la GUI. */
     fun precheck(player: ServerPlayer, pokemon: Pokemon): Boolean {
-        if (!ensureEnabled(player)) return false
+        if (!canTrade(player)) return false
         WonderTradeRules.validateOffer(pokemon)?.let { key ->
             send(player, key, mapOf("min" to ConfigManager.int("general.minimumOfferedLevel", 1), "max" to ConfigManager.int("general.maximumOfferedLevel", 100)))
             return false
@@ -720,7 +734,7 @@ object WonderTradeService {
     }
 
     private fun performTrade(player: ServerPlayer, party: PokemonStore<*>, offered: Pokemon) {
-        if (!ensureEnabled(player)) return
+        if (!canTrade(player)) return
         if (!ConfigManager.bool("general.allowInBattle", false) && Cobblemon.battleRegistry.getBattleByParticipatingPlayer(player) != null) {
             player.sendSystemMessage(colour("${ConfigManager.string("messages.prefix")} &cNo puedes intercambiar Pokémon durante un combate."))
             return
@@ -839,7 +853,10 @@ object WonderTradeService {
             playerData.save()
             pending.remove(player.uuid)
             // El tótem es solo para un especial (legendario, mítico, Ultraente o Paradoja) que además sea shiny.
-            if (incomingRare) WonderTradeGui.playSpecialSound(player, incoming.shiny && WonderTradeRules.isSpecialSpecies(incoming))
+            if (incomingRare) {
+                WonderTradeGui.playSpecialSound(player, incoming.shiny && WonderTradeRules.isSpecialSpecies(incoming))
+                WonderTradeAnimations.play(player, "specialReceived", (if (incoming.shiny) "✦ " else "★ ") + incoming.getDisplayName().string + (if (incoming.shiny) " ✦" else " ★"))
+            }
             val bonusText = when {
                 !bonusEnabled -> ""
                 !offeredRare && incomingRare && bonusForRoll > 0.0 -> format(
@@ -1172,6 +1189,7 @@ object WonderTradeService {
 
     /** Se llama cada tick del servidor; una vez por segundo actualiza los menús y ejecuta mantenimiento y copias de seguridad. */
     fun tick(server: MinecraftServer) {
+        WonderTradeAnimations.tick(server)
         tickCounter++
         if (tickCounter % 20 != 0) return
         secondCounter++
@@ -1358,12 +1376,15 @@ object WonderTradeService {
             lines += "&7Todavía no hay datos."
         } else {
             val colours = listOf("&6", "&7", "&c")
+            // Los empatados comparten puesto (1, 1, 3...) y se ordenan por nombre.
+            fun placeOf(index: Int): Int = ranking.indexOfFirst { it.third == ranking[index].third } + 1
             ranking.take(10).forEachIndexed { index, (_, name, value) ->
-                lines += "${colours.getOrElse(index) { "&8" }}${index + 1}. &f$name &8— &d$value"
+                val place = placeOf(index)
+                lines += "${colours.getOrElse(place - 1) { "&8" }}$place. &f$name &8— &d$value"
             }
             if (viewer != null) {
                 val position = ranking.indexOfFirst { it.first == viewer }
-                if (position >= 10) lines += "&7Tu posición: &f#${position + 1} &8— &d${ranking[position].third}"
+                if (position >= 10) lines += "&7Tu posición: &f#${placeOf(position)} &8— &d${ranking[position].third}"
             }
         }
         return colour(lines.joinToString("\n"))
