@@ -29,6 +29,7 @@ Publicos (nivel 0):
   /wt donaciones            Resultados finales del Top Donaciones (solo al terminar el evento; alias: /wt topdonaciones).
   /wt especiales            Lista de legendarios, miticos, Ultraentes y Paradoja.
   /wt rango                 Tu rango y sus ventajas.
+  /wt rangos                Menu con todos los rangos y sus ventajas.
   /wt eventos               Eventos activos y proximos.
   /wt sonidos               Preferencias de sonido personales.
   /wt pool [search <texto>] Ver la pool (gui.poolViewPermissionLevel). La busqueda
@@ -181,7 +182,6 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
  ranks - Rangos del servidor
 --------------------------------------------------------------------------------
  enabled                    Activa los rangos.
- showList                   /wt rango muestra tambien la lista de rangos.
  list                       Del mas alto al mas bajo; gana el primero que coincida.
    id / name                Identificador y nombre mostrado.
    permission               Permiso (LuckPerms/Fabric Permissions), p. ej.

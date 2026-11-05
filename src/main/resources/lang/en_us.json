@@ -996,6 +996,11 @@
   " &7Mejora fija en cada intercambio: &a+{0}%": " &7Fixed boost on every trade: &a+{0}%",
   " &7Ganancia por Pokémon ofrecido: &ax{0}": " &7Gain per Pokémon offered: &ax{0}",
   " &7Tu probabilidad actual: &d{0}%": " &7Your current chance: &d{0}%",
-  "&8━━ &d&lRangos disponibles &8━━": "&8━━ &d&lAvailable ranks &8━━",
-  " {0} &f{1} &8— &7mín. &d{2}% &8· &7mejora &a+{3}% &8· &7ganancias &ax{4}": " {0} &f{1} &8— &7min. &d{2}% &8· &7boost &a+{3}% &8· &7gains &ax{4}"
+  "messages.helpRanksCommand": "&e/wt rangos &7View all ranks and their perks",
+  "&e/wt rangos &7Ver todos los rangos y sus ventajas": "&e/wt rangos &7View all ranks and their perks",
+  "&5Wonder Trade &8- &bRangos": "&5Wonder Trade &8- &bRanks",
+  "&7Probabilidad mínima de especial: &d{0}%": "&7Minimum special chance: &d{0}%",
+  "&7Mejora fija en cada intercambio: &a+{0}%": "&7Fixed boost on every trade: &a+{0}%",
+  "&7Ganancia por Pokémon ofrecido: &ax{0}": "&7Gain per Pokémon offered: &ax{0}",
+  "&a✔ Es tu rango": "&a✔ This is your rank"
 }

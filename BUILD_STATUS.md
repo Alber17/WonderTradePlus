@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.23.1**.
+- Versión actual: **0.23.4**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -337,6 +337,24 @@
 - El nombre del mod en el prefijo va en negrita: **[WonderTrade]**.
 - Panel de administración: «Reiniciar estadísticas» abre un menú con «Borrar todas» o las cabezas de los jugadores conectados y desconectados para reiniciar solo a uno (con confirmación).
 - Panel de administración: cada botón puede exigir un rango (`admin.buttonLevels.*`); sin él se ve bloqueado y avisa al pulsarlo.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.23.4
+
+- Los avisos de penalización (al penalizar y al intentar intercambiar penalizado) se redactan ahora en el idioma del jugador penalizado: el tiempo («permanente», «2h 3m») y el motivo se calculaban en el idioma del admin. Los motivos rápidos predefinidos también se traducen; un motivo escrito a mano se muestra tal cual.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.23.3
+
+- `/wt rango` muestra solo lo que tiene el jugador (rango, mínimo, mejora fija, ganancia y probabilidad actual).
+- Nuevo `/wt rangos` (alias `/wt ranks`): menú con todos los rangos; las ventajas de cada uno aparecen al pasar el ratón por encima y tu rango lleva una estrella. Se quita la opción `ranks.showList`.
+- La línea «Ganancia por Pokémon ofrecido» se mantiene porque `gainMultiplier` sí se usa en la configuración de los rangos (multiplica lo que suma cada Pokémon ofrecido).
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.23.2
+
+- Discord: el título ya no sale duplicado. Los archivos `lang/*.json` del servidor conservaban los textos antiguos de los avisos (con «Evento iniciado…» y «Dura… termina en…»); al arrancar, los textos antiguos sin personalizar se actualizan a los nuevos. Los que hayas cambiado a mano se respetan.
+- Discord: «Termina <t:{endEpoch}:R>» ya no sale sin sustituir; todas las plantillas reciben `{name}`, `{details}`, `{duration}`, `{endEpoch}` y `{startEpoch}`.
 - Gradle no se ha ejecutado en el entorno de edición.
 
 ## 0.23.0

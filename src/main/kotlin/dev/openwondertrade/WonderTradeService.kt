@@ -112,7 +112,7 @@ object WonderTradeService {
     /** false (y avisa) si el jugador tiene una penalización vigente: no puede intercambiar ni donar. */
     fun ensureNotPenalized(player: ServerPlayer): Boolean {
         val penalty = WonderTradePenalties.active(player.uuid) ?: return true
-        send(player, "penalized", mapOf("time" to WonderTradePenalties.remainingText(penalty), "reason" to WonderTradePenalties.reasonSuffix(penalty)))
+        sendPenalty(player, "penalized", penalty)
         return false
     }
 
@@ -188,6 +188,7 @@ object WonderTradeService {
             ConfigManager.string("messages.helpEventsCommand", "&e/wt eventos &7Ver los eventos activos"),
             ConfigManager.string("messages.helpSpecialsCommand", "&e/wt especiales &7Ver qué Pokémon son míticos, legendarios, Ultraentes y Paradoja"),
             ConfigManager.string("messages.helpRankCommand", "&e/wt rango &7Ver tu rango y sus ventajas"),
+            ConfigManager.string("messages.helpRanksCommand", "&e/wt rangos &7Ver todos los rangos y sus ventajas"),
             ConfigManager.string("messages.helpSoundsCommand", "&e/wt sonidos &7Configurar tus sonidos"),
             ConfigManager.string("messages.helpLanguageCommand", "&e/wt idioma [código] &7Elegir tu idioma de Wonder Trade"),
             ConfigManager.string("messages.helpHistoryCommand", "&e/wt historial &7Ver tus últimos intercambios")
@@ -1483,7 +1484,7 @@ object WonderTradeService {
         return colour(lines.joinToString("\n"))
     }
 
-    private fun percentText(value: Double): String =
+    fun percentText(value: Double): String =
         if (value == Math.floor(value)) value.toInt().toString() else String.format("%.1f", value)
 
     /** Para admins: busca la probabilidad acumulada de un jugador (conectado o que ya haya intercambiado). */
@@ -1535,7 +1536,7 @@ object WonderTradeService {
         return Regex("((?:[&§][0-9a-fk-or])*)WonderTrade").replace(configured) { m -> m.groupValues[1] + "&lWonderTrade&r" + m.groupValues[1] }
     }
 
-    /** Respuesta de /wt rango: tu rango, lo que te da, tu probabilidad actual y la lista de rangos. */
+    /** Respuesta de /wt rango: solo lo que tiene el jugador. La lista de todos los rangos está en /wt rangos. */
     fun rankComponent(player: ServerPlayer): Component {
         val lines = mutableListOf<String>()
         lines += Lang.tr("&8━━ &d&l✦ Tu rango &8━━")
@@ -1553,19 +1554,6 @@ object WonderTradeService {
             }
             if (ConfigManager.bool("bonus.enabled", true)) {
                 lines += Lang.t(" &7Tu probabilidad actual: &d{0}%", percentText(effectiveBonus(player)))
-            }
-            if (ConfigManager.bool("ranks.showList", true)) {
-                val all = WonderTradeRanks.all()
-                if (all.isNotEmpty()) {
-                    lines += Lang.tr("&8━━ &d&lRangos disponibles &8━━")
-                    all.forEach { r ->
-                        val mine = rank != null && r.id == rank.id
-                        lines += Lang.t(
-                            " {0} &f{1} &8— &7mín. &d{2}% &8· &7mejora &a+{3}% &8· &7ganancias &ax{4}",
-                            if (mine) "&a✔" else "&8▸", r.name, percentText(r.baseBonus), percentText(r.improvementPercent), percentText(r.gainMultiplier)
-                        )
-                    }
-                }
             }
             if (player.hasPermissions(adminLevel())) {
                 lines += Lang.t("&8Detección de permisos: {0}", WonderTradeRanks.backendName())
@@ -1816,6 +1804,15 @@ object WonderTradeService {
             val fallback = defaultMessage(key)
             val template = ConfigManager.string("messages.$key", fallback)
             player.sendSystemMessage(colour(WonderTradeService.prefix() + format(template, values)))
+        }
+    }
+
+    /** Aviso de penalización: el tiempo y el motivo se redactan en el idioma del jugador penalizado, no en el del admin. */
+    fun sendPenalty(player: ServerPlayer, key: String, penalty: Penalty) {
+        Lang.withPlayer(player) {
+            val values = mapOf("time" to WonderTradePenalties.remainingText(penalty), "reason" to WonderTradePenalties.reasonSuffix(penalty))
+            val template = ConfigManager.string("messages.$key", defaultMessage(key))
+            player.sendSystemMessage(colour(prefix() + format(template, values)))
         }
     }
 

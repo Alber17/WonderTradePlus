@@ -177,7 +177,7 @@ object WonderTradePenalties {
     }
 
     /** « Motivo: …» listo para añadir a un mensaje, o cadena vacía si no hay motivo. */
-    fun reasonSuffix(penalty: Penalty): String = if (penalty.reason.isBlank()) "" else Lang.t(" &7Motivo: &f{0}&7.", penalty.reason)
+    fun reasonSuffix(penalty: Penalty): String = if (penalty.reason.isBlank()) "" else Lang.t(" &7Motivo: &f{0}&7.", Lang.tr(penalty.reason))
 
     fun presetReasons(): List<String> = ConfigManager.strings("penalties.reasons").ifEmpty {
         listOf(Lang.tr("Abuso de un bug"), Lang.tr("Insultos o spam"), Lang.tr("Duplicación de Pokémon"), Lang.tr("Incumplir las normas"))

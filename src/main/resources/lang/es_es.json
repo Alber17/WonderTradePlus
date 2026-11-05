@@ -192,5 +192,6 @@
   "discord.titles.eventSoon": "⏰ Próximo evento: {name}",
   "discord.titles.eventPaused": "⏸️ Evento en pausa: {name}",
   "discord.titles.eventResumed": "▶️ Evento reanudado: {name}",
-  "discord.titles.topDonations": "★ Top Donaciones de {month}"
+  "discord.titles.topDonations": "★ Top Donaciones de {month}",
+  "messages.helpRanksCommand": "&e/wt rangos &7Ver todos los rangos y sus ventajas"
 }

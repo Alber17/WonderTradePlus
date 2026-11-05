@@ -64,7 +64,8 @@ Los comandos de jugador son públicos salvo que se indique otra cosa. Los nivele
 | `/wt admin eventos desprogramar <id>` | `admin.permissionLevel` | Cancela un evento programado (el id sale como `P1`, `P2`…). |
 | `/wt admin eventos parar <id>` | `admin.permissionLevel` | Finaliza un evento. |
 | `/wt especiales` | Todos | Menú con los Pokémon que son Ultraentes, Paradoja, Míticos y Legendarios (los que cuentan en los eventos). También hay un botón en el menú principal. |
-| `/wt rango` | Todos | Muestra tu rango, sus ventajas, tu probabilidad actual y la lista de rangos; a los admins les indica además qué sistema de permisos detecta. |
+| `/wt rango` | Todos | Muestra solo tu rango, sus ventajas y tu probabilidad actual; a los admins les indica además qué sistema de permisos detecta. |
+| `/wt rangos` (alias `/wt ranks`) | Todos | Abre un menú con todos los rangos; las ventajas de cada uno se ven pasando el ratón por encima. |
 | `/wt on` / `/wt off` | `admin.permissionLevel` | Activa o desactiva Wonder Trade sin quitar el mod. |
 | `/wt clearpool` | `admin.permissionLevel` | Vacía la pool. |
 | `/wt admin` | `admin.permissionLevel` | Abre el panel gráfico de administración. |
@@ -407,7 +408,7 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 ## 0.23.0
 
 - Avisos de Discord en formato tarjeta (embeds) con colores por rareza, imagen del Pokémon y campos; el fin de un evento lista los nicks de quienes consiguieron algo gracias a él.
-- `/wt rango` rediseñado con tus ventajas, tu probabilidad actual y la lista de rangos.
+- `/wt rango` rediseñado (solo tu rango y tu probabilidad actual) y nuevo `/wt rangos` con un menú de todos los rangos.
 - El nombre del mod en negrita en el chat se aplica siempre (`general.boldPrefix`).
 - Talla XS/S/M/L/XL en la pool (`pool.size.*`).
 - `/wt topdonaciones` solo con el evento terminado.

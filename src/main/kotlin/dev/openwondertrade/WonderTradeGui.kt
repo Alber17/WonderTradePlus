@@ -361,6 +361,34 @@ object WonderTradeGui {
         }
     }
 
+    /** /wt rangos: un objeto por rango; sus ventajas se ven pasando el ratón por encima. */
+    fun openRanks(player: ServerPlayer) {
+        val ranks = WonderTradeRanks.all()
+        val rows = if (ranks.size <= 7) 3 else 6
+        open(player, Lang.tr("&5Wonder Trade &8- &bRangos"), rows) { menu ->
+            fill(menu, rows * 9)
+            if (!WonderTradeRanks.enabled() || ranks.isEmpty()) {
+                menu.put(rows * 9 / 2, named(Items.BARRIER, ConfigManager.string("messages.rankDisabled", "&7Los rangos están desactivados.")))
+            } else {
+                val mine = WonderTradeRanks.rankOf(player)
+                val slots = if (rows == 3) (10..16).toList() else (10..16) + (19..25) + (28..34) + (37..43)
+                ranks.take(slots.size).forEachIndexed { index, rank ->
+                    val own = mine != null && mine.id == rank.id
+                    val lore = mutableListOf(
+                        Lang.t("&7Probabilidad mínima de especial: &d{0}%", WonderTradeService.percentText(rank.baseBonus)),
+                        Lang.t("&7Mejora fija en cada intercambio: &a+{0}%", WonderTradeService.percentText(rank.improvementPercent)),
+                        Lang.t("&7Ganancia por Pokémon ofrecido: &ax{0}", WonderTradeService.percentText(rank.gainMultiplier))
+                    )
+                    lore += if (own) Lang.tr("&a✔ Es tu rango") else ""
+                    val stack = named(if (own) Items.NETHER_STAR else Items.GOLD_INGOT, "&f" + rank.name, *lore.filter { it.isNotEmpty() }.toTypedArray())
+                    menu.put(slots[index], stack)
+                }
+            }
+            menu.button(rows * 9 - 9, named(Items.ARROW, Lang.tr("&aVolver"))) { openMain(it) }
+            menu.button(rows * 9 - 1, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
+        }
+    }
+
     /** Guarda el idioma elegido ("auto" = según el cliente) y vuelve a abrir el menú ya traducido. */
     fun chooseLanguage(player: ServerPlayer, code: String) {
         val id = Lang.normalize(code)
@@ -1203,7 +1231,7 @@ object WonderTradeGui {
             )
             menu.button(index, head) { p ->
                 val penalty = WonderTradePenalties.penalize(target.uuid, target.gameProfile.name, if (permanent) null else current, p.gameProfile.name, reason)
-                WonderTradeService.send(target, "penaltyNotice", mapOf("time" to WonderTradePenalties.remainingText(penalty), "reason" to WonderTradePenalties.reasonSuffix(penalty)))
+                WonderTradeService.sendPenalty(target, "penaltyNotice", penalty)
                 p.sendSystemMessage(WonderTradeService.info(Lang.t("&a{0} &apenalizado: &f{1}&a.", target.gameProfile.name, WonderTradePenalties.remainingText(penalty))))
                 renderPenalties(menu, p, millis, shown)
             }

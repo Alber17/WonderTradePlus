@@ -147,7 +147,7 @@ object WonderTradeDiscord {
             if (!eventsEnabled("end")) return
             val description = WonderTradeService.format(
                 ConfigManager.string("discord.eventEndMessage", "El evento **{name}** ha finalizado. ¡Gracias por participar!"),
-                mapOf("name" to event.title)
+                mapOf("name" to event.title, "details" to "", "duration" to WonderTradeEvents.formatDuration((event.endAt - event.startAt) / 1000L), "endEpoch" to epoch(event.endAt))
             )
             val embed = Embed(
                 ConfigManager.string("discord.titles.eventEnd", "🏁 Evento finalizado: {name}").replace("{name}", event.title),
@@ -174,7 +174,7 @@ object WonderTradeDiscord {
             if (!eventsEnabled("scheduledSoon")) return
             val description = WonderTradeService.format(
                 ConfigManager.string("discord.eventSoonMessage", "**{name}** empieza <t:{startEpoch}:R>."),
-                mapOf("name" to item.title, "startEpoch" to epoch(item.nextRunAt))
+                mapOf("name" to item.title, "startEpoch" to epoch(item.nextRunAt), "endEpoch" to epoch(item.nextRunAt))
             )
             postEvent(
                 Embed(ConfigManager.string("discord.titles.eventSoon", "⏰ Próximo evento: {name}").replace("{name}", item.title), description, colorOf("eventSoon", "#F1C40F"))
@@ -209,7 +209,7 @@ object WonderTradeDiscord {
         Lang.withPlayer(null) {
             if (!eventsEnabled("pause")) return
             val description = WonderTradeService.format(
-                ConfigManager.string("discord.eventPausedMessage", "El evento **{name}** se ha pausado temporalmente."), mapOf("name" to event.title)
+                ConfigManager.string("discord.eventPausedMessage", "El evento **{name}** se ha pausado temporalmente."), mapOf("name" to event.title, "endEpoch" to epoch(event.endAt), "details" to "")
             )
             postEvent(Embed(ConfigManager.string("discord.titles.eventPaused", "⏸️ Evento en pausa").replace("{name}", event.title), description, colorOf("paused", "#95A5A6")))
         }
@@ -219,7 +219,7 @@ object WonderTradeDiscord {
         Lang.withPlayer(null) {
             if (!eventsEnabled("pause")) return
             val description = WonderTradeService.format(
-                ConfigManager.string("discord.eventResumedMessage", "El evento **{name}** se ha reanudado."), mapOf("name" to event.title)
+                ConfigManager.string("discord.eventResumedMessage", "El evento **{name}** se ha reanudado."), mapOf("name" to event.title, "endEpoch" to epoch(event.endAt), "details" to "")
             )
             postEvent(
                 Embed(ConfigManager.string("discord.titles.eventResumed", "▶️ Evento reanudado").replace("{name}", event.title), description, colorOf("resumed", "#3498DB"))

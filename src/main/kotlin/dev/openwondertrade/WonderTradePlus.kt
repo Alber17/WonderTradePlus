@@ -154,6 +154,9 @@ class WonderTradePlus : ModInitializer {
                 context.source.sendSuccess({ WonderTradeService.rankComponent(player) }, false)
                 1
             })
+            // PERMISO: público; menú con todos los rangos y sus ventajas. «ranks» es alias.
+            .then(literal("rangos").executes { context -> openRanksCommand(context) })
+            .then(literal("ranks").executes { context -> openRanksCommand(context) })
             // PERMISO: público; muestra los eventos activos.
             // «events» es alias de «eventos».
             .then(literal("eventos").executes { showEventsCommand(it) })
@@ -237,7 +240,7 @@ class WonderTradePlus : ModInitializer {
         val reason = reasonText ?: source.player?.let { WonderTradePenalties.reason(it.uuid) } ?: ""
         val penalty = WonderTradePenalties.penalize(found.first, found.second, duration, source.textName, reason)
         source.server.playerList.getPlayer(found.first)?.let {
-            WonderTradeService.send(it, "penaltyNotice", mapOf("time" to WonderTradePenalties.remainingText(penalty), "reason" to WonderTradePenalties.reasonSuffix(penalty)))
+            WonderTradeService.sendPenalty(it, "penaltyNotice", penalty)
         }
         source.sendSuccess({ WonderTradeService.info(Lang.t("&a{0} &apenalizado: &f{1}&a.", found.second, WonderTradePenalties.remainingText(penalty))) }, true)
         return 1
@@ -271,6 +274,16 @@ class WonderTradePlus : ModInitializer {
                 else Lang.tr("&7Modo infinito desactivado: vuelves a tener cooldown y límites.")
             )
         }, false)
+        return 1
+    }
+
+    private fun openRanksCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>): Int {
+        val player = context.source.player
+        if (player == null) {
+            context.source.sendFailure(WonderTradeService.info(Lang.tr("&cEste comando solo puede usarse dentro del juego.")))
+            return 0
+        }
+        WonderTradeGui.openRanks(player)
         return 1
     }
 
@@ -753,7 +766,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.23.1"
+        const val MOD_VERSION = "0.23.4"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

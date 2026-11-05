@@ -73,6 +73,15 @@ object Lang {
      * Prepara la carpeta lang (copia los idiomas incluidos si faltan y les añade las claves nuevas sin tocar lo que
      * hayas editado) y carga es_es y el idioma por defecto del servidor (`general.language`).
      */
+    private val legacyTexts: Map<String, List<String>> = mapOf(
+        "discord.receivedMessage" to listOf("🎉 **{player}** ha recibido **{pokemon}** (Nv. {level}, {category}) en un Wonder Trade.", "🎉 **{player}** received **{pokemon}** (Lv. {level}, {category}) in a Wonder Trade."),
+        "discord.eventStartMessage" to listOf("🎉 **Evento iniciado: {name}**\n{details}\n⏱️ Dura {duration} · termina <t:{endEpoch}:R> (<t:{endEpoch}:t>, a tu hora)", "🎉 **Event started: {name}**\n{details}\n⏱️ Lasts {duration} · ends <t:{endEpoch}:R> (<t:{endEpoch}:t>, in your local time)"),
+        "discord.eventEndMessage" to listOf("🏁 **Ha terminado el evento: {name}**", "🏁 **The event has ended: {name}**"),
+        "discord.eventSoonMessage" to listOf("⏰ **{name}** empieza <t:{startEpoch}:R> (<t:{startEpoch}:F>, a tu hora)", "⏰ **{name}** starts <t:{startEpoch}:R> (<t:{startEpoch}:F>, in your local time)"),
+        "discord.eventPausedMessage" to listOf("⏸️ El evento **{name}** se ha pausado temporalmente.", "⏸️ The event **{name}** has been temporarily paused."),
+        "discord.eventResumedMessage" to listOf("▶️ El evento **{name}** se ha reanudado. Termina <t:{endEpoch}:R>.", "▶️ The event **{name}** has resumed. Ends <t:{endEpoch}:R>.")
+    )
+
     fun load(configDirectory: Path, requested: String) {
         val folder = configDirectory.resolve("lang")
         directory = folder
@@ -89,6 +98,10 @@ object Lang {
                     var changed = false
                     for ((key, value) in shipped.entrySet()) {
                         if (!existing.has(key)) { existing.add(key, value); changed = true }
+                        else if (legacyTexts[key]?.contains(runCatching { existing.get(key).asString }.getOrNull()) == true && existing.get(key) != value) {
+                            // Texto de una versión anterior sin personalizar (avisos de Discord de antes de 0.23): se actualiza.
+                            existing.add(key, value); changed = true
+                        }
                     }
                     if (changed) Files.newBufferedWriter(target, Charsets.UTF_8).use { gson.toJson(existing, it) }
                 }

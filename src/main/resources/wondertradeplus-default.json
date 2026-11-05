@@ -212,8 +212,7 @@
         "gainMultiplier": 1.0,
         "improvementPercent": 0.1
       }
-    ],
-    "showList": true
+    ]
   },
   "cooldownNotice": {
     "enabled": true,
