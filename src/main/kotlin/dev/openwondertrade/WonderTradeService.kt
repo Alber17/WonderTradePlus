@@ -226,7 +226,7 @@ object WonderTradeService {
             lines += ConfigManager.string("messages.helpAdminDiscordCommand", "&e/wt admin discord test &7Probar webhook de Discord")
             lines += ConfigManager.string("messages.helpAdminClearCommand", "&e/wt admin clear &7Vaciar la pool")
         }
-        return colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
+        return colour(WonderTradeService.prefix() + lines.joinToString("\n"))
     }
 
     fun poolSummaryComponent(): Component {
@@ -239,11 +239,11 @@ object WonderTradeService {
                 "special" to entries.count { it.special }
             )
         )
-        return colour(ConfigManager.string("messages.prefix", "") + summary)
+        return colour(WonderTradeService.prefix() + summary)
     }
 
     fun configuredMessage(key: String, fallback: String): Component =
-        colour(ConfigManager.string("messages.prefix", "") + ConfigManager.string("messages.$key", fallback))
+        colour(WonderTradeService.prefix() + ConfigManager.string("messages.$key", fallback))
 
     fun soundPreference(player: ServerPlayer, key: String): Boolean = playerData.soundEnabled(player.uuid, key)
 
@@ -461,7 +461,7 @@ object WonderTradeService {
             Lang.t("&7Copias de seguridad: &f{0} &8(última: {1})", backups.size, backups.lastOrNull() ?: "-"),
             Lang.t("&7Archivos: &fpool {0} &8· &fplayer-data {1} &8· &fhistory {2}", fileSize("pool.json"), fileSize("player-data.json"), fileSize("history.json"))
         )
-        return colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
+        return colour(WonderTradeService.prefix() + lines.joinToString("\n"))
     }
     fun historyPlayers(): List<String> = history.players()
     fun poolDonors(): List<String> = pool.all().map { it.donorName }.distinct()
@@ -507,7 +507,7 @@ object WonderTradeService {
 
     fun adminLevel(): Int = ConfigManager.int("admin.permissionLevel", 2).coerceIn(0, 4)
 
-    fun info(text: String): Component = colour(ConfigManager.string("messages.prefix", "") + text)
+    fun info(text: String): Component = colour(WonderTradeService.prefix() + text)
 
     private fun addAdminEntry(pokemon: Pokemon, registryAccess: net.minecraft.core.RegistryAccess) {
         pool.add(PoolEntry.fromPokemon(pokemon, registryAccess, "Servidor"))
@@ -810,7 +810,7 @@ object WonderTradeService {
     private fun performTrade(player: ServerPlayer, party: PokemonStore<*>, offered: Pokemon) {
         if (!canTrade(player)) return
         if (!ConfigManager.bool("general.allowInBattle", false) && Cobblemon.battleRegistry.getBattleByParticipatingPlayer(player) != null) {
-            player.sendSystemMessage(colour(Lang.t("{0} &cNo puedes intercambiar Pokémon durante un combate.", ConfigManager.string("messages.prefix"))))
+            player.sendSystemMessage(colour(Lang.t("{0} &cNo puedes intercambiar Pokémon durante un combate.", WonderTradeService.prefix())))
             return
         }
         WonderTradeRules.validateOffer(offered)?.let { key ->
@@ -955,6 +955,7 @@ object WonderTradeService {
             announceDonation(player, donation)
             recordHistory(player, offered, incoming, fromPool, now)
             WonderTradeDiscord.notify(player, offered, incoming)
+            runCatching { WonderTradeEvents.recordOutcome(player, offered, incoming) }
             // Con un evento activo, repone enseguida el Pokémon de la categoría que se acaba de llevar el jugador.
             runCatching { maintainEventPools(player.server) }.onFailure { WonderTradePlus.LOGGER.error("No se pudo reponer la pool del evento.", it) }
         } catch (exception: Exception) {
@@ -1526,18 +1527,51 @@ object WonderTradeService {
         )
     }
 
-    /** Respuesta de /wt rango. */
+    /** Prefijo de los mensajes. Con general.boldPrefix (por defecto) el nombre del mod sale siempre en negrita. */
+    fun prefix(): String {
+        val configured = WonderTradeService.prefix()
+        if (!ConfigManager.bool("general.boldPrefix", true)) return configured
+        if (configured.contains("&l") || configured.contains("§l") || !configured.contains("WonderTrade")) return configured
+        return Regex("((?:[&§][0-9a-fk-or])*)WonderTrade").replace(configured) { m -> m.groupValues[1] + "&lWonderTrade&r" + m.groupValues[1] }
+    }
+
+    /** Respuesta de /wt rango: tu rango, lo que te da, tu probabilidad actual y la lista de rangos. */
     fun rankComponent(player: ServerPlayer): Component {
         val lines = mutableListOf<String>()
+        lines += Lang.tr("&8━━ &d&l✦ Tu rango &8━━")
         if (!WonderTradeRanks.enabled()) {
             lines += ConfigManager.string("messages.rankDisabled", "&7Los rangos están desactivados.")
         } else {
-            lines += rankInfoLine(player) ?: ConfigManager.string("messages.rankNone", "&7No tienes ningún rango con ventajas en Wonder Trade.")
+            val rank = WonderTradeRanks.rankOf(player)
+            if (rank == null) {
+                lines += ConfigManager.string("messages.rankNone", "&7No tienes ningún rango con ventajas en Wonder Trade.")
+            } else {
+                lines += Lang.t(" &7Rango: &f&l{0}", rank.name)
+                lines += Lang.t(" &7Probabilidad mínima de especial: &d{0}%", percentText(rank.baseBonus))
+                lines += Lang.t(" &7Mejora fija en cada intercambio: &a+{0}%", percentText(rank.improvementPercent))
+                lines += Lang.t(" &7Ganancia por Pokémon ofrecido: &ax{0}", percentText(rank.gainMultiplier))
+            }
+            if (ConfigManager.bool("bonus.enabled", true)) {
+                lines += Lang.t(" &7Tu probabilidad actual: &d{0}%", percentText(effectiveBonus(player)))
+            }
+            if (ConfigManager.bool("ranks.showList", true)) {
+                val all = WonderTradeRanks.all()
+                if (all.isNotEmpty()) {
+                    lines += Lang.tr("&8━━ &d&lRangos disponibles &8━━")
+                    all.forEach { r ->
+                        val mine = rank != null && r.id == rank.id
+                        lines += Lang.t(
+                            " {0} &f{1} &8— &7mín. &d{2}% &8· &7mejora &a+{3}% &8· &7ganancias &ax{4}",
+                            if (mine) "&a✔" else "&8▸", r.name, percentText(r.baseBonus), percentText(r.improvementPercent), percentText(r.gainMultiplier)
+                        )
+                    }
+                }
+            }
             if (player.hasPermissions(adminLevel())) {
                 lines += Lang.t("&8Detección de permisos: {0}", WonderTradeRanks.backendName())
             }
         }
-        return colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
+        return colour(lines.joinToString("\n"))
     }
 
     // ------------------------------------------------------------ Pokémon por categoría (para /wt especiales)
@@ -1741,7 +1775,7 @@ object WonderTradeService {
                 "category" to categoryText,
                 "shinySuffix" to suffix
             ))
-            colour(ConfigManager.string("messages.prefix", "") + message)
+            colour(WonderTradeService.prefix() + message)
         }
     }
 
@@ -1762,7 +1796,7 @@ object WonderTradeService {
         val pokemonName = pokemon.getDisplayName().string
         broadcastLocalized(player.server) {
             val content = format(ConfigManager.string("messages.$key", ""), mapOf("player" to player.gameProfile.name, "pokemon" to pokemonName))
-            colour(ConfigManager.string("messages.prefix") + content)
+            colour(WonderTradeService.prefix() + content)
         }
     }
 
@@ -1773,7 +1807,7 @@ object WonderTradeService {
             val template = ConfigManager.string("messages.success", fallback)
             var message = format(template, values)
             if (!template.contains("{bonusText}") && bonusText.isNotBlank()) message += " $bonusText"
-            player.sendSystemMessage(colour(ConfigManager.string("messages.prefix", "") + message))
+            player.sendSystemMessage(colour(WonderTradeService.prefix() + message))
         }
     }
 
@@ -1781,7 +1815,7 @@ object WonderTradeService {
         Lang.withPlayer(player) {
             val fallback = defaultMessage(key)
             val template = ConfigManager.string("messages.$key", fallback)
-            player.sendSystemMessage(colour(ConfigManager.string("messages.prefix", "") + format(template, values)))
+            player.sendSystemMessage(colour(WonderTradeService.prefix() + format(template, values)))
         }
     }
 

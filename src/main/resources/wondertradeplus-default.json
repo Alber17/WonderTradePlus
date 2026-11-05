@@ -15,7 +15,8 @@
     "useSpeciesWhitelist": false,
     "speciesWhitelist": [],
     "language": "es_es",
-    "useClientLanguage": true
+    "useClientLanguage": true,
+    "boldPrefix": true
   },
   "trade": {
     "cooldownMinutes": 720,
@@ -39,7 +40,14 @@
     "clampDonatedLevel": false,
     "donatedMinimumLevel": 1,
     "donatedMaximumLevel": 100,
-    "playerDonationsEnabled": true
+    "playerDonationsEnabled": true,
+    "size": {
+      "show": true,
+      "xsMax": 0.8,
+      "sMax": 0.95,
+      "mMax": 1.05,
+      "lMax": 1.2
+    }
   },
   "fallback": {
     "minimumLevel": 1,
@@ -82,7 +90,31 @@
       "scheduledSoon": true,
       "pause": true,
       "topDonations": true,
-      "mentionRoleId": ""
+      "mentionRoleId": "",
+      "listPlayers": true,
+      "maxPlayersListed": 15
+    },
+    "avatarUrl": "",
+    "style": {
+      "useEmbeds": true,
+      "pokemonImages": true,
+      "showTimestamp": true,
+      "footer": "WonderTrade Plus",
+      "colors": {
+        "test": "#57F287",
+        "donation": "#9B59B6",
+        "shiny": "#F1C40F",
+        "legendary": "#9B59B6",
+        "mythical": "#E91E63",
+        "ultraBeast": "#3498DB",
+        "paradox": "#E67E22",
+        "eventStart": "#9B59B6",
+        "eventEnd": "#2ECC71",
+        "eventSoon": "#F1C40F",
+        "paused": "#95A5A6",
+        "resumed": "#3498DB",
+        "top": "#E67E22"
+      }
     }
   },
   "bonus": {
@@ -180,7 +212,8 @@
         "gainMultiplier": 1.0,
         "improvementPercent": 0.1
       }
-    ]
+    ],
+    "showList": true
   },
   "cooldownNotice": {
     "enabled": true,
@@ -254,7 +287,8 @@
     },
     "receive": {
       "chance": 10.0
-    }
+    },
+    "maxRecordedPlayers": 200
   },
   "gui": {
     "enabled": true,

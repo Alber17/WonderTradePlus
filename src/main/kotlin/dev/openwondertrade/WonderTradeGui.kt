@@ -442,11 +442,12 @@ object WonderTradeGui {
             else if (admin) extra += Lang.tr("&7Activa &c&l«Eliminar Pokémon»&r&7 para poder borrarlo.")
             val stack = if (pokemon != null) {
                 pokemonStack(pokemon, false, extra).also { pokemonStack ->
-                    val size = pokemon.getSizeCategory().name
-                    pokemonStack.set(
-                        DataComponents.CUSTOM_NAME,
-                        lit((if (pokemon.shiny) "&e" else "&f") + pokemon.getDisplayName().string + " &8(" + size + ")")
-                    )
+                    if (ConfigManager.bool("pool.size.show", true)) {
+                        pokemonStack.set(
+                            DataComponents.CUSTOM_NAME,
+                            lit((if (pokemon.shiny) "&e" else "&f") + pokemon.getDisplayName().string + " &8(&7" + WonderTradeRules.sizeLabel(pokemon) + "&8)")
+                        )
+                    }
                 }
             } else named(Items.BARRIER, Lang.t("&c{0}", entry.species), Lang.tr("&7No se pudo cargar este Pokémon."))
             if (admin && deleteMode) {
@@ -582,7 +583,7 @@ object WonderTradeGui {
         val button = Component.literal(Lang.tr("§e§n[Pulsa aquí para buscar]"))
             .setStyle(Style.EMPTY.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/wt pool search ")))
         player.sendSystemMessage(
-            WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + Lang.tr("&7Escribe el nombre o la especie del Pokémon. &8Opcional: 6x31 (IVs perfectos), 5x31… o 31spd, 31hp, 31atk, 31def, 31spatk, 31spdef. ")).copy().append(button)
+            WonderTradeService.colour(WonderTradeService.prefix() + Lang.tr("&7Escribe el nombre o la especie del Pokémon. &8Opcional: 6x31 (IVs perfectos), 5x31… o 31spd, 31hp, 31atk, 31def, 31spatk, 31spdef. ")).copy().append(button)
         )
     }
 
@@ -1233,7 +1234,7 @@ object WonderTradeGui {
             val button = Component.literal(Lang.tr("§e§n[Pulsa aquí para escribir el nombre]"))
                 .setStyle(Style.EMPTY.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/wt admin penalizar ")))
             p.sendSystemMessage(
-                WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + Lang.t("&7Escribe el nombre del jugador (tiempo: &f{0}&7). ", label)).copy().append(button)
+                WonderTradeService.colour(WonderTradeService.prefix() + Lang.t("&7Escribe el nombre del jugador (tiempo: &f{0}&7). ", label)).copy().append(button)
             )
         }
         menu.button(45, named(Items.ARROW, Lang.tr("&aVolver"))) { openAdmin(it) }
@@ -1249,7 +1250,7 @@ object WonderTradeGui {
             p.closeContainer()
             val button = Component.literal("§e§n" + Lang.tr("[Pulsa aquí para escribir el motivo]"))
                 .setStyle(Style.EMPTY.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/wt admin motivo ")))
-            p.sendSystemMessage(WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + Lang.tr("&7Escribe el motivo (o «ninguno»). ")).copy().append(button))
+            p.sendSystemMessage(WonderTradeService.colour(WonderTradeService.prefix() + Lang.tr("&7Escribe el motivo (o «ninguno»). ")).copy().append(button))
         }
         menu.button(47, named(Items.BOOK, Lang.tr("&6Penalizados"), Lang.tr("&7Ver y perdonar penalizaciones vigentes."))) { openPenalized(it, millis) }
         if (shown > 0) menu.button(48, named(Items.ARROW, Lang.tr("&ePágina anterior"))) { renderPenalties(menu, it, millis, shown - 1) }

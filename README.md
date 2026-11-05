@@ -64,7 +64,7 @@ Los comandos de jugador son públicos salvo que se indique otra cosa. Los nivele
 | `/wt admin eventos desprogramar <id>` | `admin.permissionLevel` | Cancela un evento programado (el id sale como `P1`, `P2`…). |
 | `/wt admin eventos parar <id>` | `admin.permissionLevel` | Finaliza un evento. |
 | `/wt especiales` | Todos | Menú con los Pokémon que son Ultraentes, Paradoja, Míticos y Legendarios (los que cuentan en los eventos). También hay un botón en el menú principal. |
-| `/wt rango` | Todos | Muestra tu rango y sus ventajas; a los admins les indica además qué sistema de permisos detecta. |
+| `/wt rango` | Todos | Muestra tu rango, sus ventajas, tu probabilidad actual y la lista de rangos; a los admins les indica además qué sistema de permisos detecta. |
 | `/wt on` / `/wt off` | `admin.permissionLevel` | Activa o desactiva Wonder Trade sin quitar el mod. |
 | `/wt clearpool` | `admin.permissionLevel` | Vacía la pool. |
 | `/wt admin` | `admin.permissionLevel` | Abre el panel gráfico de administración. |
@@ -130,6 +130,8 @@ Con un webhook de Discord, el mod puede publicar en un canal cuando alguien **ap
 1. En Discord: *Ajustes del canal → Integraciones → Webhooks → Nuevo webhook → Copiar URL*.
 2. Pega la URL en `discord.webhookUrl` y pon `discord.enabled` en `true`.
 3. Ejecuta `/wt reload` y prueba con `/wt admin discord test`.
+
+Los avisos se envían como **tarjetas** (embeds) con color según la rareza (shiny dorado, legendario morado, mítico rosa, Ultraente azul, Paradoja naranja), imagen oficial del Pokémon y campos de jugador, Pokémon, nivel y categoría. Al terminar un evento, la tarjeta muestra intercambios, jugadores y duración, y **lista los nicks de quienes han conseguido algo gracias al evento**. Colores, títulos, pie y miniaturas se cambian en `discord.style` y `discord.titles.*`; con `discord.style.useEmbeds: false` se envía texto simple.
 
 La URL del webhook es secreta; no la subas a GitHub.
 
@@ -401,6 +403,14 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 - Panel de administración: nuevo botón «Top Donaciones» (esmeralda/redstone) en la fila de servidor que activa o desactiva el Top Donaciones (`topDonations.enabled`) y muestra si este mes hay Top. El cambio se guarda en `config.json`.
 - Gradle no se ha ejecutado en el entorno de edición.
 
+
+## 0.23.0
+
+- Avisos de Discord en formato tarjeta (embeds) con colores por rareza, imagen del Pokémon y campos; el fin de un evento lista los nicks de quienes consiguieron algo gracias a él.
+- `/wt rango` rediseñado con tus ventajas, tu probabilidad actual y la lista de rangos.
+- El nombre del mod en negrita en el chat se aplica siempre (`general.boldPrefix`).
+- Talla XS/S/M/L/XL en la pool (`pool.size.*`).
+- `/wt topdonaciones` solo con el evento terminado.
 
 ## 0.22.1
 

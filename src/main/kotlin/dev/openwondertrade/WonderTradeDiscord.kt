@@ -8,8 +8,49 @@ object WonderTradeDiscord {
 
     private val httpClient: java.net.http.HttpClient by lazy { java.net.http.HttpClient.newHttpClient() }
 
+    /** Un embed de Discord (tarjeta con título, color, campos y pie). Si `discord.style.useEmbeds` es false se envía como texto. */
+    class Embed(var title: String, var description: String = "", var color: Int = 0x9B59B6) {
+        private val fields = mutableListOf<Triple<String, String, Boolean>>()
+        var thumbnail: String? = null
+
+        fun field(name: String, value: String, inline: Boolean = true): Embed {
+            if (value.isNotBlank() && fields.size < 25) fields += Triple(name.take(256), value.take(1024), inline)
+            return this
+        }
+
+        fun toJson(): com.google.gson.JsonObject = com.google.gson.JsonObject().apply {
+            addProperty("title", title.take(256))
+            if (description.isNotBlank()) addProperty("description", description.take(4000))
+            addProperty("color", color)
+            if (fields.isNotEmpty()) add("fields", com.google.gson.JsonArray().also { array ->
+                fields.forEach { (name, value, inline) ->
+                    array.add(com.google.gson.JsonObject().apply {
+                        addProperty("name", name); addProperty("value", value); addProperty("inline", inline)
+                    })
+                }
+            })
+            thumbnail?.let { add("thumbnail", com.google.gson.JsonObject().apply { addProperty("url", it) }) }
+            val footer = ConfigManager.string("discord.style.footer", "WonderTrade Plus").trim()
+            if (footer.isNotEmpty()) add("footer", com.google.gson.JsonObject().apply { addProperty("text", footer) })
+            if (ConfigManager.bool("discord.style.showTimestamp", true)) addProperty("timestamp", java.time.Instant.now().toString())
+        }
+
+        /** Versión en texto plano (cuando los embeds están desactivados). */
+        fun toPlain(): String = buildString {
+            append("**").append(title).append("**")
+            if (description.isNotBlank()) append("\n").append(description)
+            fields.forEach { (name, value, _) -> append("\n**").append(name).append(":** ").append(value) }
+        }
+    }
+
+    /** Color «#RRGGBB» de `discord.style.colors.<key>`. */
+    private fun colorOf(key: String, fallback: String): Int {
+        val text = ConfigManager.string("discord.style.colors.$key", fallback).trim().removePrefix("#")
+        return text.toIntOrNull(16) ?: fallback.removePrefix("#").toInt(16)
+    }
+
     /** Envía un mensaje al webhook de Discord sin bloquear el servidor. `onResult` se llama desde otro hilo. */
-    private fun discordPost(content: String, force: Boolean = false, onResult: ((Boolean, String) -> Unit)? = null, roleId: String? = null) {
+    private fun discordPost(content: String, force: Boolean = false, onResult: ((Boolean, String) -> Unit)? = null, roleId: String? = null, embed: Embed? = null) {
         if (!force && !ConfigManager.bool("discord.enabled", false)) return
         val url = ConfigManager.string("discord.webhookUrl", "").trim()
         if (url.isEmpty()) {
@@ -17,9 +58,14 @@ object WonderTradeDiscord {
             return
         }
         try {
+            val useEmbeds = ConfigManager.bool("discord.style.useEmbeds", true)
+            val text = if (embed != null && !useEmbeds) (content + "\n" + embed.toPlain()).trim() else content
             val body = com.google.gson.JsonObject().apply {
-                addProperty("content", content)
+                if (text.isNotBlank()) addProperty("content", text.take(2000))
+                if (embed != null && useEmbeds) add("embeds", com.google.gson.JsonArray().also { it.add(embed.toJson()) })
                 addProperty("username", ConfigManager.string("discord.username", "WonderTrade"))
+                val avatar = ConfigManager.string("discord.avatarUrl", "").trim()
+                if (avatar.isNotEmpty()) addProperty("avatar_url", avatar)
                 // Evita que un apodo con @everyone o @here mencione a nadie.
                 // Solo se permite mencionar el rol configurado para eventos (si lo hay).
                 add("allowed_mentions", com.google.gson.JsonObject().apply {
@@ -55,84 +101,145 @@ object WonderTradeDiscord {
         ConfigManager.bool("discord.enabled", false) && ConfigManager.bool("discord.events.enabled", true) &&
             ConfigManager.bool("discord.events.$kind", true)
 
-    /** Envía el aviso de un evento; si hay rol configurado (discord.events.mentionRoleId) lo menciona al principio. */
-    private fun postEvent(template: String, values: Map<String, Any>) {
-        if (template.isBlank()) return
-        val role = ConfigManager.string("discord.events.mentionRoleId", "").trim().takeIf { it.isNotEmpty() && it.all(Char::isDigit) }
-        val text = WonderTradeService.format(template, values)
-        discordPost(if (role != null) "<@&$role> $text" else text, roleId = role)
+    private fun role(): String? =
+        ConfigManager.string("discord.events.mentionRoleId", "").trim().takeIf { it.isNotEmpty() && it.all(Char::isDigit) }
+
+    /** Envía el aviso de un evento; si hay rol configurado (discord.events.mentionRoleId) lo menciona fuera del embed. */
+    private fun postEvent(embed: Embed) {
+        val role = role()
+        discordPost(if (role != null) "<@&$role>" else "", roleId = role, embed = embed)
     }
 
     private fun epoch(millis: Long): Long = millis / 1000L
 
+    private fun plainLines(lines: List<String>): String = lines.joinToString("\n") { it.replace(Regex("[&§]."), "") }
+
     fun eventStarted(event: WtEvent) {
         Lang.withPlayer(null) {
-        if (!eventsEnabled("start")) return
-        val details = WonderTradeEvents.describe(event).joinToString("\n") { it.replace(Regex("&."), "") }
-        postEvent(
-            ConfigManager.string("discord.eventStartMessage", "🎉 **Evento iniciado: {name}**\n{details}\n⏱️ Dura {duration} · termina <t:{endEpoch}:R>"),
-            mapOf(
-                "name" to event.title, "details" to details,
-                "duration" to WonderTradeEvents.formatDuration((event.endAt - event.startAt) / 1000L), "endEpoch" to epoch(event.endAt)
+            if (!eventsEnabled("start")) return
+            val details = plainLines(WonderTradeEvents.describe(event))
+            val description = WonderTradeService.format(
+                ConfigManager.string("discord.eventStartMessage", "El evento **{name}** ya está activo.\n{details}"),
+                mapOf("name" to event.title, "details" to details, "duration" to WonderTradeEvents.formatDuration((event.endAt - event.startAt) / 1000L), "endEpoch" to epoch(event.endAt))
             )
-        )
-    
+            postEvent(
+                Embed(ConfigManager.string("discord.titles.eventStart", "🎉 ¡Evento iniciado: {name}!").replace("{name}", event.title), description, colorOf("eventStart", "#9B59B6"))
+                    .field(Lang.tr("⏱️ Duración"), WonderTradeEvents.formatDuration((event.endAt - event.startAt) / 1000L))
+                    .field(Lang.tr("🏁 Termina"), "<t:${epoch(event.endAt)}:R>\n<t:${epoch(event.endAt)}:f>")
+            )
         }
+    }
+
+    /** Nombres de los jugadores agrupados («Nick — Pokémon, Pokémon»), recortados al límite de un campo de Discord. */
+    private fun playersField(outcomes: List<WtEvent.Outcome>): String {
+        val maxPlayers = ConfigManager.int("discord.events.maxPlayersListed", 15).coerceIn(1, 40)
+        val grouped = LinkedHashMap<String, MutableList<String>>()
+        outcomes.forEach { grouped.getOrPut(it.name) { mutableListOf() }.add(it.pokemon) }
+        val lines = grouped.entries.take(maxPlayers).map { (name, pokemon) ->
+            "• **$name** — ${pokemon.distinct().joinToString(", ")}" + (if (pokemon.size > 1) " (×${pokemon.size})" else "")
+        }.toMutableList()
+        if (grouped.size > maxPlayers) lines += Lang.t("…y {0} más", grouped.size - maxPlayers)
+        return lines.joinToString("\n")
     }
 
     fun eventEnded(event: WtEvent) {
         Lang.withPlayer(null) {
-        if (!eventsEnabled("end")) return
-        postEvent(ConfigManager.string("discord.eventEndMessage", "🏁 **Ha terminado el evento: {name}**"), mapOf("name" to event.title))
-    
+            if (!eventsEnabled("end")) return
+            val description = WonderTradeService.format(
+                ConfigManager.string("discord.eventEndMessage", "El evento **{name}** ha finalizado. ¡Gracias por participar!"),
+                mapOf("name" to event.title)
+            )
+            val embed = Embed(
+                ConfigManager.string("discord.titles.eventEnd", "🏁 Evento finalizado: {name}").replace("{name}", event.title),
+                description, colorOf("eventEnd", "#2ECC71")
+            )
+                .field(Lang.tr("🔄 Intercambios"), event.trades.toString())
+                .field(Lang.tr("👥 Jugadores"), event.playerIds.size.toString())
+                .field(Lang.tr("⏱️ Duración"), WonderTradeEvents.formatDuration((event.endAt - event.startAt) / 1000L))
+            if (ConfigManager.bool("discord.events.listPlayers", true)) {
+                val got = event.outcomes.filter { !it.offered }
+                val risked = event.outcomes.filter { it.offered }
+                if (event.type == EventType.RECEIVE) {
+                    embed.field(Lang.tr("🏆 Han conseguido algo gracias al evento"), if (got.isEmpty()) Lang.tr("Nadie ha conseguido nada esta vez.") else playersField(got), false)
+                } else {
+                    embed.field(Lang.tr("🎁 Han aportado Pokémon del evento"), if (risked.isEmpty()) Lang.tr("Nadie ha participado esta vez.") else playersField(risked), false)
+                }
+            }
+            postEvent(embed)
         }
     }
 
     fun eventScheduledSoon(item: ScheduledEvent) {
         Lang.withPlayer(null) {
-        if (!eventsEnabled("scheduledSoon")) return
-        postEvent(
-            ConfigManager.string("discord.eventSoonMessage", "⏰ **{name}** empieza <t:{startEpoch}:R>"),
-            mapOf("name" to item.title, "startEpoch" to epoch(item.nextRunAt))
-        )
-    
+            if (!eventsEnabled("scheduledSoon")) return
+            val description = WonderTradeService.format(
+                ConfigManager.string("discord.eventSoonMessage", "**{name}** empieza <t:{startEpoch}:R>."),
+                mapOf("name" to item.title, "startEpoch" to epoch(item.nextRunAt))
+            )
+            postEvent(
+                Embed(ConfigManager.string("discord.titles.eventSoon", "⏰ Próximo evento: {name}").replace("{name}", item.title), description, colorOf("eventSoon", "#F1C40F"))
+                    .field(Lang.tr("🕒 Empieza"), "<t:${epoch(item.nextRunAt)}:F>")
+            )
         }
     }
 
-    /** Anuncio del Top Donaciones al cerrar el mes (líneas ya sin códigos de color). */
-    fun topDonations(lines: List<String>) {
+    class TopLine(val rank: Int, val name: String, val points: Int, val donations: Int)
+
+    /** Anuncio del Top Donaciones al cerrar el mes. */
+    fun topDonations(month: String, winners: List<TopLine>) {
         Lang.withPlayer(null) {
-        if (!eventsEnabled("topDonations") || lines.isEmpty()) return
-        discordPost(lines.joinToString("\n"))
-    
+            if (!eventsEnabled("topDonations")) return
+            val medals = mapOf(1 to "🥇", 2 to "🥈", 3 to "🥉")
+            val embed = Embed(
+                ConfigManager.string("discord.titles.topDonations", "★ Top Donaciones de {month}").replace("{month}", month),
+                if (winners.isEmpty()) Lang.tr("Nadie ha donado este mes.") else Lang.tr("¡Gracias a todos por donar! Estos son los ganadores:"),
+                colorOf("top", "#E67E22")
+            )
+            winners.forEach { w ->
+                embed.field(
+                    (medals[w.rank] ?: "#${w.rank}") + " " + w.name,
+                    Lang.t("{0} puntos · {1} donaciones", w.points, w.donations), false
+                )
+            }
+            discordPost("", embed = embed)
         }
     }
 
     fun eventPaused(event: WtEvent) {
         Lang.withPlayer(null) {
-        if (!eventsEnabled("pause")) return
-        postEvent(ConfigManager.string("discord.eventPausedMessage", "⏸️ El evento **{name}** se ha pausado temporalmente."), mapOf("name" to event.title))
-    
+            if (!eventsEnabled("pause")) return
+            val description = WonderTradeService.format(
+                ConfigManager.string("discord.eventPausedMessage", "El evento **{name}** se ha pausado temporalmente."), mapOf("name" to event.title)
+            )
+            postEvent(Embed(ConfigManager.string("discord.titles.eventPaused", "⏸️ Evento en pausa").replace("{name}", event.title), description, colorOf("paused", "#95A5A6")))
         }
     }
 
     fun eventResumed(event: WtEvent) {
         Lang.withPlayer(null) {
-        if (!eventsEnabled("pause")) return
-        postEvent(
-            ConfigManager.string("discord.eventResumedMessage", "▶️ El evento **{name}** se ha reanudado. Termina <t:{endEpoch}:R>."),
-            mapOf("name" to event.title, "endEpoch" to epoch(event.endAt))
-        )
-    
+            if (!eventsEnabled("pause")) return
+            val description = WonderTradeService.format(
+                ConfigManager.string("discord.eventResumedMessage", "El evento **{name}** se ha reanudado."), mapOf("name" to event.title)
+            )
+            postEvent(
+                Embed(ConfigManager.string("discord.titles.eventResumed", "▶️ Evento reanudado").replace("{name}", event.title), description, colorOf("resumed", "#3498DB"))
+                    .field(Lang.tr("🏁 Termina"), "<t:${epoch(event.endAt)}:R>")
+            )
         }
     }
 
     fun test(callback: (Boolean, String) -> Unit) {
-        discordPost("✅ Prueba de conexión de WonderTrade Plus.", force = true, onResult = callback)
+        Lang.withPlayer(null) {
+            discordPost(
+                "", force = true, onResult = callback,
+                embed = Embed(Lang.tr("✅ Conexión correcta"), Lang.tr("WonderTrade Plus está conectado a este canal. Aquí llegarán los avisos de especiales, eventos y Top Donaciones."), colorOf("test", "#57F287"))
+            )
+        }
     }
 
+    // ------------------------------------------------------------ Pokémon especiales
 
-    private fun plainName(pokemon: Pokemon): String {
+    fun plainName(pokemon: Pokemon): String {
         val name = pokemon.getDisplayName().string
         // Si el servidor no tiene las traducciones, el nombre sale como una clave ("cobblemon.species...").
         return if (name.contains('.')) pokemon.species.resourceIdentifier.path.replaceFirstChar { it.uppercase() } else name
@@ -145,27 +252,58 @@ object WonderTradeDiscord {
         return if (parts.isEmpty()) Lang.tr("Especial") else parts.joinToString(" · ")
     }
 
+    /** Color de la tarjeta según la rareza del Pokémon. */
+    private fun rarityColor(pokemon: Pokemon): Int = when {
+        pokemon.shiny -> colorOf("shiny", "#F1C40F")
+        else -> when (WonderTradeRules.speciesCategoryKey(pokemon)) {
+            "legendary" -> colorOf("legendary", "#9B59B6")
+            "mythical" -> colorOf("mythical", "#E91E63")
+            "ultraBeast" -> colorOf("ultraBeast", "#3498DB")
+            "paradox" -> colorOf("paradox", "#E67E22")
+            else -> colorOf("donation", "#9B59B6")
+        }
+    }
+
+    /** Imagen oficial del Pokémon (PokéAPI, por número de Pokédex); null si está desactivado o no hay número. */
+    private fun imageUrl(pokemon: Pokemon): String? {
+        if (!ConfigManager.bool("discord.style.pokemonImages", true)) return null
+        val dex = runCatching { pokemon.species.nationalPokedexNumber }.getOrDefault(0)
+        if (dex <= 0) return null
+        return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/" + (if (pokemon.shiny) "shiny/" else "") + "$dex.png"
+    }
+
+    private fun pokemonEmbed(title: String, description: String, pokemon: Pokemon, player: String): Embed =
+        Embed(title, description, rarityColor(pokemon)).apply {
+            thumbnail = imageUrl(pokemon)
+            field(Lang.tr("👤 Jugador"), player)
+            field(Lang.tr("🎴 Pokémon"), plainName(pokemon))
+            field(Lang.tr("📈 Nivel"), pokemon.level.toString())
+            field(Lang.tr("✨ Categoría"), plainCategory(pokemon))
+        }
+
     fun notifyDonation(player: ServerPlayer, offered: Pokemon) {
         Lang.withPlayer(null) {
-        if (!ConfigManager.bool("discord.enabled", false) || !ConfigManager.bool("discord.notifyDonations", true)) return
-        if (!WonderTradeRules.isRare(offered)) return
-        val template = ConfigManager.string("discord.donationMessage", "**{player}** ha aportado **{pokemon}** (Nv. {level}, {category}) al pool.")
-        if (template.isNotBlank()) {
-            discordPost(WonderTradeService.format(template, mapOf("player" to player.gameProfile.name, "pokemon" to plainName(offered), "level" to offered.level, "category" to plainCategory(offered))))
-        }
-    
+            if (!ConfigManager.bool("discord.enabled", false) || !ConfigManager.bool("discord.notifyDonations", true)) return
+            if (!WonderTradeRules.isRare(offered)) return
+            val template = ConfigManager.string("discord.donationMessage", "**{player}** ha aportado **{pokemon}** (Nv. {level}, {category}) al pool de Wonder Trade.")
+            if (template.isNotBlank()) {
+                val name = player.gameProfile.name
+                val text = WonderTradeService.format(template, mapOf("player" to name, "pokemon" to plainName(offered), "level" to offered.level, "category" to plainCategory(offered)))
+                discordPost("", embed = pokemonEmbed(ConfigManager.string("discord.titles.donation", "🎁 ¡Nueva aportación especial!"), text, offered, name))
+            }
         }
     }
 
     fun notify(player: ServerPlayer, offered: Pokemon, incoming: Pokemon) {
         Lang.withPlayer(null) {
-        if (!ConfigManager.bool("discord.enabled", false)) return
-        notifyDonation(player, offered)
-        if (ConfigManager.bool("discord.notifyReceived", true) && WonderTradeRules.isRare(incoming)) {
-            val template = ConfigManager.string("discord.receivedMessage", "🎉 **{player}** ha recibido **{pokemon}** (Nv. {level}, {category}) en un Wonder Trade.")
-            discordPost(WonderTradeService.format(template, mapOf("player" to player.gameProfile.name, "pokemon" to plainName(incoming), "level" to incoming.level, "category" to plainCategory(incoming))))
-        }
-    
+            if (!ConfigManager.bool("discord.enabled", false)) return
+            notifyDonation(player, offered)
+            if (ConfigManager.bool("discord.notifyReceived", true) && WonderTradeRules.isRare(incoming)) {
+                val template = ConfigManager.string("discord.receivedMessage", "🎉 **{player}** ha recibido **{pokemon}** (Nv. {level}, {category}) en un Wonder Trade.")
+                val name = player.gameProfile.name
+                val text = WonderTradeService.format(template, mapOf("player" to name, "pokemon" to plainName(incoming), "level" to incoming.level, "category" to plainCategory(incoming)))
+                discordPost("", embed = pokemonEmbed(ConfigManager.string("discord.titles.received", "🎉 ¡Premio en un Wonder Trade!"), text, incoming, name))
+            }
         }
     }
 }

@@ -43,7 +43,7 @@ object WonderTradeEventDisplay {
             }
             lines += upcoming
             lines += ConfigManager.string("messages.eventJoinFooter", "&7Usa &e/wt eventos &7para ver los detalles.")
-            player.sendSystemMessage(WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n")))
+            player.sendSystemMessage(WonderTradeService.colour(WonderTradeService.prefix() + lines.joinToString("\n")))
         }
         Lang.reset()
     }

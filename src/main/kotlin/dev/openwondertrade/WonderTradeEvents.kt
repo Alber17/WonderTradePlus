@@ -105,6 +105,10 @@ data class WtEvent(
     var trades: Int = 0
     val playerIds: MutableSet<String> = HashSet()
 
+    /** Quién ha conseguido algo gracias al evento (para el aviso final de Discord). [offered] = ofreció un Pokémon del evento. */
+    class Outcome(val name: String, val pokemon: String, val offered: Boolean)
+    val outcomes: MutableList<Outcome> = mutableListOf()
+
     /** Momento en que se pausó (0 = en marcha). Mientras está pausado el tiempo no corre y no tiene efecto. */
     var pausedAt: Long = 0L
 
@@ -129,6 +133,9 @@ data class WtEvent(
         addProperty("createdBy", createdBy)
         addProperty("trades", trades)
         add("playerIds", JsonArray().also { array -> playerIds.forEach { array.add(it) } })
+        add("outcomes", JsonArray().also { array ->
+            outcomes.forEach { o -> array.add(JsonObject().apply { addProperty("name", o.name); addProperty("pokemon", o.pokemon); addProperty("offered", o.offered) }) }
+        })
         addProperty("pausedAt", pausedAt)
     }
 
@@ -154,6 +161,12 @@ data class WtEvent(
             )
             event.trades = json.get("trades")?.asInt ?: 0
             json.getAsJsonArray("playerIds")?.forEach { node -> runCatching { event.playerIds.add(node.asString) } }
+            json.getAsJsonArray("outcomes")?.forEach { node ->
+                runCatching {
+                    val o = node.asJsonObject
+                    event.outcomes.add(Outcome(o.get("name").asString, o.get("pokemon").asString, o.get("offered")?.asBoolean ?: false))
+                }
+            }
             event.pausedAt = json.get("pausedAt")?.asLong ?: 0L
             return event
         }
@@ -324,6 +337,23 @@ object WonderTradeEvents {
         runCatching { save() }.onFailure { WonderTradePlus.LOGGER.error("No se pudo guardar la espera del evento.", it) }
     }
 
+    /**
+     * Anota quién ha conseguido algo gracias a los eventos activos: en «Recibir …» quien recibe un Pokémon de la
+     * categoría del evento; en «Arriesgar …» quien ofrece uno de esa categoría.
+     */
+    fun recordOutcome(player: ServerPlayer, offered: com.cobblemon.mod.common.pokemon.Pokemon, incoming: com.cobblemon.mod.common.pokemon.Pokemon) {
+        var changed = false
+        val cap = ConfigManager.int("events.maxRecordedPlayers", 200).coerceAtLeast(1)
+        for (event in active()) {
+            val risk = event.type == EventType.RISK
+            val pokemon = if (risk) offered else incoming
+            if (!event.matches(pokemon) || event.outcomes.size >= cap) continue
+            event.outcomes.add(WtEvent.Outcome(player.gameProfile.name, WonderTradeDiscord.plainName(pokemon), risk))
+            changed = true
+        }
+        if (changed) runCatching { save() }.onFailure { WonderTradePlus.LOGGER.error("No se pudo guardar el evento.", it) }
+    }
+
     fun unmark(player: ServerPlayer, event: WtEvent) {
         lastUse.remove(key(player, event))
         if (event.trades > 0) event.trades--
@@ -474,7 +504,7 @@ object WonderTradeEvents {
     /** Anuncia un texto a todos los jugadores; [build] se evalúa para cada uno en su propio idioma. */
     fun broadcast(server: MinecraftServer, build: () -> String) {
         WonderTradeService.broadcastLocalized(server) {
-            WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + build())
+            WonderTradeService.colour(WonderTradeService.prefix() + build())
         }
     }
 
@@ -532,7 +562,7 @@ object WonderTradeEvents {
             }
         }
         lines += WonderTradeSchedule.upcomingLines()
-        return WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
+        return WonderTradeService.colour(WonderTradeService.prefix() + lines.joinToString("\n"))
     }
 
     /** Lista para administradores, con el id de cada evento. */
@@ -560,7 +590,7 @@ object WonderTradeEvents {
             }
             lines += Lang.tr("&7Cancelar: &e/wt admin eventos desprogramar <id>")
         }
-        return WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
+        return WonderTradeService.colour(WonderTradeService.prefix() + lines.joinToString("\n"))
     }
 
     /** Historial de eventos terminados para administradores. */
@@ -574,7 +604,7 @@ object WonderTradeEvents {
                 lines += Lang.t("&8#{0} &d{1} &7— WT: &f{2} &7· jugadores: &f{3} &7· {4} &8({5})", r.id, r.title, r.trades, r.players, historyDate(r.endedAt), r.reason)
             }
         }
-        return WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
+        return WonderTradeService.colour(WonderTradeService.prefix() + lines.joinToString("\n"))
     }
 
     fun historyDate(moment: Long): String =

@@ -300,7 +300,7 @@ class WonderTradePlus : ModInitializer {
         val records = WonderTradePenalties.history(15, uuid)
         if (records.isEmpty()) source.sendSuccess({ WonderTradeService.info(Lang.tr("&7El historial de penalizaciones está vacío.")) }, false)
         else source.sendSuccess({
-            WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + Lang.tr("&d&lHistorial de penalizaciones:\n") +
+            WonderTradeService.colour(WonderTradeService.prefix() + Lang.tr("&d&lHistorial de penalizaciones:\n") +
                 records.joinToString("\n") { WonderTradePenalties.describeRecord(it) })
         }, false)
         return 1
@@ -365,7 +365,7 @@ class WonderTradePlus : ModInitializer {
             val list = WonderTradePenalties.list()
             if (list.isEmpty()) context.source.sendSuccess({ WonderTradeService.info(Lang.tr("&7No hay jugadores penalizados.")) }, false)
             else context.source.sendSuccess({
-                WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + Lang.tr("&d&lPenalizados:\n") +
+                WonderTradeService.colour(WonderTradeService.prefix() + Lang.tr("&d&lPenalizados:\n") +
                     list.joinToString("\n") { Lang.t("&f{0} &7— &c{1} &8(por {2})", it.name, WonderTradePenalties.remainingText(it), it.by) + (if (it.reason.isBlank()) "" else " &7· ${it.reason}") })
             }, false)
             1
@@ -753,7 +753,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.22.0"
+        const val MOD_VERSION = "0.23.0"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

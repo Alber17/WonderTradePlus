@@ -52,6 +52,9 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
  general - Reglas basicas del intercambio
 --------------------------------------------------------------------------------
  enabled                    Interruptor general (tambien /wt on|off).
+ boldPrefix                 Fuerza la negrita del nombre del mod en el chat
+                            (true por defecto, aunque config.json tenga un
+                            prefijo antiguo sin negrita).
  requireConfirmation        Pide /wt confirm antes de intercambiar.
  confirmationTimeoutSeconds Segundos que dura la confirmacion pendiente.
  allowInBattle              Permite intercambiar durante un combate.
@@ -88,6 +91,10 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
  clampDonatedLevel + donatedMinimumLevel / donatedMaximumLevel
                             Limita el nivel de lo donado.
  playerDonationsEnabled     Permite que los jugadores aporten a la pool.
+ size.show                  Muestra la talla (XS, S, M, L, XL) junto al nombre.
+ size.xsMax / sMax / mMax / lMax
+                            Limites del tamano del Pokemon para cada talla
+                            (por encima de lMax es XL).
 
 --------------------------------------------------------------------------------
  fallback - Generacion de Pokemon al azar
@@ -142,6 +149,17 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
                                   anticipado) y pausa/reanudacion.
  events.mentionRoleId             ID de un rol de Discord a mencionar en esos
                                   avisos (vacio = sin mencion).
+ events.listPlayers / maxPlayersListed
+                                  Al terminar un evento, lista los nicks de quienes
+                                  han conseguido algo gracias a el (maximo listado).
+ avatarUrl                        Imagen del bot (vacio = la del webhook).
+ style.useEmbeds                  true = tarjetas con colores; false = texto simple.
+ style.pokemonImages              Miniatura oficial del Pokemon en la tarjeta.
+ style.showTimestamp / footer     Hora y pie de la tarjeta.
+ style.colors.<tipo>              Color #RRGGBB: test, donation, shiny, legendary,
+                                  mythical, ultraBeast, paradox, eventStart, eventEnd,
+                                  eventSoon, paused, resumed, top.
+ titles.<tipo>                    Titulos de las tarjetas ({name}, {month}).
  eventStartMessage / eventEndMessage / eventSoonMessage /
  eventPausedMessage / eventResumedMessage
                                   Textos. Variables: {name} {details} {duration}
@@ -163,6 +181,7 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
  ranks - Rangos del servidor
 --------------------------------------------------------------------------------
  enabled                    Activa los rangos.
+ showList                   /wt rango muestra tambien la lista de rangos.
  list                       Del mas alto al mas bajo; gana el primero que coincida.
    id / name                Identificador y nombre mostrado.
    permission               Permiso (LuckPerms/Fabric Permissions), p. ej.
@@ -187,6 +206,8 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
  enabled / maximumDurationHours   Activa los eventos y duracion maxima.
  showUpcoming                     Muestra los proximos eventos en /wt eventos y
                                   al entrar.
+ maxRecordedPlayers               Maximo de resultados guardados por evento para el
+                                  aviso final de Discord (quien consiguio algo).
  names.risk / names.receive       Nombre de cada tipo. {categories} se sustituye
                                   (p. ej. "Apuesta de Shiny y Legendario").
  schedule.timezone                Zona horaria de los eventos programados (vacia =

@@ -106,7 +106,11 @@ Avisos a un canal de Discord mediante un **webhook** (no hace falta ningún bot)
 - `username`: nombre con el que aparecen los mensajes.
 - `notifyDonations`: avisa cuando alguien aporta un Pokémon especial al pool.
 - `notifyReceived`: avisa cuando alguien recibe un Pokémon especial.
-- `donationMessage`, `receivedMessage`: textos. Admiten Markdown de Discord (`**negrita**`) y `{player}`, `{pokemon}`, `{level}`, `{category}`.
+- `avatarUrl`: imagen opcional del bot.
+- `style.useEmbeds`: avisos como tarjetas (por defecto) o texto simple. `style.pokemonImages`: miniatura oficial del Pokémon (PokéAPI, por número de Pokédex). `style.showTimestamp` y `style.footer`: hora y pie de la tarjeta. `style.colors.*`: color de cada tipo de aviso (`#RRGGBB`).
+- `titles.*`: títulos de cada tarjeta (`{name}`, `{month}`).
+- `events.listPlayers` / `events.maxPlayersListed`: al terminar un evento, lista los nicks de quienes han conseguido algo gracias a él (en «Recibir …», los que recibieron un Pokémon de la categoría; en «Arriesgar …», los que aportaron uno).
+- `donationMessage`, `receivedMessage`: textos (descripción de la tarjeta). Admiten Markdown de Discord (`**negrita**`) y `{player}`, `{pokemon}`, `{level}`, `{category}`.
 
 "Especial" aquí es shiny, legendario, mítico, Ultraente o Paradoja. Los mensajes se envían sin bloquear el servidor y no pueden mencionar a nadie (`@everyone` queda desactivado). Prueba la conexión con `/wt admin discord test`.
 
@@ -210,6 +214,17 @@ Los avisos se envían a todos los jugadores que puedan intercambiar, no solo a a
 - Idioma por jugador (`/wt idioma`); `general.useClientLanguage` usa el idioma del cliente si el jugador no ha elegido. `general.language` es el idioma por defecto (consola, Discord).
 - `admin.buttonLevels.<botón>`: nivel necesario para cada botón del panel (0 = `admin.permissionLevel`).
 - `/wt infinito on|off`: modo de pruebas del admin, no figura en la ayuda.
+
+## 0.23.0
+
+- `general.boldPrefix`: fuerza la negrita del nombre del mod en el prefijo de los mensajes (por defecto `true`; pon `false` para respetar tu prefijo tal cual).
+- `pool.size.show` y `pool.size.xsMax / sMax / mMax / lMax`: talla junto al nombre en la pool. Por debajo de `xsMax` es XS, hasta `sMax` S, hasta `mMax` M, hasta `lMax` L y por encima XL (valores del modificador de tamaño del Pokémon).
+- `ranks.showList`: `/wt rango` muestra todos los rangos con sus ventajas.
+- `events.maxRecordedPlayers`: máximo de resultados que se guardan por evento para el aviso final.
+- `discord.avatarUrl`: imagen del bot del webhook (vacío = la del webhook).
+- `discord.style.useEmbeds / pokemonImages / showTimestamp / footer` y `discord.style.colors.*` (`#RRGGBB`).
+- `discord.titles.*`: títulos de las tarjetas.
+- `discord.events.listPlayers` y `maxPlayersListed`: nicks en el aviso de fin de evento.
 
 ## 0.22.0
 

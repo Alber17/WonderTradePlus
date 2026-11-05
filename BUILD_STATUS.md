@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.22.0**.
+- Versión actual: **0.23.0**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -337,6 +337,17 @@
 - El nombre del mod en el prefijo va en negrita: **[WonderTrade]**.
 - Panel de administración: «Reiniciar estadísticas» abre un menú con «Borrar todas» o las cabezas de los jugadores conectados y desconectados para reiniciar solo a uno (con confirmación).
 - Panel de administración: cada botón puede exigir un rango (`admin.buttonLevels.*`); sin él se ve bloqueado y avisa al pulsarlo.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.23.0
+
+- Discord más visual: los avisos ahora son tarjetas (embeds) con título, color según la rareza, campos (jugador, Pokémon, nivel, categoría), imagen del Pokémon y pie. Se pueden volver a mensajes de texto con `discord.style.useEmbeds: false`.
+- Al terminar un evento, el aviso de Discord muestra intercambios, jugadores y duración, y lista los nicks de quienes han conseguido algo gracias al evento («Recibir …»: recibieron un Pokémon de la categoría; «Arriesgar …»: aportaron uno). Se guarda en `event.json` y se controla con `discord.events.listPlayers` y `discord.events.maxPlayersListed`.
+- Top Donaciones en Discord con medallas y campos por ganador.
+- `/wt rango` rediseñado: rango, mínimo, mejora fija, ganancia, probabilidad actual y lista de rangos con ✔ en el tuyo (`ranks.showList`).
+- Negrita del nombre del mod en el chat: el prefijo se corrige siempre (`general.boldPrefix`), aunque `config.json` tuviera un prefijo antiguo.
+- Talla en la pool (XS, S, M, L, XL) calculada con el tamaño del Pokémon y límites configurables en `pool.size.*` (sustituye a la llamada anterior, que no existe en Cobblemon).
+- `/wt topdonaciones` y `/wt donaciones` solo muestran la clasificación cuando el evento ha terminado (ya incluido en 0.22.1).
 - Gradle no se ha ejecutado en el entorno de edición.
 
 ## 0.22.1

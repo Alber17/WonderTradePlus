@@ -51,6 +51,21 @@ object WonderTradeRules {
     fun isSpecialSpecies(pokemon: Pokemon): Boolean = categoryLabel(pokemon) != null || isSpecial(pokemon)
 
     /** "Especial" para filtros y pools: shiny, legendario, mítico, Ultraente o Paradoja. */
+    /**
+     * Talla del Pokémon (XS, S, M, L, XL) según su modificador de tamaño. Los límites se configuran en
+     * pool.size.xsMax / sMax / mMax / lMax (por encima del último es XL).
+     */
+    fun sizeLabel(pokemon: Pokemon): String {
+        val scale = runCatching { pokemon.scaleModifier.toDouble() }.getOrDefault(1.0)
+        return when {
+            scale < ConfigManager.double("pool.size.xsMax", 0.8) -> "XS"
+            scale < ConfigManager.double("pool.size.sMax", 0.95) -> "S"
+            scale < ConfigManager.double("pool.size.mMax", 1.05) -> "M"
+            scale < ConfigManager.double("pool.size.lMax", 1.2) -> "L"
+            else -> "XL"
+        }
+    }
+
     fun isRare(pokemon: Pokemon): Boolean = pokemon.shiny || isSpecialSpecies(pokemon)
 
     fun isRareEntry(entry: PoolEntry): Boolean {
