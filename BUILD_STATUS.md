@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.23.4**.
+- Versión actual: **0.23.7**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -337,6 +337,21 @@
 - El nombre del mod en el prefijo va en negrita: **[WonderTrade]**.
 - Panel de administración: «Reiniciar estadísticas» abre un menú con «Borrar todas» o las cabezas de los jugadores conectados y desconectados para reiniciar solo a uno (con confirmación).
 - Panel de administración: cada botón puede exigir un rango (`admin.buttonLevels.*`); sin él se ve bloqueado y avisa al pulsarlo.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.23.7
+
+- La talla (XS, S, M, L, XL) aparece junto al nombre del Pokémon en todos los menús: equipo, PC, pool y confirmación. Se controla con `pool.size.show` y los límites `pool.size.*`.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.23.6
+
+- Eliminado el comando duplicado `/wt categorias`; queda `/wt especiales`.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.23.5
+
+- Menú `/wt rangos`: cada rango tiene un objeto distinto (estrella del Nether, diamante, esmeralda, oro, hierro, cobre…) y los rangos aparecen centrados en el menú.
 - Gradle no se ha ejecutado en el entorno de edición.
 
 ## 0.23.4

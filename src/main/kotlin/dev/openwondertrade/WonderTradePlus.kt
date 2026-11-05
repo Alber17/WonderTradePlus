@@ -142,9 +142,7 @@ class WonderTradePlus : ModInitializer {
                 1
             })
             // PERMISO: público; qué Pokémon cuentan como míticos, legendarios, Ultraentes y Paradoja.
-            // «categorias» es alias de «especiales».
             .then(literal("especiales").executes { openSpecialsCommand(it) })
-            .then(literal("categorias").executes { openSpecialsCommand(it) })
             // PERMISO: público; Top Donaciones del mes (puntos, ranking y próximo mes activo). «topdonaciones» es alias.
             .then(literal("donaciones").executes { showTopDonationsCommand(it) })
             .then(literal("topdonaciones").executes { showTopDonationsCommand(it) })
@@ -766,7 +764,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.23.4"
+        const val MOD_VERSION = "0.23.7"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

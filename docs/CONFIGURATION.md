@@ -218,7 +218,7 @@ Los avisos se envían a todos los jugadores que puedan intercambiar, no solo a a
 ## 0.23.0
 
 - `general.boldPrefix`: fuerza la negrita del nombre del mod en el prefijo de los mensajes (por defecto `true`; pon `false` para respetar tu prefijo tal cual).
-- `pool.size.show` y `pool.size.xsMax / sMax / mMax / lMax`: talla junto al nombre en la pool. Por debajo de `xsMax` es XS, hasta `sMax` S, hasta `mMax` M, hasta `lMax` L y por encima XL (valores del modificador de tamaño del Pokémon).
+- `pool.size.show` (afecta a todos los menús de Pokémon) y `pool.size.xsMax / sMax / mMax / lMax`: talla junto al nombre en la pool. Por debajo de `xsMax` es XS, hasta `sMax` S, hasta `mMax` M, hasta `lMax` L y por encima XL (valores del modificador de tamaño del Pokémon).
 - `events.maxRecordedPlayers`: máximo de resultados que se guardan por evento para el aviso final.
 - `discord.avatarUrl`: imagen del bot del webhook (vacío = la del webhook).
 - `discord.style.useEmbeds / pokemonImages / showTimestamp / footer` y `discord.style.colors.*` (`#RRGGBB`).

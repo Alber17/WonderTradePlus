@@ -46,7 +46,7 @@ Administracion (admin.permissionLevel, 2 por defecto):
                             desprogramar <id> | pausar <id> | reanudar <id> |
                             historial | parar <id>.
   /wt clearpool             Alias de /wt admin clear.
-Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
+Alias: /wt sounds = sonidos, /wt events = eventos,
        /wondertrade = /wt.
 
 --------------------------------------------------------------------------------
@@ -92,7 +92,7 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
  clampDonatedLevel + donatedMinimumLevel / donatedMaximumLevel
                             Limita el nivel de lo donado.
  playerDonationsEnabled     Permite que los jugadores aporten a la pool.
- size.show                  Muestra la talla (XS, S, M, L, XL) junto al nombre.
+ size.show                  Muestra la talla (XS, S, M, L, XL) junto al nombre en todos los menus.
  size.xsMax / sMax / mMax / lMax
                             Limites del tamano del Pokemon para cada talla
                             (por encima de lMax es XL).

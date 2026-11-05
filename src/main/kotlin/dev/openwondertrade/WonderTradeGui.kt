@@ -365,23 +365,33 @@ object WonderTradeGui {
     fun openRanks(player: ServerPlayer) {
         val ranks = WonderTradeRanks.all()
         val rows = if (ranks.size <= 7) 3 else 6
+        // Un objeto distinto por rango (del más alto al más bajo).
+        val icons = listOf(
+            Items.NETHER_STAR, Items.DIAMOND, Items.EMERALD, Items.GOLD_INGOT, Items.IRON_INGOT,
+            Items.COPPER_INGOT, Items.AMETHYST_SHARD, Items.LAPIS_LAZULI, Items.QUARTZ, Items.REDSTONE
+        )
         open(player, Lang.tr("&5Wonder Trade &8- &bRangos"), rows) { menu ->
             fill(menu, rows * 9)
             if (!WonderTradeRanks.enabled() || ranks.isEmpty()) {
                 menu.put(rows * 9 / 2, named(Items.BARRIER, ConfigManager.string("messages.rankDisabled", "&7Los rangos están desactivados.")))
             } else {
                 val mine = WonderTradeRanks.rankOf(player)
-                val slots = if (rows == 3) (10..16).toList() else (10..16) + (19..25) + (28..34) + (37..43)
-                ranks.take(slots.size).forEachIndexed { index, rank ->
-                    val own = mine != null && mine.id == rank.id
-                    val lore = mutableListOf(
-                        Lang.t("&7Probabilidad mínima de especial: &d{0}%", WonderTradeService.percentText(rank.baseBonus)),
-                        Lang.t("&7Mejora fija en cada intercambio: &a+{0}%", WonderTradeService.percentText(rank.improvementPercent)),
-                        Lang.t("&7Ganancia por Pokémon ofrecido: &ax{0}", WonderTradeService.percentText(rank.gainMultiplier))
-                    )
-                    lore += if (own) Lang.tr("&a✔ Es tu rango") else ""
-                    val stack = named(if (own) Items.NETHER_STAR else Items.GOLD_INGOT, "&f" + rank.name, *lore.filter { it.isNotEmpty() }.toTypedArray())
-                    menu.put(slots[index], stack)
+                // Filas de hasta 7 rangos, cada una centrada. Con 3 filas el menú usa la del medio; con 6, las cuatro centrales.
+                val perRow = 7
+                val firstRow = if (rows == 3) 1 else 1
+                ranks.take(perRow * (rows - 2)).chunked(perRow).forEachIndexed { rowIndex, group ->
+                    val start = (firstRow + rowIndex) * 9 + (9 - group.size) / 2
+                    group.forEachIndexed { column, rank ->
+                        val index = rowIndex * perRow + column
+                        val own = mine != null && mine.id == rank.id
+                        val lore = mutableListOf(
+                            Lang.t("&7Probabilidad mínima de especial: &d{0}%", WonderTradeService.percentText(rank.baseBonus)),
+                            Lang.t("&7Mejora fija en cada intercambio: &a+{0}%", WonderTradeService.percentText(rank.improvementPercent)),
+                            Lang.t("&7Ganancia por Pokémon ofrecido: &ax{0}", WonderTradeService.percentText(rank.gainMultiplier))
+                        )
+                        if (own) lore += Lang.tr("&a✔ Es tu rango")
+                        menu.put(start + column, named(icons[index % icons.size], "&f" + rank.name, *lore.toTypedArray()))
+                    }
                 }
             }
             menu.button(rows * 9 - 9, named(Items.ARROW, Lang.tr("&aVolver"))) { openMain(it) }
@@ -469,14 +479,7 @@ object WonderTradeGui {
             if (admin && deleteMode) extra += Lang.tr("&c✖ Clic para eliminar del pool")
             else if (admin) extra += Lang.tr("&7Activa &c&l«Eliminar Pokémon»&r&7 para poder borrarlo.")
             val stack = if (pokemon != null) {
-                pokemonStack(pokemon, false, extra).also { pokemonStack ->
-                    if (ConfigManager.bool("pool.size.show", true)) {
-                        pokemonStack.set(
-                            DataComponents.CUSTOM_NAME,
-                            lit((if (pokemon.shiny) "&e" else "&f") + pokemon.getDisplayName().string + " &8(&7" + WonderTradeRules.sizeLabel(pokemon) + "&8)")
-                        )
-                    }
-                }
+                pokemonStack(pokemon, false, extra)
             } else named(Items.BARRIER, Lang.t("&c{0}", entry.species), Lang.tr("&7No se pudo cargar este Pokémon."))
             if (admin && deleteMode) {
                 menu.button(i, stack) { p ->
@@ -1824,7 +1827,8 @@ object WonderTradeGui {
     private fun pokemonStack(pokemon: Pokemon, showOfferHint: Boolean, extra: List<String> = emptyList()): ItemStack {
         val stack = runCatching { PokemonItem.from(pokemon) }.getOrElse { ItemStack(Items.PAPER) }
         val name = pokemon.getDisplayName().string
-        stack.set(DataComponents.CUSTOM_NAME, lit((if (pokemon.shiny) "&e" else "&f") + name))
+        val size = if (ConfigManager.bool("pool.size.show", true)) " &8(&7" + WonderTradeRules.sizeLabel(pokemon) + "&8)" else ""
+        stack.set(DataComponents.CUSTOM_NAME, lit((if (pokemon.shiny) "&e" else "&f") + name + size))
 
         val lines = mutableListOf(Lang.t("&7Nivel: &f{0}", pokemon.level))
         WonderTradeRules.typesLabel(pokemon)?.let { lines += Lang.t("&7Tipo: {0}", it) }
