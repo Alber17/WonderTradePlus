@@ -75,7 +75,7 @@ object WonderTradeRules {
         val parts = runCatching {
             pokemon.types.map { type ->
                 val entry = typeNames[type.name.lowercase()]
-                if (entry != null) entry.first + entry.second else "&f" + type.name
+                if (entry != null) entry.first + Lang.tr(entry.second) else "&f" + type.name
             }
         }.getOrNull() ?: return null
         return if (parts.isEmpty()) null else parts.joinToString(" &7/ ")

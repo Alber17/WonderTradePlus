@@ -402,6 +402,25 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 - Gradle no se ha ejecutado en el entorno de edición.
 
 
+## 0.22.0
+
+- Historial personal: `/wt historial` (alias `/wt history`) y botón «Tu historial» en el menú principal muestran al jugador sus últimos intercambios. No admite nombre ni filtro: nadie puede ver el historial de otro (el de todos sigue siendo solo de admins, en `/wt admin history`). Se desactiva con `history.playersCanViewOwn`. Solo hay datos dentro del límite de `history.maxEntries` y `history.autoDeleteAfterDays`.
+- `/wt admin estado` (alias `status`): diagnóstico con versión, estado, pool, jugadores, historial, penalizados, eventos, Top Donaciones, idiomas, sistema de permisos, Discord, copias de seguridad y tamaño de archivos.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.21.0
+
+- Idioma por jugador: cada jugador elige el idioma de su propio Wonder Trade con `/wt idioma [código|auto]` (alias `/wt language`) o con el botón «Idioma» del menú principal. Sin elegir, se usa el idioma de su cliente de Minecraft si existe en `lang/` (`general.useClientLanguage`) o, si no, `general.language`. Se quita el botón de idioma del panel de administración; `/wt admin idioma` cambia solo el idioma por defecto del servidor.
+- Traducción completa: menús y botones (incluido el libro de especiales y las estadísticas), nombres de categorías, tipos, naturalezas (en inglés: Timid, Jolly…), días y meses, anuncios y avisos. Los anuncios globales (eventos, recordatorios, Top Donaciones, especiales conseguidos) se envían a cada jugador en su idioma.
+- `/wt infinito on|off` (solo admins, oculto): quita el cooldown de `/wt` y de `/wt donar` (y los límites de donación y repeticiones) al admin que lo ejecuta.
+- Mensaje de especie repetida reescrito: «Ese Pokémon ya lo has tradeado antes. Deberás intercambiar otro Pokémon distinto antes de poder ofrecerlo de nuevo.»
+- El nombre del mod en el prefijo va en negrita: **[WonderTrade]**.
+- Panel de administración: «Reiniciar estadísticas» abre un menú con «Borrar todas» o las cabezas de los jugadores conectados y desconectados para reiniciar solo a uno (con confirmación).
+- Panel de administración: cada botón puede exigir un rango (`admin.buttonLevels.*`); sin él se ve bloqueado y avisa al pulsarlo.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
 ## 0.20.0
 
 - Idiomas: nueva opción `general.language` (`es_es` español de España, principal, y `en_us`). Se cambia con `/wt admin idioma [código]` o con el botón «Idioma» del panel de administración. Los textos viven en `config/wondertradeplus/lang/<código>.json`; para añadir otro idioma basta con copiar `en_us.json` con otro nombre (p. ej. `de_de.json`), traducir los valores y elegirlo. Lo que falte en un idioma se muestra en español.

@@ -128,6 +128,8 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
  backup.intervalHours / keep   Copia automatica cada X horas y cuantas se guardan.
  history.enabled               Guarda el historial de intercambios.
  history.autoDeleteAfterDays   Borra entradas mas viejas de X dias (0 = nunca).
+ history.playersCanViewOwn     Cada jugador puede ver SU historial con /wt historial
+                               (boton Tu historial del menu). Nunca ve el de otros.
 
 --------------------------------------------------------------------------------
  discord - Avisos por webhook
@@ -310,20 +312,48 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
                             comparten puesto y premio).
 
 --------------------------------------------------------------------------------
- general.language - Idioma
+ Idiomas (general.language, general.useClientLanguage)
 --------------------------------------------------------------------------------
- es_es (principal, espanol de Espana) o en_us. Tambien se cambia con
- /wt admin idioma <codigo> o desde el boton Idioma del panel de administracion.
- Los textos viven en la carpeta config/wondertradeplus/lang/<codigo>.json:
+ Cada jugador elige el idioma de su propio Wonder Trade con /wt idioma (o el
+ boton Idioma del menu principal). Si no elige, se usa el idioma de su cliente
+ de Minecraft cuando existe en la carpeta lang (general.useClientLanguage); si
+ no, general.language (por defecto es_es, espanol de Espana), que tambien es el
+ idioma de la consola y de Discord. /wt admin idioma <codigo> cambia ese idioma
+ por defecto.
+ Los textos viven en config/wondertradeplus/lang/<codigo>.json:
   - Claves como messages.success, discord.donationMessage o events.names.risk:
     el texto de ese ajuste.
-  - El resto de claves son el texto original en espanol y su traduccion.
+  - El resto de claves son el texto original en espanol y su traduccion
+    (menus, botones, estadisticas, naturalezas, tipos, categorias...).
  Para anadir un idioma: copia en_us.json con otro nombre (por ejemplo de_de.json),
- cambia "_name" y traduce los valores; despues pon general.language a ese codigo
- (o usa /wt admin idioma de_de). Lo que falte en un idioma se muestra en espanol.
- Si cambias un texto en un archivo de lang, se respeta; en las actualizaciones
- solo se anaden las claves nuevas. Un texto escrito a mano en config.json
- (por ejemplo messages.success) tiene prioridad sobre el idioma.
+ cambia "_name" y traduce los valores; aparecera en /wt idioma. Lo que falte en
+ un idioma se muestra en espanol. Si cambias un texto en un archivo de lang, se
+ respeta; en las actualizaciones solo se anaden las claves nuevas. Un texto
+ escrito a mano en config.json (por ejemplo messages.success) tiene prioridad
+ sobre el idioma. La barra de eventos (bossbar) es comun y usa el idioma del servidor.
+
+--------------------------------------------------------------------------------
+ admin.buttonLevels - Rango necesario por boton del panel de administracion
+--------------------------------------------------------------------------------
+ pool / fill / deletePool / events / topDonations / toggle / penalties /
+ history / resetStats / reload / maintenance / backup / discord
+                            Nivel de operador (1-4) necesario para usar ese
+                            boton. 0 = el de admin.permissionLevel. Quien no
+                            llegue ve el boton bloqueado y un aviso al pulsarlo.
+
+--------------------------------------------------------------------------------
+ /wt admin estado - Diagnostico
+--------------------------------------------------------------------------------
+ Muestra version, si esta activado, tamano de la pool, jugadores e historial
+ guardados, penalizados, eventos, Top Donaciones, idiomas, sistema de permisos
+ detectado, Discord, copias de seguridad y tamano de los archivos.
+
+--------------------------------------------------------------------------------
+ Modo infinito (pruebas)
+--------------------------------------------------------------------------------
+ /wt infinito on | off (solo admins, no sale en la ayuda ni en los menus):
+ sin cooldown de /wt ni de /wt donar, sin limites de donacion ni bloqueo de
+ especie repetida para quien lo ejecuta. Se apaga solo al reiniciar el servidor.
 
 --------------------------------------------------------------------------------
  messages - Todos los textos

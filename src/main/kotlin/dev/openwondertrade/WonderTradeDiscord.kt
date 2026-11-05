@@ -66,6 +66,7 @@ object WonderTradeDiscord {
     private fun epoch(millis: Long): Long = millis / 1000L
 
     fun eventStarted(event: WtEvent) {
+        Lang.withPlayer(null) {
         if (!eventsEnabled("start")) return
         val details = WonderTradeEvents.describe(event).joinToString("\n") { it.replace(Regex("&."), "") }
         postEvent(
@@ -75,38 +76,55 @@ object WonderTradeDiscord {
                 "duration" to WonderTradeEvents.formatDuration((event.endAt - event.startAt) / 1000L), "endEpoch" to epoch(event.endAt)
             )
         )
+    
+        }
     }
 
     fun eventEnded(event: WtEvent) {
+        Lang.withPlayer(null) {
         if (!eventsEnabled("end")) return
         postEvent(ConfigManager.string("discord.eventEndMessage", "🏁 **Ha terminado el evento: {name}**"), mapOf("name" to event.title))
+    
+        }
     }
 
     fun eventScheduledSoon(item: ScheduledEvent) {
+        Lang.withPlayer(null) {
         if (!eventsEnabled("scheduledSoon")) return
         postEvent(
             ConfigManager.string("discord.eventSoonMessage", "⏰ **{name}** empieza <t:{startEpoch}:R>"),
             mapOf("name" to item.title, "startEpoch" to epoch(item.nextRunAt))
         )
+    
+        }
     }
 
     /** Anuncio del Top Donaciones al cerrar el mes (líneas ya sin códigos de color). */
     fun topDonations(lines: List<String>) {
+        Lang.withPlayer(null) {
         if (!eventsEnabled("topDonations") || lines.isEmpty()) return
         discordPost(lines.joinToString("\n"))
+    
+        }
     }
 
     fun eventPaused(event: WtEvent) {
+        Lang.withPlayer(null) {
         if (!eventsEnabled("pause")) return
         postEvent(ConfigManager.string("discord.eventPausedMessage", "⏸️ El evento **{name}** se ha pausado temporalmente."), mapOf("name" to event.title))
+    
+        }
     }
 
     fun eventResumed(event: WtEvent) {
+        Lang.withPlayer(null) {
         if (!eventsEnabled("pause")) return
         postEvent(
             ConfigManager.string("discord.eventResumedMessage", "▶️ El evento **{name}** se ha reanudado. Termina <t:{endEpoch}:R>."),
             mapOf("name" to event.title, "endEpoch" to epoch(event.endAt))
         )
+    
+        }
     }
 
     fun test(callback: (Boolean, String) -> Unit) {
@@ -123,25 +141,31 @@ object WonderTradeDiscord {
     private fun plainCategory(pokemon: Pokemon): String {
         val parts = mutableListOf<String>()
         WonderTradeRules.categoryLabel(pokemon)?.let { parts += it.replace(Regex("&."), "") }
-        if (pokemon.shiny) parts += "Shiny"
-        return if (parts.isEmpty()) "Especial" else parts.joinToString(" · ")
+        if (pokemon.shiny) parts += Lang.tr("Shiny")
+        return if (parts.isEmpty()) Lang.tr("Especial") else parts.joinToString(" · ")
     }
 
     fun notifyDonation(player: ServerPlayer, offered: Pokemon) {
+        Lang.withPlayer(null) {
         if (!ConfigManager.bool("discord.enabled", false) || !ConfigManager.bool("discord.notifyDonations", true)) return
         if (!WonderTradeRules.isRare(offered)) return
         val template = ConfigManager.string("discord.donationMessage", "**{player}** ha aportado **{pokemon}** (Nv. {level}, {category}) al pool.")
         if (template.isNotBlank()) {
             discordPost(WonderTradeService.format(template, mapOf("player" to player.gameProfile.name, "pokemon" to plainName(offered), "level" to offered.level, "category" to plainCategory(offered))))
         }
+    
+        }
     }
 
     fun notify(player: ServerPlayer, offered: Pokemon, incoming: Pokemon) {
+        Lang.withPlayer(null) {
         if (!ConfigManager.bool("discord.enabled", false)) return
         notifyDonation(player, offered)
         if (ConfigManager.bool("discord.notifyReceived", true) && WonderTradeRules.isRare(incoming)) {
             val template = ConfigManager.string("discord.receivedMessage", "🎉 **{player}** ha recibido **{pokemon}** (Nv. {level}, {category}) en un Wonder Trade.")
             discordPost(WonderTradeService.format(template, mapOf("player" to player.gameProfile.name, "pokemon" to plainName(incoming), "level" to incoming.level, "category" to plainCategory(incoming))))
+        }
+    
         }
     }
 }

@@ -27,6 +27,7 @@ object WonderTradeEventDisplay {
         for (uuid in ready) {
             joinQueue.remove(uuid)
             val player = server.playerList.getPlayer(uuid) ?: continue
+            Lang.bindPlayer(player)   // el aviso se redacta en el idioma de quien entra
             val active = WonderTradeEvents.active(now)
             val upcoming = WonderTradeSchedule.upcomingLines()
             if (active.isEmpty() && upcoming.isEmpty()) continue
@@ -44,6 +45,7 @@ object WonderTradeEventDisplay {
             lines += ConfigManager.string("messages.eventJoinFooter", "&7Usa &e/wt eventos &7para ver los detalles.")
             player.sendSystemMessage(WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n")))
         }
+        Lang.reset()
     }
 
     // ------------------------------------------------------------ barras de tiempo

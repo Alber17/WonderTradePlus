@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.20.0**.
+- Versión actual: **0.22.0**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -326,4 +326,21 @@
 - Penalizaciones: motivo opcional (`/wt admin penalizar <jugador> [duración] [motivo]`, `/wt admin motivo <texto>` y botones «Motivo» en el menú, con motivos rápidos configurables en `penalties.reasons`). El motivo se muestra al jugador y en las listas.
 - Historial de penalizaciones (`/wt admin penalizaciones historial [jugador]` y botón «Historial» en el menú «Penalizados»): penalizaciones, perdones y caducidades, con límite `penalties.historySize`.
 - Aviso al terminar una penalización: al instante si el jugador está conectado, y al entrar si caducó mientras estaba fuera.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.21.0
+
+- Idioma por jugador: cada jugador elige el idioma de su propio Wonder Trade con `/wt idioma [código|auto]` (alias `/wt language`) o con el botón «Idioma» del menú principal. Sin elegir, se usa el idioma de su cliente de Minecraft si existe en `lang/` (`general.useClientLanguage`) o, si no, `general.language`. Se quita el botón de idioma del panel de administración; `/wt admin idioma` cambia solo el idioma por defecto del servidor.
+- Traducción completa: menús y botones (incluido el libro de especiales y las estadísticas), nombres de categorías, tipos, naturalezas (en inglés: Timid, Jolly…), días y meses, anuncios y avisos. Los anuncios globales (eventos, recordatorios, Top Donaciones, especiales conseguidos) se envían a cada jugador en su idioma.
+- `/wt infinito on|off` (solo admins, oculto): quita el cooldown de `/wt` y de `/wt donar` (y los límites de donación y repeticiones) al admin que lo ejecuta.
+- Mensaje de especie repetida reescrito: «Ese Pokémon ya lo has tradeado antes. Deberás intercambiar otro Pokémon distinto antes de poder ofrecerlo de nuevo.»
+- El nombre del mod en el prefijo va en negrita: **[WonderTrade]**.
+- Panel de administración: «Reiniciar estadísticas» abre un menú con «Borrar todas» o las cabezas de los jugadores conectados y desconectados para reiniciar solo a uno (con confirmación).
+- Panel de administración: cada botón puede exigir un rango (`admin.buttonLevels.*`); sin él se ve bloqueado y avisa al pulsarlo.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.22.0
+
+- Historial personal: `/wt historial` (alias `/wt history`) y botón «Tu historial» en el menú principal muestran al jugador sus últimos intercambios. No admite nombre ni filtro: nadie puede ver el historial de otro (el de todos sigue siendo solo de admins, en `/wt admin history`). Se desactiva con `history.playersCanViewOwn`. Solo hay datos dentro del límite de `history.maxEntries` y `history.autoDeleteAfterDays`.
+- `/wt admin estado` (alias `status`): diagnóstico con versión, estado, pool, jugadores, historial, penalizados, eventos, Top Donaciones, idiomas, sistema de permisos, Discord, copias de seguridad y tamaño de archivos.
 - Gradle no se ha ejecutado en el entorno de edición.

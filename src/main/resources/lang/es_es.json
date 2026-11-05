@@ -1,6 +1,6 @@
 {
  "_name": "Español (España)",
- "messages.prefix": "&8[&dWonderTrade&8] &r",
+ "messages.prefix": "&8[&d&lWonderTrade&r&8] &r",
  "messages.help": "&d&lWonder Trade &7- Comandos disponibles:",
  "messages.helpSoundsCommand": "&e/wt sonidos &7Configurar tus sonidos",
  "messages.invalidSlot": "&cEl slot debe estar entre 1 y 6.",
@@ -70,7 +70,7 @@
  "messages.helpAdminEventStopCommand": "&e/wt admin eventos parar <id> &7Finalizar un evento",
  "messages.helpAdminUnscheduleCommand": "&e/wt admin eventos desprogramar <id> &7Cancelar un evento programado",
  "messages.rankInfo": "&7Tu rango: {rank} &8— &7mínimo de probabilidad &d{base}%&7, mejora &b+{improvement}%&7 y ganancias &ax{multiplier}&7.",
- "messages.repeatSpecies": "&cEsa especie ya la has tradeado antes. Prueba con otra y podrás volver a ella.",
+ "messages.repeatSpecies": "&cEse Pokémon ya lo has tradeado antes. Deberás intercambiar otro Pokémon distinto antes de poder ofrecerlo de nuevo.",
  "messages.poolMonthlyReset": "&d★ Reinicio mensual de la pool: los Pokémon normales se han renovado. ¡Los especiales se conservan!",
  "messages.eventReminderHeader": "&d★ Próximos eventos de Wonder Trade &8(la cuenta atrás va a tu hora):",
  "messages.eventReminderLine": "&7- &f{name} &7— {when}",
@@ -181,5 +181,8 @@
  "events.names.risk": "Apuesta de {categories}",
  "events.names.receive": "Lluvia de {categories}",
  "messages.penaltyEnded": "&a¡Tu penalización de Wonder Trade ha terminado! Ya puedes volver a intercambiar y donar.",
- "messages.helpAdminLanguageCommand": "&e/wt admin idioma [código] &7Ver o cambiar el idioma del servidor"
+ "messages.helpAdminLanguageCommand": "&e/wt admin idioma [código] &7Ver o cambiar el idioma por defecto del servidor",
+ "messages.helpLanguageCommand": "&e/wt idioma [código] &7Elegir tu idioma de Wonder Trade",
+ "messages.helpHistoryCommand": "&e/wt historial &7Ver tus últimos intercambios",
+ "messages.helpAdminStatusCommand": "&e/wt admin estado &7Diagnóstico: versión, pool, copias, permisos y archivos"
 }

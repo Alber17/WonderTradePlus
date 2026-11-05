@@ -14,7 +14,8 @@
     "speciesBlacklist": [],
     "useSpeciesWhitelist": false,
     "speciesWhitelist": [],
-    "language": "es_es"
+    "language": "es_es",
+    "useClientLanguage": true
   },
   "trade": {
     "cooldownMinutes": 720,
@@ -94,7 +95,8 @@
   "history": {
     "enabled": true,
     "maxEntries": 1000,
-    "autoDeleteAfterDays": 30
+    "autoDeleteAfterDays": 30,
+    "playersCanViewOwn": true
   },
   "admin": {
     "permissionLevel": 2,
@@ -113,6 +115,21 @@
         250,
         500
       ]
+    },
+    "buttonLevels": {
+      "pool": 0,
+      "fill": 0,
+      "deletePool": 0,
+      "events": 0,
+      "topDonations": 0,
+      "toggle": 0,
+      "penalties": 0,
+      "history": 0,
+      "resetStats": 0,
+      "reload": 0,
+      "maintenance": 0,
+      "backup": 0,
+      "discord": 0
     }
   },
   "ranks": {

@@ -22,8 +22,8 @@ class WonderTradePlus : ModInitializer {
         ServerTickEvents.END_SERVER_TICK.register { server -> WonderTradeService.tick(server) }
         // Aviso de eventos activos al entrar (todo en el servidor).
         net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register { handler, _, _ ->
-            WonderTradeEventDisplay.onJoin(handler.player)
             runCatching { WonderTradeService.rememberPlayer(handler.player) }
+            Lang.withPlayer(handler.player) { WonderTradeEventDisplay.onJoin(handler.player) }
             runCatching { WonderTradePenalties.onJoin(handler.player) }
         }
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
@@ -35,6 +35,8 @@ class WonderTradePlus : ModInitializer {
     private fun registerCommands(dispatcher: CommandDispatcher<CommandSourceStack>, root: String) {
         // PERMISO: cualquier jugador puede ejecutar el comando raíz para abrir la GUI o ver ayuda.
         val command = literal(root)
+            // Todo lo que se ejecute con /wt se redacta en el idioma del jugador que lo escribe.
+            .requires { source -> Lang.bindPlayer(source.player); true }
             .executes { context ->
                 val player = context.source.player
                 if (player != null && ConfigManager.bool("gui.enabled", true)) {
@@ -55,6 +57,22 @@ class WonderTradePlus : ModInitializer {
                 context.source.sendSuccess({ WonderTradeService.info(Lang.tr("&cWonder Trade desactivado. Los jugadores no podrán intercambiar ni donar hasta usar &f/wt on&c.")) }, true)
                 1
             })
+            // Modo infinito (pruebas del admin): sin cooldown de /wt ni de /wt donar. Oculto en la ayuda y en el menú.
+            .then(literal("infinito").requires { it.hasPermission(WonderTradeService.adminLevel()) }
+                .then(literal("on").executes { context -> infiniteCommand(context, true) })
+                .then(literal("off").executes { context -> infiniteCommand(context, false) }))
+            // Historial propio: cada jugador solo ve sus intercambios (no admite nombre de otro jugador).
+            .then(literal("historial").executes { context -> ownHistoryCommand(context) })
+            .then(literal("history").executes { context -> ownHistoryCommand(context) })
+            // Idioma propio de cada jugador. «language» es alias de «idioma».
+            .then(literal("idioma").executes { context -> openLanguageCommand(context) }
+                .then(argument("codigo", StringArgumentType.word())
+                    .suggests { _, builder -> SharedSuggestionProvider.suggest(Lang.available().map { it.first } + "auto", builder) }
+                    .executes { context -> setLanguageCommand(context, StringArgumentType.getString(context, "codigo")) }))
+            .then(literal("language").executes { context -> openLanguageCommand(context) }
+                .then(argument("codigo", StringArgumentType.word())
+                    .suggests { _, builder -> SharedSuggestionProvider.suggest(Lang.available().map { it.first } + "auto", builder) }
+                    .executes { context -> setLanguageCommand(context, StringArgumentType.getString(context, "codigo")) }))
             // PERMISO: público; muestra la ayuda.
             .then(literal("help").executes { context ->
                 context.source.sendSuccess({ WonderTradeService.helpComponent(context.source.player) }, false)
@@ -225,6 +243,53 @@ class WonderTradePlus : ModInitializer {
         return 1
     }
 
+    private fun ownHistoryCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>): Int {
+        val player = context.source.player
+        if (player == null) {
+            context.source.sendFailure(WonderTradeService.info(Lang.tr("&cEste comando solo se puede usar dentro del juego.")))
+            return 0
+        }
+        WonderTradeGui.openMyHistory(player)
+        return 1
+    }
+
+    private fun statusCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>): Int {
+        context.source.sendSuccess({ WonderTradeService.statusComponent(context.source.server) }, false)
+        return 1
+    }
+
+    private fun infiniteCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>, value: Boolean): Int {
+        val player = context.source.player
+        if (player == null) {
+            context.source.sendFailure(WonderTradeService.info(Lang.tr("&cEste comando solo se puede usar dentro del juego.")))
+            return 0
+        }
+        WonderTradeService.setInfinite(player, value)
+        context.source.sendSuccess({
+            WonderTradeService.info(
+                if (value) Lang.tr("&aModo infinito ACTIVADO: sin cooldown de /wt ni de /wt donar, sin límites ni repeticiones. Desactívalo con &f/wt infinito off&a.")
+                else Lang.tr("&7Modo infinito desactivado: vuelves a tener cooldown y límites.")
+            )
+        }, false)
+        return 1
+    }
+
+    private fun openLanguageCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>): Int {
+        val player = context.source.player
+        if (player == null) {
+            context.source.sendFailure(WonderTradeService.info(Lang.t("&7Idioma del servidor: &f{0}&7. Disponibles: &f{1}", Lang.current(), Lang.available().joinToString(", ") { it.first })))
+            return 0
+        }
+        WonderTradeGui.openLanguage(player)
+        return 1
+    }
+
+    private fun setLanguageCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>, code: String): Int {
+        val player = context.source.player ?: return 0
+        WonderTradeGui.chooseLanguage(player, code)
+        return 1
+    }
+
     private fun penaltyHistoryCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>, name: String?): Int {
         val source = context.source
         val uuid = name?.let { WonderTradeService.resolvePlayer(source.server, it)?.first }
@@ -326,6 +391,9 @@ class WonderTradePlus : ModInitializer {
             .then(argument("jugador", StringArgumentType.word())
                 .suggests { context, builder -> SharedSuggestionProvider.suggest(context.source.onlinePlayerNames, builder) }
                 .executes { context -> penaltyHistoryCommand(context, StringArgumentType.getString(context, "jugador")) })))
+        // Diagnóstico del mod para admins.
+        .then(literal("estado").executes { context -> statusCommand(context) })
+        .then(literal("status").executes { context -> statusCommand(context) })
         // Idioma del servidor: sin argumento lista los disponibles.
         .then(literal("idioma").executes { context -> languageCommand(context, null) }
             .then(argument("codigo", StringArgumentType.word())
@@ -708,7 +776,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.20.0"
+        const val MOD_VERSION = "0.22.0"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

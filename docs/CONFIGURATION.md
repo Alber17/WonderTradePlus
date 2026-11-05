@@ -197,3 +197,14 @@ Los avisos se envían a todos los jugadores que puedan intercambiar, no solo a a
 - `general.language`: `es_es` (por defecto) o `en_us`. Archivos en `config/wondertradeplus/lang/`. Para otro idioma, copia `en_us.json`, traduce los valores y usa su nombre como código.
 - Un texto escrito a mano en `config.json` (`messages.*`, `discord.*Message`, `events.names.*`) tiene prioridad sobre el idioma.
 - `penalties.reasons` (motivos rápidos del menú) y `penalties.historySize` (límite del historial).
+
+## 0.21.0
+
+- Idioma por jugador (`/wt idioma`); `general.useClientLanguage` usa el idioma del cliente si el jugador no ha elegido. `general.language` es el idioma por defecto (consola, Discord).
+- `admin.buttonLevels.<botón>`: nivel necesario para cada botón del panel (0 = `admin.permissionLevel`).
+- `/wt infinito on|off`: modo de pruebas del admin, no figura en la ayuda.
+
+## 0.22.0
+
+- `history.playersCanViewOwn`: permite `/wt historial` (solo el propio).
+- `/wt admin estado`: diagnóstico.

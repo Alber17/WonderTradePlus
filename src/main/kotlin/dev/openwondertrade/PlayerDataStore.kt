@@ -227,6 +227,25 @@ class PlayerDataStore(private val file: Path) {
         return null
     }
 
+    /** Idioma elegido por el jugador con /wt idioma (null si usa el automático). */
+    fun language(uuid: UUID): String? =
+        playerNode(uuid, create = false)?.get("language")?.takeIf { !it.isJsonNull }?.asString?.takeIf { it.isNotBlank() }
+
+    fun setLanguage(uuid: UUID, language: String?) {
+        val node = playerNode(uuid, create = true)!!
+        if (language == null) node.remove("language") else node.addProperty("language", language)
+    }
+
+    /** Todos los jugadores guardados (uuid, nombre), por orden alfabético. */
+    fun knownPlayers(): List<Pair<UUID, String>> {
+        val players = root.getAsJsonObject("players") ?: return emptyList()
+        return players.entrySet().mapNotNull { (key, value) ->
+            val uuid = runCatching { UUID.fromString(key) }.getOrNull() ?: return@mapNotNull null
+            val name = (value as? JsonObject)?.get("name")?.takeIf { !it.isJsonNull }?.asString ?: return@mapNotNull null
+            uuid to name
+        }.sortedBy { it.second.lowercase() }
+    }
+
     fun names(): List<String> {
         val players = root.getAsJsonObject("players") ?: return emptyList()
         return players.entrySet().mapNotNull { (it.value as? JsonObject)?.get("name")?.asString }

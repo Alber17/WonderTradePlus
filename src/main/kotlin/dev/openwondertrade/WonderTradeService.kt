@@ -78,6 +78,37 @@ object WonderTradeService {
         return false
     }
 
+    // ------------------------------------------------------------ idioma por jugador
+
+    fun storedLanguage(uuid: UUID): String? = playerData.language(uuid)
+
+    /** Cambia el idioma de Wonder Trade de este jugador (null = automático, según su cliente). */
+    fun setPlayerLanguage(player: ServerPlayer, language: String?) {
+        playerData.setLanguage(player.uuid, language)
+        playerData.save()
+        Lang.bindPlayer(player)
+    }
+
+    /** Envía a cada jugador (y a la consola) un texto redactado en su propio idioma. */
+    fun broadcastLocalized(server: MinecraftServer, build: () -> Component) {
+        Lang.withPlayer(null) { runCatching { server.sendSystemMessage(build()) } }
+        server.playerList.players.forEach { player -> Lang.withPlayer(player) { player.sendSystemMessage(build()) } }
+    }
+
+    /** Nombre del donante tal como se muestra: el «Servidor» del pool se traduce. */
+    fun donorLabel(name: String): String = if (name.equals("Servidor", ignoreCase = true)) Lang.tr("Servidor") else name
+
+    // ------------------------------------------------------------ modo infinito (pruebas de admin)
+
+    private val infinite = HashSet<UUID>()
+
+    fun isInfinite(player: ServerPlayer): Boolean = player.uuid in infinite
+
+    /** Activa o desactiva el modo infinito del admin: sin cooldown de /wt ni de /wt donar, ni límites ni repeticiones. */
+    fun setInfinite(player: ServerPlayer, value: Boolean) {
+        if (value) infinite.add(player.uuid) else infinite.remove(player.uuid)
+    }
+
     /** false (y avisa) si el jugador tiene una penalización vigente: no puede intercambiar ni donar. */
     fun ensureNotPenalized(player: ServerPlayer): Boolean {
         val penalty = WonderTradePenalties.active(player.uuid) ?: return true
@@ -157,7 +188,9 @@ object WonderTradeService {
             ConfigManager.string("messages.helpEventsCommand", "&e/wt eventos &7Ver los eventos activos"),
             ConfigManager.string("messages.helpSpecialsCommand", "&e/wt especiales &7Ver qué Pokémon son míticos, legendarios, Ultraentes y Paradoja"),
             ConfigManager.string("messages.helpRankCommand", "&e/wt rango &7Ver tu rango y sus ventajas"),
-            ConfigManager.string("messages.helpSoundsCommand", "&e/wt sonidos &7Configurar tus sonidos")
+            ConfigManager.string("messages.helpSoundsCommand", "&e/wt sonidos &7Configurar tus sonidos"),
+            ConfigManager.string("messages.helpLanguageCommand", "&e/wt idioma [código] &7Elegir tu idioma de Wonder Trade"),
+            ConfigManager.string("messages.helpHistoryCommand", "&e/wt historial &7Ver tus últimos intercambios")
         )
         if (player != null && (WonderTradeGui.canViewPool(player) || player.hasPermissions(adminLevel()))) {
             lines += ConfigManager.string("messages.helpPoolCommand", "&e/wt pool &7Ver la pool")
@@ -182,6 +215,7 @@ object WonderTradeService {
             lines += ConfigManager.string("messages.helpAdminScheduleCommand", "&e/wt admin eventos programar <tipo> <categorías> <duración> <cuándo> &7Programar un evento (también desde Gestionar eventos)")
             lines += ConfigManager.string("messages.helpAdminPenalizeCommand", "&e/wt admin penalizar <jugador> [duración|permanente] &7Penalizar a un jugador (también desde el panel)")
             lines += ConfigManager.string("messages.helpAdminPardonCommand", "&e/wt admin perdonar <jugador> &7Retirar una penalización; &e/wt admin penalizaciones &7lista las vigentes")
+            lines += ConfigManager.string("messages.helpAdminStatusCommand", "&e/wt admin estado &7Diagnóstico: versión, pool, copias, permisos y archivos")
             lines += ConfigManager.string("messages.helpAdminLanguageCommand", "&e/wt admin idioma [código] &7Ver o cambiar el idioma del servidor")
             lines += ConfigManager.string("messages.helpAdminPauseCommand", "&e/wt admin eventos pausar|reanudar <id> &7Pausar o reanudar el tiempo de un evento")
             lines += ConfigManager.string("messages.helpAdminEventHistoryCommand", "&e/wt admin eventos historial &7Ver eventos terminados con sus WT")
@@ -248,6 +282,7 @@ object WonderTradeService {
             return false
         }
         // Límite de donaciones: por mes natural (se reinicia el día 1) o por ventana móvil de 7 días.
+        if (isInfinite(player)) return true
         if (ConfigManager.string("donation.limitMode", "monthly").equals("weekly", ignoreCase = true)) {
             val weeklyLimit = ConfigManager.int("donation.weeklyLimit", 5).coerceAtLeast(0)
             if (weeklyLimit > 0 && playerData.donationsInLastWeek(player.uuid) >= weeklyLimit) {
@@ -267,7 +302,7 @@ object WonderTradeService {
     /** No se puede donar dos veces la misma especie (ni el mismo ejemplar) dentro del periodo configurado. */
     private fun donationRepeated(player: ServerPlayer, pokemon: Pokemon): Boolean {
         val period = ConfigManager.string("donation.sameSpecies.period", "month").lowercase()
-        if (period == "off") return false
+        if (period == "off" || isInfinite(player)) return false
         val now = System.currentTimeMillis()
         val zone = WonderTradeSchedule.zone()
         fun within(moment: Long): Boolean = if (period == "week") now - moment < 7L * 24L * 3_600_000L
@@ -396,6 +431,39 @@ object WonderTradeService {
     }
 
     fun historyEntries(player: String? = null): List<HistoryEntry> = history.recent(player)
+
+    /** Historial propio: solo se puede pedir el del jugador que lo consulta, nunca el de otro. */
+    fun ownHistory(player: ServerPlayer): List<HistoryEntry> = history.recent(player.gameProfile.name)
+
+    /** Diagnóstico para admins (/wt admin estado): versión, datos cargados, copias de seguridad, permisos, etc. */
+    fun statusComponent(server: MinecraftServer): Component {
+        val directory = FabricLoader.getInstance().configDir.resolve("wondertradeplus")
+        fun fileSize(name: String): String =
+            runCatching { Files.size(directory.resolve(name)) / 1024L }.getOrNull()?.let { "$it KB" } ?: "-"
+        val backups = runCatching {
+            Files.list(directory.resolve("backups")).use { stream -> stream.filter { Files.isDirectory(it) }.map { it.fileName.toString() }.sorted().toList() }
+        }.getOrDefault(emptyList())
+        val maximum = ConfigManager.int("pool.maximumEntries", 500).coerceAtLeast(1)
+        val fromPlayers = pool.all().count { !it.donorName.equals("Servidor", ignoreCase = true) }
+        val on = Lang.tr("&aSí")
+        val off = Lang.tr("&cNo")
+        val discordReady = ConfigManager.bool("discord.enabled", false) && ConfigManager.string("discord.webhookUrl", "").isNotBlank()
+        val lines = listOf(
+            Lang.tr("&8━━ &dEstado de WonderTrade Plus &8━━"),
+            Lang.t("&7Versión: &f{0} &8· &7Cobblemon: &f{1} especies", WonderTradePlus.MOD_VERSION, PokemonSpecies.species.count()),
+            Lang.t("&7Wonder Trade activado: {0} &8· &7Jugadores conectados: &f{1}", if (isEnabled()) on else off, server.playerList.playerCount),
+            Lang.t("&7Pool: &f{0}&7/&f{1} &8(jugadores: {2}, servidor: {3})", pool.size, maximum, fromPlayers, pool.size - fromPlayers),
+            Lang.t("&7Jugadores guardados: &f{0} &8· &7Historial: &f{1} entradas", playerData.names().size, history.size),
+            Lang.t("&7Penalizados: &f{0} &8· &7Eventos activos: &f{1} &8· &7Programados: &f{2}", WonderTradePenalties.list().size, WonderTradeEvents.active().size, WonderTradeSchedule.all().size),
+            Lang.t("&7Top Donaciones: {0}", if (WonderTradeTopDonations.enabled()) on else off),
+            Lang.t("&7Idioma por defecto: &f{0} &8· &7Idiomas: &f{1}", Lang.current(), Lang.available().joinToString(", ") { it.first }),
+            Lang.t("&7Permisos: &f{0}", WonderTradeRanks.backendName()),
+            Lang.t("&7Discord: {0}", if (discordReady) on else off),
+            Lang.t("&7Copias de seguridad: &f{0} &8(última: {1})", backups.size, backups.lastOrNull() ?: "-"),
+            Lang.t("&7Archivos: &fpool {0} &8· &fplayer-data {1} &8· &fhistory {2}", fileSize("pool.json"), fileSize("player-data.json"), fileSize("history.json"))
+        )
+        return colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
+    }
     fun historyPlayers(): List<String> = history.players()
     fun poolDonors(): List<String> = pool.all().map { it.donorName }.distinct()
 
@@ -414,7 +482,7 @@ object WonderTradeService {
 
     /** true (y avisa) si el jugador intenta ofrecer la misma especie que ofreció la última vez. */
     private fun repeatedSpecies(player: ServerPlayer, pokemon: Pokemon): Boolean {
-        if (!ConfigManager.bool("trade.blockRepeatSpecies", true)) return false
+        if (!ConfigManager.bool("trade.blockRepeatSpecies", true) || isInfinite(player)) return false
         val species = pokemon.species.resourceIdentifier.path.lowercase()
         if (playerData.lastOfferedSpecies(player.uuid) != species) return false
         send(player, "repeatSpecies")
@@ -1056,6 +1124,7 @@ object WonderTradeService {
     private fun announceEventPokemon(server: MinecraftServer, event: WtEvent) {
         val registryAccess = server.registryAccess()
         val matching = pool.all().filter { entryMatchesEvent(it, event, registryAccess) }
+        val build: () -> String = {
         val lines = mutableListOf<String>()
         if (matching.isEmpty()) {
             lines += ConfigManager.string("messages.eventPoolNone", "&7Ahora mismo no hay ningún Pokémon &f{category}&7 en la pool.")
@@ -1082,7 +1151,9 @@ object WonderTradeService {
                 )
             }
         }
-        WonderTradeEvents.broadcast(server, lines.joinToString("\n"), emptyMap())
+        lines.joinToString("\n")
+        }
+        WonderTradeEvents.broadcast(server, build)
     }
 
     // ------------------------------------------------------------ categorías de entradas (eventos)
@@ -1196,6 +1267,7 @@ object WonderTradeService {
 
     /** Se llama cada tick del servidor; una vez por segundo actualiza los menús y ejecuta mantenimiento y copias de seguridad. */
     fun tick(server: MinecraftServer) {
+        Lang.reset()
         WonderTradeAnimations.tick(server)
         tickCounter++
         if (tickCounter % 20 != 0) return
@@ -1203,7 +1275,7 @@ object WonderTradeService {
         runCatching { WonderTradeEvents.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el control de eventos.", it) }
         runCatching { WonderTradePenalties.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el control de penalizaciones.", it) }
         runCatching { WonderTradeTopDonations.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el Top Donaciones.", it) }
-        server.playerList.players.forEach { WonderTradeGui.refreshCooldown(it) }
+        server.playerList.players.forEach { player -> Lang.withPlayer(player) { WonderTradeGui.refreshCooldown(player) } }
         runCatching { checkCooldownNotices(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el aviso de disponibilidad.", it) }
         val now = System.currentTimeMillis()
         if (now - lastHistoryCleanupAt >= 60_000L) {
@@ -1262,7 +1334,7 @@ object WonderTradeService {
         val (replaced, _) = purgeStale(server, forceAll = true, forceIncludeDonations = ConfigManager.bool("maintenance.monthlyReset.includePlayerDonations", true))
         mark()
         WonderTradePlus.LOGGER.info("Reinicio mensual de la pool: {} Pokémon normales renovados.", replaced)
-        WonderTradeEvents.broadcast(server, ConfigManager.string("messages.poolMonthlyReset", "&d★ Reinicio mensual de la pool."), emptyMap())
+        WonderTradeEvents.broadcast(server) { ConfigManager.string("messages.poolMonthlyReset", "&d★ Reinicio mensual de la pool.") }
         return replaced
     }
 
@@ -1353,6 +1425,19 @@ object WonderTradeService {
     }
 
     /** Reinicia todos los contadores de estadísticas y rankings, sin tocar bonus ni límites. */
+    /** Reinicia las estadísticas de un solo jugador (bonus y límites no se tocan). */
+    fun adminResetPlayerStats(uuid: UUID): Boolean {
+        val done = playerData.resetStats(uuid)
+        if (done) playerData.save()
+        return done
+    }
+
+    fun knownPlayers(): List<Pair<UUID, String>> = playerData.knownPlayers()
+
+    fun statOf(uuid: UUID, key: String): Int = playerData.stat(uuid, key)
+
+    fun savedSkin(uuid: UUID): Pair<String, String?>? = playerData.skin(uuid)
+
     fun adminResetAllStats(): Int {
         val affected = playerData.resetAllStats()
         playerData.save()
@@ -1544,7 +1629,7 @@ object WonderTradeService {
      * Quién se salta la espera: jugadores con nivel de permiso >= trade.cooldownBypassPermissionLevel.
      * Por defecto 5 (nadie: owners, admins y moderadores también esperan). 2 devuelve el comportamiento antiguo.
      */
-    private fun cooldownBypass(player: ServerPlayer): Boolean =
+    private fun cooldownBypass(player: ServerPlayer): Boolean = isInfinite(player) ||
         player.hasPermissions(ConfigManager.int("trade.cooldownBypassPermissionLevel", 5).coerceIn(0, 5))
 
     fun cooldownRemainingSeconds(player: ServerPlayer): Long {
@@ -1627,13 +1712,6 @@ object WonderTradeService {
             else -> return
         }
         if (!ConfigManager.bool("broadcast.received${category.replaceFirstChar { it.uppercase() }}", true)) return
-        val categoryText = when (category) {
-            "ultraBeast" -> "Ultraente"
-            "paradox" -> "Paradoja"
-            "mythical" -> "Mítico"
-            "legendary" -> "Legendario"
-            else -> "shiny"
-        }
         val key = when (category) {
             "ultraBeast" -> "broadcastReceivedUltraBeast"
             "paradox" -> "broadcastReceivedParadox"
@@ -1641,21 +1719,31 @@ object WonderTradeService {
             "legendary" -> "broadcastReceivedLegendary"
             else -> "broadcastReceivedShiny"
         }
-        val fallback = when (category) {
+        fun fallback() = when (category) {
             "ultraBeast" -> Lang.tr("&3{player} ha conseguido un Pokémon Ultraente{shinySuffix} en el WonderTrade: &f{pokemon}&3!")
             "paradox" -> Lang.tr("&c{player} ha conseguido un Pokémon Paradoja{shinySuffix} en el WonderTrade: &f{pokemon}&c!")
             "mythical" -> Lang.tr("&d{player} ha conseguido un Pokémon Mítico{shinySuffix} en el WonderTrade: &f{pokemon}&d!")
             "legendary" -> Lang.tr("&6{player} ha conseguido un Pokémon Legendario{shinySuffix} en el WonderTrade: &f{pokemon}&6!")
             else -> Lang.tr("&d{player} ha conseguido un shiny en el WonderTrade: &f{pokemon}&d!")
         }
-        val suffix = if (pokemon.shiny && category != "shiny") " shiny" else ""
-        val message = format(ConfigManager.string("messages.$key", fallback), mapOf(
-            "player" to player.gameProfile.name,
-            "pokemon" to pokemon.getDisplayName().string,
-            "category" to categoryText,
-            "shinySuffix" to suffix
-        ))
-        player.server.playerList.broadcastSystemMessage(colour(ConfigManager.string("messages.prefix", "") + message), false)
+        val pokemonName = pokemon.getDisplayName().string
+        broadcastLocalized(player.server) {
+            val categoryText = when (category) {
+                "ultraBeast" -> Lang.tr("Ultraente")
+                "paradox" -> Lang.tr("Paradoja")
+                "mythical" -> Lang.tr("Mítico")
+                "legendary" -> Lang.tr("Legendario")
+                else -> "shiny"
+            }
+            val suffix = if (pokemon.shiny && category != "shiny") " shiny" else ""
+            val message = format(ConfigManager.string("messages.$key", fallback()), mapOf(
+                "player" to player.gameProfile.name,
+                "pokemon" to pokemonName,
+                "category" to categoryText,
+                "shinySuffix" to suffix
+            ))
+            colour(ConfigManager.string("messages.prefix", "") + message)
+        }
     }
 
     private fun announceDonation(player: ServerPlayer, pokemon: Pokemon) {
@@ -1671,25 +1759,31 @@ object WonderTradeService {
         }
         val defaultEnabled = toggle != "normalDonations"
         if (!ConfigManager.bool("broadcast.$toggle", defaultEnabled)) return
-        val template = ConfigManager.string("messages.$key", "")
-        if (template.isBlank()) return
-        val content = format(template, mapOf("player" to player.gameProfile.name, "pokemon" to pokemon.getDisplayName().string))
-        player.server.playerList.broadcastSystemMessage(colour(ConfigManager.string("messages.prefix") + content), false)
+        if (ConfigManager.string("messages.$key", "").isBlank()) return
+        val pokemonName = pokemon.getDisplayName().string
+        broadcastLocalized(player.server) {
+            val content = format(ConfigManager.string("messages.$key", ""), mapOf("player" to player.gameProfile.name, "pokemon" to pokemonName))
+            colour(ConfigManager.string("messages.prefix") + content)
+        }
     }
 
     /** Envía el éxito y el cambio del bonus en una sola línea; mantiene compatibles mensajes personalizados antiguos. */
     private fun sendTradeSuccess(player: ServerPlayer, values: Map<String, Any>, bonusText: String) {
-        val fallback = Lang.tr("&aIntercambio completado: has recibido &f{received}&a. {bonusText}")
-        val template = ConfigManager.string("messages.success", fallback)
-        var message = format(template, values)
-        if (!template.contains("{bonusText}") && bonusText.isNotBlank()) message += " $bonusText"
-        player.sendSystemMessage(colour(ConfigManager.string("messages.prefix", "") + message))
+        Lang.withPlayer(player) {
+            val fallback = Lang.tr("&aIntercambio completado: has recibido &f{received}&a. {bonusText}")
+            val template = ConfigManager.string("messages.success", fallback)
+            var message = format(template, values)
+            if (!template.contains("{bonusText}") && bonusText.isNotBlank()) message += " $bonusText"
+            player.sendSystemMessage(colour(ConfigManager.string("messages.prefix", "") + message))
+        }
     }
 
     fun send(player: ServerPlayer, key: String, values: Map<String, Any> = emptyMap()) {
-        val fallback = defaultMessage(key)
-        val template = ConfigManager.string("messages.$key", fallback)
-        player.sendSystemMessage(colour(ConfigManager.string("messages.prefix", "") + format(template, values)))
+        Lang.withPlayer(player) {
+            val fallback = defaultMessage(key)
+            val template = ConfigManager.string("messages.$key", fallback)
+            player.sendSystemMessage(colour(ConfigManager.string("messages.prefix", "") + format(template, values)))
+        }
     }
 
     fun format(value: String, replacements: Map<String, Any>): String {

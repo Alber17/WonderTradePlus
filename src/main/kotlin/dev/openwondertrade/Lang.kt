@@ -24,14 +24,20 @@ object Lang {
 
     private var directory: Path? = null
     private var base: Map<String, String> = emptyMap()      // es_es (idioma principal)
-    private var active: Map<String, String> = emptyMap()    // idioma elegido
-    private var code: String = DEFAULT
+    private var code: String = DEFAULT                      // idioma por defecto del servidor (general.language)
+    private val cache = HashMap<String, Map<String, String>>()
 
+    /** Idioma con el que se redactan los textos en este momento (null = el del servidor). Solo se usa en el hilo del servidor. */
+    private var context: String? = null
+
+    /** Idioma por defecto del servidor (consola, Discord y jugadores sin idioma propio). */
     fun current(): String = code
+
+    private fun effective(): String = context ?: code
 
     /** Locale de Java del idioma activo (para nombres de días y meses): es_es → es-ES, en_us → en-US. */
     fun locale(): java.util.Locale {
-        val parts = code.split('_')
+        val parts = effective().split('_')
         return if (parts.size >= 2) java.util.Locale(parts[0], parts[1].uppercase()) else java.util.Locale(parts[0])
     }
 
@@ -53,13 +59,24 @@ object Lang {
         return result
     }
 
+    /** Textos de un idioma (archivo de la carpeta lang, o el incluido en el mod). Vacío si no existe. */
+    private fun map(language: String): Map<String, String> {
+        if (language == DEFAULT) return base
+        return cache.getOrPut(language) {
+            val folder = directory
+            val json = (if (folder != null) readFile(folder.resolve("$language.json")) else null) ?: readBundled(language)
+            toMap(json)
+        }
+    }
+
     /**
      * Prepara la carpeta lang (copia los idiomas incluidos si faltan y les añade las claves nuevas sin tocar lo que
-     * hayas editado) y carga el idioma elegido en `general.language`.
+     * hayas editado) y carga es_es y el idioma por defecto del servidor (`general.language`).
      */
     fun load(configDirectory: Path, requested: String) {
         val folder = configDirectory.resolve("lang")
         directory = folder
+        cache.clear()
         runCatching { Files.createDirectories(folder) }
         for (name in bundled) {
             val shipped = readBundled(name) ?: continue
@@ -80,21 +97,67 @@ object Lang {
             }
         }
         base = toMap(readFile(folder.resolve("$DEFAULT.json")) ?: readBundled(DEFAULT))
-        val wanted = requested.trim().lowercase().replace('-', '_').ifBlank { DEFAULT }
-        val wantedJson = if (wanted == DEFAULT) null
-        else readFile(folder.resolve("$wanted.json")) ?: readBundled(wanted)
-        if (wanted != DEFAULT && wantedJson == null) {
+        languages = scan()
+        val wanted = normalize(requested)
+        code = if (available().any { it.first == wanted }) wanted else {
             WonderTradePlus.LOGGER.warn("Idioma «{}» no encontrado en {}. Se usa {}.", wanted, folder, DEFAULT)
-            code = DEFAULT
-            active = base
-        } else {
-            code = wanted
-            active = if (wantedJson == null) base else toMap(wantedJson)
+            DEFAULT
+        }
+        context = null
+    }
+
+    fun normalize(text: String): String = text.trim().lowercase().replace('-', '_').ifBlank { DEFAULT }
+
+    // ------------------------------------------------------------ idioma por jugador
+
+    /** Redacta todo lo que ocurra dentro de [block] en el idioma del jugador (null = idioma del servidor). */
+    inline fun <T> withPlayer(player: net.minecraft.server.level.ServerPlayer?, block: () -> T): T {
+        val previous = swap(languageOf(player))
+        try {
+            return block()
+        } finally {
+            swap(previous)
         }
     }
 
+    /** Fija el idioma activo y devuelve el anterior (uso interno de [withPlayer]). */
+    fun swap(language: String?): String? {
+        val previous = context
+        context = language
+        return previous
+    }
+
+    /** Usa el idioma de ese jugador hasta el siguiente cambio (se restablece al inicio de cada tick del servidor). */
+    fun bindPlayer(player: net.minecraft.server.level.ServerPlayer?) {
+        context = languageOf(player)
+    }
+
+    fun reset() {
+        context = null
+    }
+
+    /**
+     * Idioma de un jugador: el que eligió con /wt idioma; si no eligió, el de su cliente de Minecraft (si existe en
+     * lang y `general.useClientLanguage` está activo); y si no, el del servidor. null = idioma del servidor.
+     */
+    fun languageOf(player: net.minecraft.server.level.ServerPlayer?): String? {
+        if (player == null) return null
+        runCatching { WonderTradeService.storedLanguage(player.uuid) }.getOrNull()?.let { stored ->
+            if (available().any { it.first == stored }) return stored
+        }
+        if (!ConfigManager.bool("general.useClientLanguage", true)) return null
+        val client = runCatching { player.clientInformation().language() }.getOrNull()?.let { normalize(it) } ?: return null
+        val list = available().map { it.first }
+        if (client in list) return client
+        return list.firstOrNull { it.substringBefore('_') == client.substringBefore('_') }
+    }
+
     /** Códigos de idioma disponibles (archivos de la carpeta lang) con su nombre visible. */
-    fun available(): List<Pair<String, String>> {
+    fun available(): List<Pair<String, String>> = languages
+
+    private var languages: List<Pair<String, String>> = bundled.map { it to it }
+
+    private fun scan(): List<Pair<String, String>> {
         val folder = directory ?: return bundled.map { it to it }
         val files = runCatching { Files.list(folder).use { stream -> stream.toList() } }.getOrDefault(emptyList())
         val found = files.filter { it.fileName.toString().endsWith(".json") }.mapNotNull { path ->
@@ -108,10 +171,13 @@ object Lang {
     fun nameOf(id: String): String = available().firstOrNull { it.first == id }?.second ?: id
 
     /** Texto de un ajuste (`messages.*`, `discord.*Message`, `events.names.*`) en el idioma activo; null si no existe. */
-    fun text(path: String): String? = active[path] ?: base[path]
+    fun text(path: String): String? = map(effective())[path] ?: base[path]
 
     /** Traduce un texto original en español; si el idioma no lo tiene, se queda en español. */
-    fun tr(source: String): String = if (code == DEFAULT) source else active[source] ?: source
+    fun tr(source: String): String {
+        val language = effective()
+        return if (language == DEFAULT) source else map(language)[source] ?: source
+    }
 
     /** Igual que [tr] sustituyendo {0}, {1}... por los valores indicados. */
     fun t(source: String, vararg args: Any?): String {

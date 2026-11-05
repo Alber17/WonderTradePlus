@@ -96,6 +96,10 @@ object ConfigManager {
                 if (current == pair.first) messages.addProperty(key, pair.second)
             }
         }
+        // Migración 0.21.0: el nombre del mod pasa a negrita; un prefijo sin personalizar se actualiza.
+        root.getAsJsonObject("messages")?.let { messages ->
+            if (messages.get("prefix")?.let { runCatching { it.asString }.getOrNull() } == "&8[&dWonderTrade&8] &r") messages.remove("prefix")
+        }
         // Migración 0.20.0: los textos ya no se guardan en config.json, salen del idioma elegido (carpeta lang).
         // Se quitan de config.json los que siguen iguales al texto de es_es; los que hayas personalizado se conservan
         // y tienen prioridad sobre el idioma.
