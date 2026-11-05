@@ -1529,7 +1529,7 @@ object WonderTradeService {
 
     /** Prefijo de los mensajes. Con general.boldPrefix (por defecto) el nombre del mod sale siempre en negrita. */
     fun prefix(): String {
-        val configured = WonderTradeService.prefix()
+        val configured = ConfigManager.string("messages.prefix", "")
         if (!ConfigManager.bool("general.boldPrefix", true)) return configured
         if (configured.contains("&l") || configured.contains("§l") || !configured.contains("WonderTrade")) return configured
         return Regex("((?:[&§][0-9a-fk-or])*)WonderTrade").replace(configured) { m -> m.groupValues[1] + "&lWonderTrade&r" + m.groupValues[1] }

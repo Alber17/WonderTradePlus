@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.23.0**.
+- Versión actual: **0.23.1**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -348,6 +348,7 @@
 - Negrita del nombre del mod en el chat: el prefijo se corrige siempre (`general.boldPrefix`), aunque `config.json` tuviera un prefijo antiguo.
 - Talla en la pool (XS, S, M, L, XL) calculada con el tamaño del Pokémon y límites configurables en `pool.size.*` (sustituye a la llamada anterior, que no existe en Cobblemon).
 - `/wt topdonaciones` y `/wt donaciones` solo muestran la clasificación cuando el evento ha terminado (ya incluido en 0.22.1).
+- Corrección: el nuevo prefijo se llamaba a sí mismo y provocaba un StackOverflowError al abrir `/wt`.
 - Gradle no se ha ejecutado en el entorno de edición.
 
 ## 0.22.1
