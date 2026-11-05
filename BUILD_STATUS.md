@@ -293,7 +293,7 @@
 
 - **Top Donaciones** mensual con recompensas (`topDonations`): solo cuentan las donaciones hechas con `/wt donar` en meses activos. Por defecto hay Top en los meses impares de 2026 (enero, marzo, mayo, julio, septiembre y noviembre) y se invierte cada año (2027: meses pares; 2028: impares…). Puntos: normal 1, shiny 2, Ultraente/Paradoja 3, legendario/mítico 4, sin extra por shiny + categoría (configurables en `topDonations.points`).
 - El último día del mes, a la hora `topDonations.announceHour` (20:00 por defecto), se anuncia el Top 3 con sus puntos en el chat y en Discord (`discord.events.topDonations`), y el 1.º, 2.º y 3.º reciben las recompensas definidas en `topDonations.rewards.first/second/third` (comandos de consola con `{player}`, `{rank}`, `{points}` y `{period}`). Si el ganador está desconectado, las recibe al entrar. Los ejemplos incluidos dan caramelos raros: cámbialos por lo que quieras.
-- Nuevo `/wt donaciones` (alias `/wt topdonaciones`): ranking del mes, tus puntos o cuándo es el próximo mes activo. El estado se guarda en `top-donations.json`.
+- `/wt donaciones` (alias `/wt topdonaciones`): muestra los resultados finales del Top Donaciones únicamente cuando el evento mensual ha terminado. Mientras siga activo, el comando informa de que la clasificación aún no está disponible. El estado se guarda en `top-donations.json`.
 - Límite de donaciones mensual: `donation.limitMode` (`monthly` por defecto, se reinicia el día 1) con `donation.monthlyLimit` (20 por defecto). `weekly` conserva la ventana móvil de 7 días y `donation.weeklyLimit`.
 - Anti-repetición al donar: no se puede donar la misma especie (`donation.sameSpecies.period`: `month`, `week` u `off`) ni el mismo ejemplar (`donation.blockSameIndividual`) dentro del periodo.
 - `config-guide.txt`, README y documentación actualizados.
@@ -321,7 +321,7 @@
 
 ## 0.20.0
 
-- Idiomas: nueva opción `general.language` (`es_es` español de España, principal, y `en_us`). Se cambia con `/wt admin idioma [código]` o con el botón «Idioma» del panel de administración. Los textos viven en `config/wondertradeplus/lang/<código>.json`; para añadir otro idioma basta con copiar `en_us.json` con otro nombre (p. ej. `de_de.json`), traducir los valores y elegirlo. Lo que falte en un idioma se muestra en español.
+- Idiomas: nueva opción `general.language` (`es_es` español de España, principal, y `en_us`). Se configura mediante `general.language` en `config.json`. Los textos viven en `config/wondertradeplus/lang/<código>.json`; para añadir otro idioma basta con copiar `en_us.json` con otro nombre (p. ej. `de_de.json`), traducir los valores y elegirlo. Lo que falte en un idioma se muestra en español.
 - Los textos ya no se guardan en `config.json`: al actualizar se quitan de ahí los que seguían sin personalizar y se conservan (con prioridad sobre el idioma) los que hayas cambiado a mano. Se traducen menús, mensajes, ayudas, avisos de Discord, nombres de eventos y categorías, y los nombres de días y meses.
 - Penalizaciones: motivo opcional (`/wt admin penalizar <jugador> [duración] [motivo]`, `/wt admin motivo <texto>` y botones «Motivo» en el menú, con motivos rápidos configurables en `penalties.reasons`). El motivo se muestra al jugador y en las listas.
 - Historial de penalizaciones (`/wt admin penalizaciones historial [jugador]` y botón «Historial» en el menú «Penalizados»): penalizaciones, perdones y caducidades, con límite `penalties.historySize`.
@@ -330,13 +330,21 @@
 
 ## 0.21.0
 
-- Idioma por jugador: cada jugador elige el idioma de su propio Wonder Trade con `/wt idioma [código|auto]` (alias `/wt language`) o con el botón «Idioma» del menú principal. Sin elegir, se usa el idioma de su cliente de Minecraft si existe en `lang/` (`general.useClientLanguage`) o, si no, `general.language`. Se quita el botón de idioma del panel de administración; `/wt admin idioma` cambia solo el idioma por defecto del servidor.
+- Idioma por jugador: cada jugador elige el idioma de su propio Wonder Trade con `/wt idioma [código|auto]` (alias `/wt language`) o con el botón «Idioma» del menú principal. Sin elegir, se usa el idioma de su cliente de Minecraft si existe en `lang/` (`general.useClientLanguage`) o, si no, `general.language`. Se quita el botón de idioma del panel de administración; el idioma por defecto se configura mediante `general.language`.
 - Traducción completa: menús y botones (incluido el libro de especiales y las estadísticas), nombres de categorías, tipos, naturalezas (en inglés: Timid, Jolly…), días y meses, anuncios y avisos. Los anuncios globales (eventos, recordatorios, Top Donaciones, especiales conseguidos) se envían a cada jugador en su idioma.
 - `/wt infinito on|off` (solo admins, oculto): quita el cooldown de `/wt` y de `/wt donar` (y los límites de donación y repeticiones) al admin que lo ejecuta.
 - Mensaje de especie repetida reescrito: «Ese Pokémon ya lo has tradeado antes. Deberás intercambiar otro Pokémon distinto antes de poder ofrecerlo de nuevo.»
 - El nombre del mod en el prefijo va en negrita: **[WonderTrade]**.
 - Panel de administración: «Reiniciar estadísticas» abre un menú con «Borrar todas» o las cabezas de los jugadores conectados y desconectados para reiniciar solo a uno (con confirmación).
 - Panel de administración: cada botón puede exigir un rango (`admin.buttonLevels.*`); sin él se ve bloqueado y avisa al pulsarlo.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.22.1
+
+- Eliminado `/wt admin idioma`; el idioma por defecto del servidor se configura en `general.language`. Se mantiene `/wt idioma` para las preferencias individuales.
+- `/wt donaciones` y `/wt topdonaciones` solo muestran la clasificación cuando el evento mensual ha terminado. El cierre también se procesa aunque nadie haya donado.
+- La lista de la pool muestra junto al nombre del Pokémon su categoría de tamaño nativa de Cobblemon: XS, S, M, L o XL.
+- README, `config-guide.txt`, idiomas y documentación actualizados.
 - Gradle no se ha ejecutado en el entorno de edición.
 
 ## 0.22.0

@@ -440,8 +440,15 @@ object WonderTradeGui {
             val pokemon = runCatching { Pokemon.loadFromJSON(registryAccess, entry.pokemonJson.deepCopy()) }.getOrNull()
             if (admin && deleteMode) extra += Lang.tr("&c✖ Clic para eliminar del pool")
             else if (admin) extra += Lang.tr("&7Activa &c&l«Eliminar Pokémon»&r&7 para poder borrarlo.")
-            val stack = if (pokemon != null) pokemonStack(pokemon, false, extra)
-            else named(Items.BARRIER, Lang.t("&c{0}", entry.species), Lang.tr("&7No se pudo cargar este Pokémon."))
+            val stack = if (pokemon != null) {
+                pokemonStack(pokemon, false, extra).also { pokemonStack ->
+                    val size = pokemon.getSizeCategory().name
+                    pokemonStack.set(
+                        DataComponents.CUSTOM_NAME,
+                        lit((if (pokemon.shiny) "&e" else "&f") + pokemon.getDisplayName().string + " &8(" + size + ")")
+                    )
+                }
+            } else named(Items.BARRIER, Lang.t("&c{0}", entry.species), Lang.tr("&7No se pudo cargar este Pokémon."))
             if (admin && deleteMode) {
                 menu.button(i, stack) { p ->
                     if (p.hasPermissions(WonderTradeService.adminLevel())) {

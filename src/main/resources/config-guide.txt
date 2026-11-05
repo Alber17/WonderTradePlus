@@ -26,7 +26,7 @@ Publicos (nivel 0):
   /wt stats                 Tus estadisticas (gui.statsOwnPermissionLevel).
   /wt stats <jugador>       Estadisticas de otro (gui.statsOthersPermissionLevel).
   /wt top                   Menu de rankings.
-  /wt donaciones            Top Donaciones del mes (alias: /wt topdonaciones).
+  /wt donaciones            Resultados finales del Top Donaciones (solo al terminar el evento; alias: /wt topdonaciones).
   /wt especiales            Lista de legendarios, miticos, Ultraentes y Paradoja.
   /wt rango                 Tu rango y sus ventajas.
   /wt eventos               Eventos activos y proximos.
@@ -213,6 +213,8 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
 
 --------------------------------------------------------------------------------
  gui - Menus
+  La vista de la pool muestra junto al nombre de cada Pokémon su tamaño nativo
+  de Cobblemon: XS, S, M, L o XL.
 --------------------------------------------------------------------------------
  enabled                    Usar menus (false = solo comandos).
  poolViewPermissionLevel    Nivel para ver la pool (0 = todos).
@@ -318,8 +320,8 @@ Alias: /wt sounds = sonidos, /wt events = eventos, /wt categorias = especiales,
  boton Idioma del menu principal). Si no elige, se usa el idioma de su cliente
  de Minecraft cuando existe en la carpeta lang (general.useClientLanguage); si
  no, general.language (por defecto es_es, espanol de Espana), que tambien es el
- idioma de la consola y de Discord. /wt admin idioma <codigo> cambia ese idioma
- por defecto.
+ idioma de la consola y de Discord. El valor por defecto se define en
+ general.language dentro de config.json (sin comando administrativo).
  Los textos viven en config/wondertradeplus/lang/<codigo>.json:
   - Claves como messages.success, discord.donationMessage o events.names.risk:
     el texto de ese ajuste.

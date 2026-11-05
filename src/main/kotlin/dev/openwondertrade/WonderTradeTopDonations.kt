@@ -212,26 +212,33 @@ object WonderTradeTopDonations {
                 .replace("{month}", next?.let { monthName(it) } ?: "—")
         } else {
             val key = keyOf(period)
-            lines += WonderTradeService.format(
-                ConfigManager.string("messages.topDonationsCurrentHeader", "&d&lTop Donaciones de {month} &7(termina el {end}):"),
-                mapOf("month" to monthName(period), "end" to "${period.atEndOfMonth().dayOfMonth}/${period.monthValue}")
-            )
-            val list = placed(key)
-            if (list.isEmpty()) lines += ConfigManager.string("messages.topDonationsEmpty", "&7Todavía nadie ha donado este mes. ¡Usa &e/wt donar&7!")
-            list.take(10).forEach { item ->
-                lines += WonderTradeService.format(
-                    ConfigManager.string("messages.topDonationsLine", "&6#{rank} &f{player} &7— &e{points} puntos &8({donations} donaciones)"),
-                    mapOf("rank" to item.rank, "player" to item.entry.name, "points" to item.entry.points, "donations" to item.entry.donations)
+            if (key !in closed) {
+                lines += ConfigManager.string(
+                    "messages.topDonationsNotFinished",
+                    "&7El Top Donaciones todavía está en curso. Podrás consultar la clasificación cuando termine el evento."
                 )
-            }
-            if (player != null) {
-                val mine = periods[key]?.get(player.uuid.toString())
+            } else {
                 lines += WonderTradeService.format(
-                    ConfigManager.string("messages.topDonationsYou", "&7Tus puntos: &e{points}"),
-                    mapOf("points" to (mine?.points ?: 0))
+                    ConfigManager.string("messages.topDonationsCurrentHeader", "&d&lResultados finales del Top Donaciones de {month}:"),
+                    mapOf("month" to monthName(period), "end" to "${period.atEndOfMonth().dayOfMonth}/${period.monthValue}")
                 )
+                val list = placed(key)
+                if (list.isEmpty()) lines += ConfigManager.string("messages.topDonationsEmpty", "&7Nadie ha donado durante este evento.")
+                list.take(10).forEach { item ->
+                    lines += WonderTradeService.format(
+                        ConfigManager.string("messages.topDonationsLine", "&6#{rank} &f{player} &7— &e{points} puntos &8({donations} donaciones)"),
+                        mapOf("rank" to item.rank, "player" to item.entry.name, "points" to item.entry.points, "donations" to item.entry.donations)
+                    )
+                }
+                if (player != null) {
+                    val mine = periods[key]?.get(player.uuid.toString())
+                    lines += WonderTradeService.format(
+                        ConfigManager.string("messages.topDonationsYou", "&7Tus puntos: &e{points}"),
+                        mapOf("points" to (mine?.points ?: 0))
+                    )
+                }
+                lines += ConfigManager.string("messages.topDonationsPointsInfo", "&8Puntos: normal 1 · shiny 2 · Ultraente/Paradoja 3 · legendario/mítico 4.")
             }
-            lines += ConfigManager.string("messages.topDonationsPointsInfo", "&8Puntos: normal 1 · shiny 2 · Ultraente/Paradoja 3 · legendario/mítico 4.")
         }
         return WonderTradeService.colour(ConfigManager.string("messages.prefix", "") + lines.joinToString("\n"))
     }
@@ -248,7 +255,11 @@ object WonderTradeTopDonations {
         val today = LocalDate.now(zone)
         val hour = LocalTime.now(zone).hour
         val announceHour = ConfigManager.int("topDonations.announceHour", 20).coerceIn(0, 23)
-        for (key in periods.keys.toList()) {
+        // Incluye el periodo activo aunque nadie haya donado, para que también pueda cerrarse y mostrar resultados vacíos.
+        val periodsToCheck = periods.keys.toMutableSet()
+        val currentPeriod = YearMonth.from(today)
+        if (isActiveMonth(currentPeriod)) periodsToCheck.add(keyOf(currentPeriod))
+        for (key in periodsToCheck) {
             if (key in closed) continue
             val period = runCatching { YearMonth.parse(key) }.getOrNull() ?: continue
             val lastDay = period.atEndOfMonth()

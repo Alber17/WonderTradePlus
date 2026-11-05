@@ -216,7 +216,6 @@ object WonderTradeService {
             lines += ConfigManager.string("messages.helpAdminPenalizeCommand", "&e/wt admin penalizar <jugador> [duración|permanente] &7Penalizar a un jugador (también desde el panel)")
             lines += ConfigManager.string("messages.helpAdminPardonCommand", "&e/wt admin perdonar <jugador> &7Retirar una penalización; &e/wt admin penalizaciones &7lista las vigentes")
             lines += ConfigManager.string("messages.helpAdminStatusCommand", "&e/wt admin estado &7Diagnóstico: versión, pool, copias, permisos y archivos")
-            lines += ConfigManager.string("messages.helpAdminLanguageCommand", "&e/wt admin idioma [código] &7Ver o cambiar el idioma del servidor")
             lines += ConfigManager.string("messages.helpAdminPauseCommand", "&e/wt admin eventos pausar|reanudar <id> &7Pausar o reanudar el tiempo de un evento")
             lines += ConfigManager.string("messages.helpAdminEventHistoryCommand", "&e/wt admin eventos historial &7Ver eventos terminados con sus WT")
             lines += ConfigManager.string("messages.helpAdminUnscheduleCommand", "&e/wt admin eventos desprogramar <id> &7Cancelar un evento programado")

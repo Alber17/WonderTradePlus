@@ -306,24 +306,6 @@ class WonderTradePlus : ModInitializer {
         return 1
     }
 
-    /** /wt admin idioma [código]: cambia el idioma del servidor (general.language) y recarga la configuración. */
-    private fun languageCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>, code: String?): Int {
-        val source = context.source
-        if (code == null) {
-            val list = Lang.available().joinToString(", ") { (id, label) -> (if (id == Lang.current()) "&a" else "&f") + id + " &7($label)" }
-            source.sendSuccess({ WonderTradeService.info(Lang.t("&7Idioma actual: &f{0}&7. Disponibles: {1}", Lang.current(), list)) }, false)
-            return 1
-        }
-        val id = code.lowercase().replace('-', '_')
-        if (Lang.available().none { it.first == id }) {
-            source.sendFailure(WonderTradeService.info(Lang.t("&cNo existe el idioma &f{0}&c. Usa /wt admin idioma para ver la lista.", code)))
-            return 0
-        }
-        WonderTradeService.changeLanguage(id)
-        source.sendSuccess({ WonderTradeService.info(Lang.t("&aIdioma cambiado a &f{0}&a.", Lang.nameOf(id))) }, true)
-        return 1
-    }
-
     private fun listEventsCommand(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>): Int {
         context.source.sendSuccess({ WonderTradeEvents.adminListComponent() }, false)
         return 1
@@ -394,11 +376,6 @@ class WonderTradePlus : ModInitializer {
         // Diagnóstico del mod para admins.
         .then(literal("estado").executes { context -> statusCommand(context) })
         .then(literal("status").executes { context -> statusCommand(context) })
-        // Idioma del servidor: sin argumento lista los disponibles.
-        .then(literal("idioma").executes { context -> languageCommand(context, null) }
-            .then(argument("codigo", StringArgumentType.word())
-                .suggests { _, builder -> SharedSuggestionProvider.suggest(Lang.available().map { it.first }, builder) }
-                .executes { context -> languageCommand(context, StringArgumentType.getString(context, "codigo")) }))
         // PERMISO: admin.permissionLevel.
         .then(literal("add").then(argument("slot", IntegerArgumentType.integer(1, 6)).executes { context ->
             val player = context.source.player
