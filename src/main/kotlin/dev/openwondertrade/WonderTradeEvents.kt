@@ -25,16 +25,19 @@ enum class EventType(val key: String, val title: String) {
 }
 
 /** Categoría a la que afecta un evento. */
-enum class EventCategory(val key: String, private val source: String, private val speciesKey: String?) {
+enum class EventCategory(val key: String, private val source: String, private val speciesKey: String?, val color: String) {
     // El orden de esta lista es el orden en que aparecen en el menú.
-    SHINY("shiny", "Shiny", null),
-    ULTRABEAST("ultraente", "Ultraente", "ultraBeast"),
-    PARADOX("paradoja", "Paradoja", "paradox"),
-    MYTHICAL("mitico", "Mítico", "mythical"),
-    LEGENDARY("legendario", "Legendario", "legendary");
+    SHINY("shiny", "Shiny", null, "&e"),
+    ULTRABEAST("ultraente", "Ultraente", "ultraBeast", "&3"),
+    PARADOX("paradoja", "Paradoja", "paradox", "&c"),
+    MYTHICAL("mitico", "Mítico", "mythical", "&d"),
+    LEGENDARY("legendario", "Legendario", "legendary", "&6");
 
     /** Nombre en el idioma activo. */
     val label: String get() = Lang.tr(source)
+
+    /** Mismo nombre, con el color de /wt especiales (shiny en amarillo). */
+    val coloredLabel: String get() = color + label
 
     fun matches(pokemon: com.cobblemon.mod.common.pokemon.Pokemon): Boolean =
         if (this == SHINY) pokemon.shiny else WonderTradeRules.speciesCategoryKey(pokemon) == speciesKey

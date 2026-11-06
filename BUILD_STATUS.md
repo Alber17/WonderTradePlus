@@ -1,12 +1,24 @@
 # Estado de compilación
 
-- Versión actual: **0.26.3**.
+- Versión actual: **0.26.5**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
 - Los comandos `/wt admin ...`, el historial, el cooldown de 12 h y el autocompletado (v0.3.0) están pendientes de probar en juego.
 - Los anuncios de legendarios, Ultraentes y Paradoja pasado/futuro (v0.2.1) están pendientes de probar en juego.
 - No es una versión NeoForge/Arclight. El JAR es solo Fabric.
+
+## Cambios de la versión 0.26.5
+
+- El menú de `/wt rangos` usa, de izquierda a derecha, Gloria Ball, Master Ball, Ultra Ball, Super Ball y Poké Ball.
+
+## Cambios de la versión 0.26.4
+
+- La bossbar de eventos se actualiza en cada tick. Arriesgar y Recibir animan el texto con el color de cada categoría; Shiny va en amarillo.
+- La talla XS–XL usa la categoría real de Cobblemon.
+- La animación de la action bar dura hasta que desaparece el texto.
+- Los legendarios, míticos, Ultraentes y Paradoja generados por el servidor salen como mínimo al nivel 50. Lo que entrega un jugador conserva su nivel.
+- Filtros de la pool reordenados y con los colores de `/wt especiales`. Legendarios incluye también a los míticos.
 
 ## Cambios de la versión 0.26.3
 

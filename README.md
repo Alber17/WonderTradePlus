@@ -217,6 +217,18 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.26.5
+
+- `/wt rangos` muestra Gloria Ball, Master Ball, Ultra Ball, Super Ball y Poké Ball, de izquierda a derecha.
+
+## 0.26.4
+
+- Bossbar de Arriesgar y Recibir animada con el color de cada categoría (Shiny en amarillo). La barra se actualiza en cada tick.
+- La talla del Pokémon usa la categoría real de Cobblemon (XS, S, M, L, XL).
+- La animación de la action bar dura lo mismo que el texto.
+- Legendarios, míticos, Ultraentes y Paradoja generados por el servidor salen al menos al nivel 50.
+- Filtros de la pool con los colores de `/wt especiales`. El filtro Legendarios incluye míticos.
+
 ## 0.26.3
 
 - Navidad deja de ser una temporada continua: del 25 de diciembre al 6 de enero se programan cuatro sesiones aleatorias de 1 hora al día.

@@ -111,10 +111,10 @@ enum class PoolSort(private val source: String) {
 }
 
 enum class PoolFilter(private val source: String) {
-    ALL("&eTodos"),
-    SPECIAL("&dEspeciales"),
+    ALL("&fTodos"),
     NORMAL("&7Normales"),
-    SHINY("&6Shiny"),
+    SPECIAL("&dEspeciales"),
+    SHINY("&eShiny"),
     ULTRA_BEAST("&3Ultraentes"),
     PARADOX("&cParadoja"),
     LEGENDARY("&6Legendarios");
@@ -130,7 +130,6 @@ enum class PoolFilter(private val source: String) {
         SHINY -> entry.shiny
         ULTRA_BEAST -> WonderTradeService.entryCategoryKey(entry, registryAccess) == "ultraBeast"
         PARADOX -> WonderTradeService.entryCategoryKey(entry, registryAccess) == "paradox"
-        // Legendarios y míticos juntos.
         LEGENDARY -> WonderTradeService.entryCategoryKey(entry, registryAccess).let { it == "legendary" || it == "mythical" }
     }
 }
@@ -375,11 +374,8 @@ object WonderTradeGui {
     fun openRanks(player: ServerPlayer) {
         val ranks = WonderTradeRanks.all()
         val rows = if (ranks.size <= 7) 3 else 6
-        // Un objeto distinto por rango (del más alto al más bajo).
-        val icons = listOf(
-            Items.NETHER_STAR, Items.DIAMOND, Items.EMERALD, Items.GOLD_INGOT, Items.IRON_INGOT,
-            Items.COPPER_INGOT, Items.AMETHYST_SHARD, Items.LAPIS_LAZULI, Items.QUARTZ, Items.REDSTONE
-        )
+        // De izquierda a derecha, del rango más alto al más bajo. Gloria Ball es la Cherish Ball de Cobblemon.
+        val icons = listOf("cherish_ball", "master_ball", "ultra_ball", "great_ball", "poke_ball").map { cobblemonItem(it) }
         open(player, Lang.tr("&5Wonder Trade &8- &bRangos"), rows) { menu ->
             fill(menu, rows * 9)
             if (!WonderTradeRanks.enabled() || ranks.isEmpty()) {
@@ -525,8 +521,9 @@ object WonderTradeGui {
         if (page < pages - 1) menu.button(50, named(Items.ARROW, Lang.tr("&ePágina siguiente")), "pageTurn") { renderPool(menu, it, page + 1, admin, filter, deleteMode, sort, query) }
         val counts = PoolFilter.values().associateWith { option -> all.count { option.matches(it, registryAccess) } }
         val options = PoolFilter.values().map { option ->
-            if (option == filter) Lang.t("&e▶ {0} &f{1}", option.label, counts[option])
-            else Lang.t("&8   {0} {1}", option.label.drop(2), counts[option])
+            val count = "&7" + counts[option]
+            if (option == filter) Lang.t("&f▶ {0} {1}", option.label, count)
+            else Lang.t("&8· {0} {1}", option.label, count)
         }
         val sortOptions = PoolSort.values().map { option ->
             if (option == sort) Lang.t("&e▶ {0}", option.label) else Lang.t("&8   {0}", option.label.drop(2))
@@ -1055,14 +1052,14 @@ object WonderTradeGui {
         menu.put(4, named(
             Items.NETHER_STAR, Lang.t("&d{0}", type.title), *eventTypeDescription(type).toTypedArray(),
             Lang.tr("&7Elige una o varias categorías."),
-            Lang.tr("&7Seleccionadas: ") + if (chosen.isEmpty()) Lang.tr("&8ninguna") else "&f" + categoriesTitle(chosen)
+            Lang.tr("&7Seleccionadas: ") + if (chosen.isEmpty()) Lang.tr("&8ninguna") else chosen.joinToString("&7, ") { it.coloredLabel }
         ))
         val slots = listOf(11, 12, 13, 14, 15)
         EventCategory.values().forEachIndexed { index, category ->
             val isChosen = category in chosen
             menu.button(slots[index], named(
                 eventCategoryIcons[category] ?: Items.PAPER,
-                (if (isChosen) "&a✔ " else "&7") + category.label,
+                (if (isChosen) "&a✔ " else "&8· ") + category.coloredLabel,
                 if (isChosen) Lang.tr("&eClic para quitarla") else Lang.tr("&eClic para añadirla")
             )) {
                 val next = if (isChosen) chosen - category else chosen + category
@@ -1074,7 +1071,7 @@ object WonderTradeGui {
         } else {
             menu.button(22, named(
                 Items.LIME_CONCRETE, Lang.tr("&aContinuar"),
-                Lang.tr("&7Categorías: &f") + categoriesTitle(chosen), Lang.tr("&eClic para elegir la duración")
+                Lang.tr("&7Categorías: ") + chosen.joinToString("&7, ") { it.coloredLabel }, Lang.tr("&eClic para elegir la duración")
             )) { openEventDuration(it, type, chosen) }
         }
         menu.button(18, named(Items.ARROW, Lang.tr("&aVolver"))) { openAdminEvents(it) }
@@ -1837,6 +1834,9 @@ object WonderTradeGui {
         stack.set(DataComponents.PROFILE, ResolvableProfile(Optional.empty(), Optional.empty(), properties))
         return stack
     }
+
+    private fun cobblemonItem(path: String): Item =
+        BuiltInRegistries.ITEM.getOptional(ResourceLocation.fromNamespaceAndPath("cobblemon", path)).orElse(Items.PAPER)
 
     private fun named(item: Item, name: String, vararg lore: String): ItemStack {
         val stack = ItemStack(item)
