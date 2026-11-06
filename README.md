@@ -217,6 +217,19 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.26.8
+
+- La barra de un evento con varias categorías es morada.
+
+## 0.26.7
+
+- El mod ya no usa la action bar.
+
+## 0.26.6
+
+- El bonus del libro y el nombre del Pokémon usan el color de su categoría.
+- La barra de un evento con varias categorías se queda blanca; el texto sigue animado.
+
 ## 0.26.5
 
 - `/wt rangos` muestra Gloria Ball, Master Ball, Ultra Ball, Super Ball y Poké Ball, de izquierda a derecha.

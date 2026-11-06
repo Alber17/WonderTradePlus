@@ -1041,7 +1041,6 @@ object WonderTradeService {
             // El tótem es solo para un especial (legendario, mítico, Ultraente o Paradoja) que además sea shiny.
             if (incomingRare) {
                 WonderTradeGui.playSpecialSound(player, incoming.shiny && WonderTradeRules.isSpecialSpecies(incoming))
-                WonderTradeAnimations.play(player, "specialReceived", (if (incoming.shiny) "✦ " else "★ ") + incoming.getDisplayName().string + (if (incoming.shiny) " ✦" else " ★"))
             }
             val bonusText = when {
                 !bonusEnabled -> ""
@@ -1396,7 +1395,6 @@ object WonderTradeService {
     fun tick(server: MinecraftServer) {
         minecraftServer = server
         Lang.reset()
-        WonderTradeAnimations.tick(server)
         runCatching { WonderTradeEventDisplay.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló la barra de eventos.", it) }
         tickCounter++
         if (tickCounter % 20 != 0) return

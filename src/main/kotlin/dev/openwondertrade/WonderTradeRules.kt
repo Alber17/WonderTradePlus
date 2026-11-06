@@ -77,6 +77,15 @@ object WonderTradeRules {
         return entry.shiny || entry.special || id in pastParadox || id in futureParadox
     }
 
+    /** Color del nombre: el de su categoría, amarillo si es shiny sin categoría, blanco si es normal. */
+    fun nameColor(pokemon: Pokemon): String = when (speciesCategoryKey(pokemon)) {
+        "ultraBeast" -> "&3"
+        "paradox" -> "&c"
+        "mythical" -> "&d"
+        "legendary" -> "&6"
+        else -> if (pokemon.shiny) "&e" else "&f"
+    }
+
     /** Categoría real del Pokémon con color, o null si es un Pokémon normal. */
     fun categoryLabel(pokemon: Pokemon): String? {
         val id = pokemon.species.resourceIdentifier.path.lowercase()

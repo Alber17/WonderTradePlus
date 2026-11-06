@@ -81,8 +81,8 @@ object WonderTradeEventDisplay {
             val looks = categoryLooks(event.categories)
             val total = (event.endAt - event.startAt).coerceAtLeast(1L)
             val remaining = (event.endAt - now).coerceAtLeast(0L)
-            // Con varias categorías la barra va pasando por el color de cada una.
-            val barColor = looks[((now / 900L) % looks.size).toInt()].bar
+            // La barra se queda en un color. Con varias categorías es morada, que no usa ningún nombre; el texto sigue recorriendo cada una.
+            val barColor = if (looks.size == 1) looks[0].bar else BossEvent.BossBarColor.PURPLE
             for ((language, players) in groups) {
                 val key = "${event.id}|$language"
                 if (barStyle[key] != overlay.name) {

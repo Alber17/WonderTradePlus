@@ -309,6 +309,9 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
  points.normal/shiny/ultraBeast/paradox/mythical/legendary
                             Puntos por donacion. Un especial shiny puntua como su
                             categoria (sin extra por shiny + categoria).
+ tieBreak                   Desempate: firstToReach (gana quien llego antes),
+                            mostDonations (mas donaciones) o share (empatados
+                            comparten puesto y premio).
  rewards.first / second / third
                             Lista de comandos de consola que se ejecutan al ganador
                             del 1.er, 2.o y 3.er puesto. Variables: {player}
@@ -340,18 +343,6 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
   <jugador> [duracion] [motivo], motivo <texto>, perdonar, penalizaciones
   [historial [jugador]]. Se guardan en penalties.json. Al terminar una
   penalizacion se avisa al jugador, o al entrar si estaba desconectado.)
-
---------------------------------------------------------------------------------
- animations - Animaciones en la barra de accion
---------------------------------------------------------------------------------
- enabled                    Interruptor global.
- specialReceived / eventStart / topDonations
-                            Activa cada animacion.
- durationSeconds            Duracion (1 a 10 segundos).
-
- topDonations.tieBreak      Desempate: firstToReach (gana quien llego antes),
-                            mostDonations (mas donaciones) o share (empatados
-                            comparten puesto y premio).
 
 --------------------------------------------------------------------------------
  Idiomas (general.language, general.useClientLanguage)

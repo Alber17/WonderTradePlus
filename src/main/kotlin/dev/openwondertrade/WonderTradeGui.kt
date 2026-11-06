@@ -286,15 +286,15 @@ object WonderTradeGui {
                     mapOf("gain" to WonderTradeService.normalBonusGainText())
                 )
                 bookLore += WonderTradeService.format(
-                    ConfigManager.string("messages.menuBookShinyGain", "&7Pokémon shiny (sin categoría especial): &d+{gain}%"),
+                    ConfigManager.string("messages.menuBookShinyGain", "&ePokémon shiny&7 (sin categoría especial): &e+{gain}%"),
                     mapOf("gain" to WonderTradeService.specialBonusGainText())
                 )
                 bookLore += WonderTradeService.format(
-                    ConfigManager.string("messages.menuBookSpecialGain", "&7Legendario / Mítico / Ultraente / Paradoja: &d+{gain}%"),
+                    ConfigManager.string("messages.menuBookSpecialGain", "&6Legendario&7 / &dMítico&7 / &3Ultraente&7 / &cParadoja&7: &f+{gain}%"),
                     mapOf("gain" to WonderTradeService.specialBonusGainText())
                 )
                 bookLore += WonderTradeService.format(
-                    ConfigManager.string("messages.menuBookSpecialShinyGain", "&7Especial shiny: &d+{base}% + {extra}% extra = {total}%"),
+                    ConfigManager.string("messages.menuBookSpecialShinyGain", "&eEspecial shiny&7: &e+{base}% &7+ &e{extra}% &7extra = &e{total}%"),
                     mapOf(
                         "base" to WonderTradeService.specialBonusGainText(),
                         "extra" to WonderTradeService.specialShinyExtraGainText(),
@@ -1893,7 +1893,7 @@ object WonderTradeGui {
         val stack = runCatching { PokemonItem.from(pokemon) }.getOrElse { ItemStack(Items.PAPER) }
         val name = pokemon.getDisplayName().string
         val size = if (ConfigManager.bool("pool.size.show", true)) " &8(&7" + WonderTradeRules.sizeLabel(pokemon) + "&8)" else ""
-        stack.set(DataComponents.CUSTOM_NAME, lit((if (pokemon.shiny) "&e" else "&f") + name + size))
+        stack.set(DataComponents.CUSTOM_NAME, lit(WonderTradeRules.nameColor(pokemon) + name + size))
 
         val lines = mutableListOf(Lang.t("&7Nivel: &f{0}", pokemon.level))
         WonderTradeRules.typesLabel(pokemon)?.let { lines += Lang.t("&7Tipo: {0}", it) }

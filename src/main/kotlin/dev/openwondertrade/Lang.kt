@@ -79,7 +79,25 @@ object Lang {
         "discord.eventEndMessage" to listOf("🏁 **Ha terminado el evento: {name}**", "🏁 **The event has ended: {name}**"),
         "discord.eventSoonMessage" to listOf("⏰ **{name}** empieza <t:{startEpoch}:R> (<t:{startEpoch}:F>, a tu hora)", "⏰ **{name}** starts <t:{startEpoch}:R> (<t:{startEpoch}:F>, in your local time)"),
         "discord.eventPausedMessage" to listOf("⏸️ El evento **{name}** se ha pausado temporalmente.", "⏸️ The event **{name}** has been temporarily paused."),
-        "discord.eventResumedMessage" to listOf("▶️ El evento **{name}** se ha reanudado. Termina <t:{endEpoch}:R>.", "▶️ The event **{name}** has resumed. Ends <t:{endEpoch}:R>.")
+        "discord.eventResumedMessage" to listOf("▶️ El evento **{name}** se ha reanudado. Termina <t:{endEpoch}:R>.", "▶️ The event **{name}** has resumed. Ends <t:{endEpoch}:R>."),
+        "messages.menuBookShinyGain" to listOf(
+            "&7Pokémon shiny (sin categoría especial): &d+{gain}%",
+            "&7Shiny Pokémon (no special category): &d+{gain}%",
+            "&7Pokémon chromatique (sans catégorie spéciale) : &d+{gain}%",
+            "&7Pokémon cromatico (senza categoria speciale): &d+{gain}%"
+        ),
+        "messages.menuBookSpecialGain" to listOf(
+            "&7Legendario / Mítico / Ultraente / Paradoja: &d+{gain}%",
+            "&7Legendary / Mythical / Ultra Beast / Paradox: &d+{gain}%",
+            "&7Légendaire / Fabuleux / Ultra-Chimère / Paradoxe : &d+{gain}%",
+            "&7Leggendario / Misterioso / Ultracreatura / Paradosso: &d+{gain}%"
+        ),
+        "messages.menuBookSpecialShinyGain" to listOf(
+            "&7Especial shiny: &d+{base}% + {extra}% extra = {total}%",
+            "&7Shiny special: &d+{base}% + {extra}% extra = {total}%",
+            "&7Spécial chromatique : &d+{base}% + {extra}% bonus = {total}%",
+            "&7Speciale cromatico: &d+{base}% + {extra}% extra = {total}%"
+        )
     )
 
     fun load(configDirectory: Path, requested: String) {

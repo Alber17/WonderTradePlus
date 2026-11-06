@@ -365,13 +365,6 @@
     "historySize": 200,
     "reasons": []
   },
-  "animations": {
-    "enabled": true,
-    "specialReceived": true,
-    "eventStart": true,
-    "topDonations": true,
-    "durationSeconds": 3
-  },
   "sounds": {
     "enabled": true,
     "menuOpen": true,

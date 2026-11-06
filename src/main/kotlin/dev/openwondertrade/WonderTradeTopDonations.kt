@@ -297,7 +297,6 @@ object WonderTradeTopDonations {
         winners.forEach { item -> pending.add(Pending(item.uuid, item.entry.name, item.rank, key, item.entry.points)) }
         save()
         WonderTradeEvents.broadcast(server) { buildLines().joinToString("\n") }
-        winners.firstOrNull()?.let { runCatching { WonderTradeAnimations.playAll(server, "topDonations", "★ Top Donaciones: ${it.entry.name} ★") } }
         runCatching {
             WonderTradeDiscord.topDonations(monthName(period), winners.map { WonderTradeDiscord.TopLine(it.rank, it.entry.name, it.entry.points, it.entry.donations) })
         }
