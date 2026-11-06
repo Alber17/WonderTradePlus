@@ -274,7 +274,27 @@ object WonderTradeDiscord {
     fun plainName(pokemon: Pokemon): String {
         val name = pokemon.getDisplayName().string
         // Si el servidor no tiene las traducciones, el nombre sale como una clave ("cobblemon.species...").
-        return if (name.contains('.')) pokemon.species.resourceIdentifier.path.replaceFirstChar { it.uppercase() } else name
+        val base = if (name.contains('.')) pokemon.species.resourceIdentifier.path.replaceFirstChar { it.uppercase() } else name
+        val region = regionalRegion(pokemon) ?: return base
+        val titled = when (region) {
+            "alola" -> Lang.t("{0} de Alola", base)
+            "galar" -> Lang.t("{0} de Galar", base)
+            "hisui" -> Lang.t("{0} de Hisui", base)
+            "paldea" -> Lang.t("{0} de Paldea", base)
+            else -> base
+        }
+        val form = runCatching { pokemon.form.name }.getOrDefault("")
+        val detail = when {
+            form.startsWith("Paldea-", ignoreCase = true) -> when (form.substringAfter('-').lowercase()) {
+                "combat" -> Lang.tr("Combatiente")
+                "blaze" -> Lang.tr("Ardiente")
+                "aqua" -> Lang.tr("Acuática")
+                else -> null
+            }
+            form.contains("zen", ignoreCase = true) && region == "galar" -> Lang.tr("Modo Daruma")
+            else -> null
+        }
+        return if (detail == null) titled else Lang.t("{0} ({1})", titled, detail)
     }
 
     private fun plainCategory(pokemon: Pokemon): String {
@@ -307,17 +327,21 @@ object WonderTradeDiscord {
         return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/" + (if (pokemon.shiny) "shiny/" else "") + "$id.png"
     }
 
-    /** Número de arte oficial de una forma regional, o null si es la forma base. */
-    private fun regionalArtworkId(pokemon: Pokemon): Int? {
+    /** alola, galar, hisui o paldea, o null si es la forma base. */
+    private fun regionalRegion(pokemon: Pokemon): String? {
         val labels = runCatching { pokemon.form.labels }.getOrNull().orEmpty().map { it.lowercase() }
         val aspects = runCatching { pokemon.aspects }.getOrNull().orEmpty().map { it.lowercase() }
-        val region = when {
+        return when {
             "alolan_form" in labels || "alolan" in aspects -> "alola"
             "galarian_form" in labels || "galarian" in aspects -> "galar"
             "hisuian_form" in labels || "hisuian" in aspects -> "hisui"
             "paldean_form" in labels || "paldean" in aspects -> "paldea"
-            else -> return null
+            else -> null
         }
+    }
+
+    private fun regionalArtworkId(pokemon: Pokemon): Int? {
+        val region = regionalRegion(pokemon) ?: return null
         val species = when (val path = pokemon.species.resourceIdentifier.path.lowercase()) {
             "mrmime", "mr_mime" -> "mr-mime"
             else -> path
@@ -406,7 +430,7 @@ object WonderTradeDiscord {
         Lang.withPlayer(null) {
             if (!ConfigManager.bool("discord.enabled", false) || !ConfigManager.bool("discord.notifyDonations", true)) return
             if (!WonderTradeRules.isRare(offered)) return
-            val template = ConfigManager.string("discord.donationMessage", "**{player}** ha aportado **{pokemon}** (Nv. {level}, {category}) al pool de Wonder Trade.")
+            val template = ConfigManager.string("discord.donationMessage", "{player} ha aportado un {pokemon} al pool del WonderTrade.")
             if (template.isNotBlank()) {
                 val name = player.gameProfile.name
                 val text = WonderTradeService.format(template, mapOf("player" to name, "pokemon" to plainName(offered), "level" to offered.level, "category" to plainCategory(offered)))
@@ -420,7 +444,7 @@ object WonderTradeDiscord {
             if (!ConfigManager.bool("discord.enabled", false)) return
             notifyDonation(player, offered)
             if (ConfigManager.bool("discord.notifyReceived", true) && WonderTradeRules.isRare(incoming)) {
-                val template = ConfigManager.string("discord.receivedMessage", "🎉 **{player}** ha recibido **{pokemon}** (Nv. {level}, {category}) en un Wonder Trade.")
+                val template = ConfigManager.string("discord.receivedMessage", "{player} ha recibido un {pokemon} del pool del WonderTrade.")
                 val name = player.gameProfile.name
                 val text = WonderTradeService.format(template, mapOf("player" to name, "pokemon" to plainName(incoming), "level" to incoming.level, "category" to plainCategory(incoming)))
                 discordPost("", embed = pokemonEmbed(ConfigManager.string("discord.titles.received", "🎉 ¡Premio en un Wonder Trade!"), text, incoming, name))

@@ -359,7 +359,8 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
     el texto de ese ajuste.
   - El resto de claves son el texto original en espanol y su traduccion
     (menus, botones, estadisticas, naturalezas, tipos, categorias...).
- Para anadir un idioma: copia en_us.json con otro nombre (por ejemplo de_de.json),
+ Incluidos: es_es, en_us, fr_fr, it_it, pt_pt (portugues de Portugal) y de_de (aleman).
+ Para anadir otro: copia en_us.json con otro nombre (por ejemplo nl_nl.json),
  cambia "_name" y traduce los valores; aparecera en /wt idioma. Lo que falte en
  un idioma se muestra en espanol. Si cambias un texto en un archivo de lang, se
  respeta; en las actualizaciones solo se anaden las claves nuevas. Un texto
@@ -461,7 +462,7 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
  event.json              Eventos activos, esperas, estadisticas e historial.
  event-schedule.json     Eventos programados.
  penalties.json          Penalizaciones vigentes, historial y avisos pendientes.
- lang/                   Idiomas (es_es, en_us, fr_fr, it_it y los que anadas).
+ lang/                   Idiomas (es_es, en_us, fr_fr, it_it, pt_pt, de_de y los que anadas).
  maintenance-state.json  Control del reinicio mensual de la pool.
  backups/                Copias automaticas.
  config-guide.txt        Esta guia (se regenera).

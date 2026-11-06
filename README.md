@@ -217,6 +217,18 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.26.28
+
+- Discord: «ha recibido» sale del pool. «Ha aportado» sigue yendo al pool.
+
+## 0.26.27
+
+- Discord: «ha recibido» y «ha aportado» dicen el Pokémon con su forma, sin repetir nivel ni categoría.
+
+## 0.26.26
+
+- Nuevos idiomas en el menú: portugués de Portugal y alemán.
+
 ## 0.26.25
 
 - Shiny se anuncia en amarillo. En Discord, las formas regionales muestran su propia imagen.

@@ -236,7 +236,7 @@ Los avisos se envían a todos los jugadores que puedan intercambiar, no solo a a
 
 ## Idioma (0.20.0)
 
-- `general.language`: `es_es` (por defecto), `en_us`, `fr_fr` (francés) o `it_it` (italiano). Archivos en `config/wondertradeplus/lang/`. Para otro idioma, copia `en_us.json`, traduce los valores y usa su nombre como código.
+- `general.language`: `es_es` (por defecto), `en_us`, `fr_fr` (francés), `it_it` (italiano), `pt_pt` (portugués de Portugal) o `de_de` (alemán). Archivos en `config/wondertradeplus/lang/`. Para otro idioma, copia `en_us.json`, traduce los valores y usa su nombre como código.
 - Un texto escrito a mano en `config.json` (`messages.*`, `discord.*Message`, `events.names.*`) tiene prioridad sobre el idioma.
 - `penalties.reasons` (motivos rápidos del menú) y `penalties.historySize` (límite del historial).
 

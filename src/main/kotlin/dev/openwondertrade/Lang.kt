@@ -8,18 +8,19 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 /**
- * Idiomas del mod. El idioma principal es es_es (español de España); también vienen en_us, fr_fr (francés) e it_it (italiano).
+ * Idiomas del mod. El idioma principal es es_es (español de España); también vienen en_us, fr_fr (francés),
+ * it_it (italiano), pt_pt (portugués de Portugal) y de_de (alemán).
  *
  * Cada idioma es un archivo `config/wondertradeplus/lang/<código>.json` con dos tipos de entradas:
  *  - rutas de configuración (`messages.success`, `discord.donationMessage`, `events.names.risk`...): el texto de ese ajuste;
  *  - textos del propio mod (menús, ayudas, avisos): la clave es el texto original en español y el valor su traducción.
- * Para añadir un idioma basta con copiar es_es.json o en_us.json con otro nombre (por ejemplo de_de.json), traducir los
+ * Para añadir un idioma basta con copiar es_es.json o en_us.json con otro nombre (por ejemplo nl_nl.json), traducir los
  * valores y poner `general.language` a ese código. Lo que falte en un idioma se muestra en español.
  * Los textos que pongas a mano en config.json (`messages.*`...) tienen prioridad sobre cualquier idioma.
  */
 object Lang {
     private val gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
-    private val bundled = listOf("es_es", "en_us", "fr_fr", "it_it")
+    private val bundled = listOf("es_es", "en_us", "fr_fr", "it_it", "pt_pt", "de_de")
     const val DEFAULT = "es_es"
 
     private var directory: Path? = null
@@ -74,7 +75,36 @@ object Lang {
      * hayas editado) y carga es_es y el idioma por defecto del servidor (`general.language`).
      */
     private val legacyTexts: Map<String, List<String>> = mapOf(
-        "discord.receivedMessage" to listOf("🎉 **{player}** ha recibido **{pokemon}** (Nv. {level}, {category}) en un Wonder Trade.", "🎉 **{player}** received **{pokemon}** (Lv. {level}, {category}) in a Wonder Trade."),
+        "discord.receivedMessage" to listOf(
+            "🎉 **{player}** ha recibido **{pokemon}** (Nv. {level}, {category}) en un Wonder Trade.",
+            "🎉 **{player}** received **{pokemon}** (Lv. {level}, {category}) in a Wonder Trade.",
+            "**{player}** ha recibido **{pokemon}** (Nv. {level}, {category}) en un Wonder Trade.",
+            "**{player}** received **{pokemon}** (Lv. {level}, {category}) in a Wonder Trade.",
+            "**{player}** a reçu **{pokemon}** (Niv. {level}, {category}) lors d'un Wonder Trade.",
+            "**{player}** ha ricevuto **{pokemon}** (Lv. {level}, {category}) in un Wonder Trade.",
+            "**{player}** recebeu **{pokemon}** (Nv. {level}, {category}) numa troca do Wonder Trade.",
+            "**{player}** hat **{pokemon}** (Lv. {level}, {category}) in einem Wonder Trade erhalten.",
+            "{player} ha recibido un {pokemon} al pool del WonderTrade.",
+            "{player} ha recibido un {pokemon} en el WonderTrade.",
+            "{player} received a {pokemon} into the WonderTrade pool.",
+            "{player} received a {pokemon} in WonderTrade.",
+            "{player} a reçu un {pokemon} dans le pool de WonderTrade.",
+            "{player} a reçu un {pokemon} dans WonderTrade.",
+            "{player} ha ricevuto un {pokemon} nella pool di WonderTrade.",
+            "{player} ha ricevuto un {pokemon} in WonderTrade.",
+            "{player} recebeu um {pokemon} para a pool do WonderTrade.",
+            "{player} recebeu um {pokemon} no WonderTrade.",
+            "{player} hat ein {pokemon} in den WonderTrade-Pool erhalten.",
+            "{player} hat ein {pokemon} im WonderTrade erhalten."
+        ),
+        "discord.donationMessage" to listOf(
+            "**{player}** ha aportado **{pokemon}** (Nv. {level}, {category}) al pool de Wonder Trade.",
+            "**{player}** contributed **{pokemon}** (Lv. {level}, {category}) to the Wonder Trade pool.",
+            "**{player}** a contribué avec **{pokemon}** (Niv. {level}, {category}) au pool de Wonder Trade.",
+            "**{player}** ha contribuito con **{pokemon}** (Lv. {level}, {category}) alla pool del Wonder Trade.",
+            "**{player}** contribuiu com **{pokemon}** (Nv. {level}, {category}) para a pool do Wonder Trade.",
+            "**{player}** hat **{pokemon}** (Lv. {level}, {category}) zum Wonder-Trade-Pool beigetragen."
+        ),
         "discord.eventStartMessage" to listOf("🎉 **Evento iniciado: {name}**\n{details}\n⏱️ Dura {duration} · termina <t:{endEpoch}:R> (<t:{endEpoch}:t>, a tu hora)", "🎉 **Event started: {name}**\n{details}\n⏱️ Lasts {duration} · ends <t:{endEpoch}:R> (<t:{endEpoch}:t>, in your local time)"),
         "discord.eventEndMessage" to listOf("🏁 **Ha terminado el evento: {name}**", "🏁 **The event has ended: {name}**"),
         "discord.eventSoonMessage" to listOf("⏰ **{name}** empieza <t:{startEpoch}:R> (<t:{startEpoch}:F>, a tu hora)", "⏰ **{name}** starts <t:{startEpoch}:R> (<t:{startEpoch}:F>, in your local time)"),
