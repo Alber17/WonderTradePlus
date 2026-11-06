@@ -376,7 +376,7 @@ object WonderTradeGui {
         val rows = if (ranks.size <= 7) 3 else 6
         // De izquierda a derecha, del rango más alto al más bajo. Gloria Ball es la Cherish Ball de Cobblemon.
         val icons = listOf("cherish_ball", "master_ball", "ultra_ball", "great_ball", "poke_ball").map { cobblemonItem(it) }
-        open(player, Lang.tr("&5Wonder Trade &8- &bRangos"), rows) { menu ->
+        open(player, Lang.tr("&5Wonder Trade &8- &eRangos"), rows) { menu ->
             fill(menu, rows * 9)
             if (!WonderTradeRanks.enabled() || ranks.isEmpty()) {
                 menu.put(rows * 9 / 2, named(Items.BARRIER, ConfigManager.string("messages.rankDisabled", "&7Los rangos están desactivados.")))
@@ -396,7 +396,9 @@ object WonderTradeGui {
                             Lang.t("&7Ganancia por Pokémon ofrecido: &ax{0}", WonderTradeService.percentText(rank.gainMultiplier))
                         )
                         if (own) lore += Lang.tr("&a✔ Es tu rango")
-                        menu.put(start + column, named(icons[index % icons.size], "&f" + rank.name, *lore.toTypedArray()))
+                        val stack = named(icons[index % icons.size], "&f" + rank.name, *lore.toTypedArray())
+                        if (own) stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true)
+                        menu.put(start + column, stack)
                     }
                 }
             }

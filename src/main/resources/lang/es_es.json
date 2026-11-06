@@ -45,6 +45,8 @@
   "messages.successBonusIncreased": "&7Tu probabilidad ha aumentado &a+{gain}%&7. Ahora tienes &d{percent}%&7.",
   "messages.successBonusReset": "&7Has recibido un especial y tu probabilidad se ha reiniciado a &d{percent}%&7.",
   "messages.successBonusUnchanged": "&7Tu probabilidad acumulada sigue en &d{percent}%&7.",
+  "messages.successRankImprovement": "&7Mejora fija del rango: &a+{fixed}%&7. Tirada de este intercambio: &d{roll}%&7.",
+  "messages.previewRankImprovement": "&7Mejora fija del rango: &a+{fixed}%&7. Tirada: &d{roll}%&7.",
   "messages.eventStarted": "&d★ ¡Evento «{name}» activo durante {duration}! &7Usa &e/wt eventos &7para ver los detalles.",
   "messages.eventEnded": "&d★ El evento «{name}» ha terminado.",
   "messages.eventNone": "&7No hay ningún evento activo ahora mismo.",

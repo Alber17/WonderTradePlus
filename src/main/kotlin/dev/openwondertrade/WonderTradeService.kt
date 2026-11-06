@@ -1042,7 +1042,7 @@ object WonderTradeService {
             if (incomingRare) {
                 WonderTradeGui.playSpecialSound(player, incoming.shiny && WonderTradeRules.isSpecialSpecies(incoming))
             }
-            val bonusText = when {
+            var bonusText = when {
                 !bonusEnabled -> ""
                 !offeredRare && incomingRare && bonusForRoll > 0.0 -> format(
                     ConfigManager.string("messages.successBonusReset", "&7Has recibido un especial y tu probabilidad se ha reiniciado a &d0%&7."),
@@ -1056,6 +1056,14 @@ object WonderTradeService {
                     ConfigManager.string("messages.successBonusUnchanged", "&7Tu probabilidad acumulada sigue en &d{percent}%&7."),
                     mapOf("percent" to percentText(bonusAfter))
                 )
+            }
+            val fixed = if (bonusEnabled) WonderTradeRanks.improvementPercent(player) else 0.0
+            if (!offeredRare && fixed > 0.0) {
+                val fixedText = format(
+                    ConfigManager.string("messages.successRankImprovement", "&7Mejora fija del rango: &a+{fixed}%&7. Tirada de este intercambio: &d{roll}%&7."),
+                    mapOf("fixed" to percentText(fixed), "roll" to percentText(effectiveChance))
+                )
+                bonusText = if (bonusText.isBlank()) fixedText else "$bonusText $fixedText"
             }
             sendTradeSuccess(player, mapOf(
                 "sent" to offered.getDisplayName().string,
@@ -1320,9 +1328,11 @@ object WonderTradeService {
         val maximum = ConfigManager.double("bonus.maximum", 60.0).coerceIn(0.0, 100.0)
         val before = if (bonusEnabled) effectiveBonus(player) else 0.0
         val gain = if (bonusEnabled) bonusGain(offered, player) else 0.0
-        // Igual que en el intercambio real: un normal suma antes de tirar; un especial no usa el bonus.
-        val forced = if (offeredRare || specials == 0) 0.0
-        else (before + gain).coerceAtMost(maximum).let { if (bonusEnabled) it else 0.0 }
+        val fixed = if (bonusEnabled && !offeredRare) WonderTradeRanks.improvementPercent(player) else 0.0
+        // Igual que en el intercambio real: un normal suma antes de tirar; la mejora fija entra en la tirada y no se guarda.
+        val accumulated = (before + gain).coerceAtMost(maximum)
+        val forced = if (offeredRare || specials == 0 || !bonusEnabled) 0.0
+        else (accumulated + fixed).coerceAtMost(100.0)
         val natural = specials * 100.0 / total
         val registryAccess = player.server.registryAccess()
         // Solo cuentan los eventos de recepción para los que existe algún Pokémon de su categoría en la pool.
@@ -1340,7 +1350,13 @@ object WonderTradeService {
                     mapOf("percent" to percentText((before + gain).coerceAtMost(maximum))))
             } else {
                 lines += format(ConfigManager.string("messages.previewBonusUsed", "&7Bonus aplicado en este intercambio: &d{percent}% &8(+{gain}%)"),
-                    mapOf("percent" to percentText((before + gain).coerceAtMost(maximum)), "gain" to percentText(gain)))
+                    mapOf("percent" to percentText(accumulated), "gain" to percentText(gain)))
+                if (fixed > 0.0) {
+                    lines += format(
+                        ConfigManager.string("messages.previewRankImprovement", "&7Mejora fija del rango: &a+{fixed}%&7. Tirada: &d{roll}%&7."),
+                        mapOf("fixed" to percentText(fixed), "roll" to percentText(forced))
+                    )
+                }
             }
         }
         lines += format(ConfigManager.string("messages.previewChance", "&7Probabilidad de recibir un especial: &d{percent}%"),

@@ -146,12 +146,9 @@ class WonderTradePlus : ModInitializer {
             // PERMISO: público; Top Donaciones del mes (puntos, ranking y próximo mes activo). «topdonaciones» es alias.
             .then(literal("donaciones").executes { showTopDonationsCommand(it) })
             .then(literal("topdonaciones").executes { showTopDonationsCommand(it) })
-            // PERMISO: público; muestra tu rango y sus ventajas.
-            .then(literal("rango").executes { context ->
-                val player = context.source.playerOrException
-                context.source.sendSuccess({ WonderTradeService.rankComponent(player) }, false)
-                1
-            })
+            // PERMISO: público; muestra tu rango y sus ventajas. «rank» es alias de «rango».
+            .then(literal("rango").executes { context -> showOwnRank(context) })
+            .then(literal("rank").executes { context -> showOwnRank(context) })
             // PERMISO: público; menú con todos los rangos y sus ventajas. «ranks» es alias.
             .then(literal("rangos").executes { context -> openRanksCommand(context) })
             .then(literal("ranks").executes { context -> openRanksCommand(context) })
@@ -272,6 +269,12 @@ class WonderTradePlus : ModInitializer {
                 else Lang.tr("&7Modo infinito desactivado: vuelves a tener cooldown y límites.")
             )
         }, false)
+        return 1
+    }
+
+    private fun showOwnRank(context: com.mojang.brigadier.context.CommandContext<CommandSourceStack>): Int {
+        val player = context.source.playerOrException
+        context.source.sendSuccess({ WonderTradeService.rankComponent(player) }, false)
         return 1
     }
 

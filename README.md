@@ -217,6 +217,18 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.26.13
+
+- La mejora fija del rango se ve en el mensaje del intercambio y en la confirmación.
+
+## 0.26.12
+
+- `/wt rank` es un alias de `/wt rango`.
+
+## 0.26.11
+
+- La pokeball de tu rango brilla en `/wt rangos`, y el título del menú es amarillo.
+
 ## 0.26.10
 
 - Eliminadas de la configuración las opciones que el mod ya no usaba.

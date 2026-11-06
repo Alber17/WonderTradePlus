@@ -28,7 +28,7 @@ Publicos (nivel 0):
   /wt top                   Menu de rankings.
   /wt donaciones            Resultados finales del Top Donaciones (solo al terminar el evento; alias: /wt topdonaciones).
   /wt especiales            Lista de legendarios, miticos, Ultraentes y Paradoja.
-  /wt rango                 Tu rango y sus ventajas.
+  /wt rango                 Tu rango y sus ventajas. Alias: /wt rank.
   /wt rangos                Menu con todos los rangos y sus ventajas.
   /wt eventos               Eventos activos y proximos.
   /wt sonidos               Preferencias de sonido personales.
