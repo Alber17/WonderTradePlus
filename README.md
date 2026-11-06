@@ -217,6 +217,14 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.26.10
+
+- Eliminadas de la configuración las opciones que el mod ya no usaba.
+
+## 0.26.9
+
+- El botón de confirmar muestra el nombre del Pokémon con el color de su categoría.
+
 ## 0.26.8
 
 - La barra de un evento con varias categorías es morada.

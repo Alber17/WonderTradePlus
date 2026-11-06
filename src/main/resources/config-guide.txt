@@ -239,7 +239,8 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
                                   Recordatorio ocasional en el chat de los eventos
                                   programados: cada X minutos, solo los que empiezan
                                   dentro de X horas, maximo N. Muestra cuenta atras.
- bossbar.*                        Barra de tiempo del evento (formato, color).
+ bossbar.enabled / format / overlay
+                                  Barra de tiempo del evento. El color lo pone la categoría.
  joinNotice.*                     Aviso al entrar al servidor.
  ensurePool.*                     Mantiene Pokemon del evento en la pool (cantidad
                                   minima/objetivo, cuantos generar, reponer

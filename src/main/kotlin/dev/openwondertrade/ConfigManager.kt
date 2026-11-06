@@ -106,6 +106,19 @@ object ConfigManager {
         for ((path, text) in Lang.baseEntries()) {
             if (string(path, "\u0000") == text) removePath(path)
         }
+        // 0.26.10: la bossbar ya no usa estos colores, la talla ya no usa umbrales y la action bar desapareció.
+        root.getAsJsonObject("events")?.getAsJsonObject("bossbar")?.let { bossbar ->
+            bossbar.remove("risk")
+            bossbar.remove("receive")
+            val format = bossbar.get("format")?.takeIf { it.isJsonPrimitive }?.asString
+            if (format == "&d★ {name} &7— &f{time}") {
+                bossbar.addProperty("format", "★ {name} — {time}")
+            }
+        }
+        root.getAsJsonObject("pool")?.getAsJsonObject("size")?.let { size ->
+            listOf("xsMax", "sMax", "mMax", "lMax").forEach { size.remove(it) }
+        }
+        root.remove("animations")
         // Migración 0.26.3: Navidad pasa de una temporada continua a cuatro sesiones aleatorias de una hora.
         // Solo cambia la fecha antigua que venía de fábrica; se respetan fechas personalizadas.
         root.getAsJsonObject("seasonal")?.getAsJsonArray("events")?.firstOrNull { element ->

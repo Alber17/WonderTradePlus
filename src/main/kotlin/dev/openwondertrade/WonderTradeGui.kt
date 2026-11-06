@@ -1760,7 +1760,7 @@ object WonderTradeGui {
             menu.button(11, named(
                 Items.LIME_CONCRETE,
                 if (donationMode) Lang.tr("&aConfirmar donación") else Lang.tr("&aConfirmar intercambio"),
-                Lang.t("&7Ofreces: &f{0}", pokemon.getDisplayName().string),
+                Lang.t("&7Ofreces: {0}{1}", WonderTradeRules.nameColor(pokemon), pokemon.getDisplayName().string),
                 if (donationMode) Lang.tr("&7No recibirás ningún Pokémon a cambio.") else Lang.tr("&7Recibirás otro Pokémon de la pool.")
             )) { p ->
                 if (donationMode) WonderTradeService.donateFromStore(p, fromPc, pokemon.uuid)

@@ -241,14 +241,8 @@
     },
     "bossbar": {
       "enabled": true,
-      "format": "&d★ {name} &7— &f{time}",
-      "overlay": "PROGRESS",
-      "risk": {
-        "color": "PURPLE"
-      },
-      "receive": {
-        "color": "PINK"
-      }
+      "format": "★ {name} — {time}",
+      "overlay": "PROGRESS"
     },
     "joinNotice": {
       "enabled": true,

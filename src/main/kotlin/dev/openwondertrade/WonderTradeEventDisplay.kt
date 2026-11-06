@@ -95,7 +95,7 @@ object WonderTradeEventDisplay {
                 bar.color = barColor
                 bar.progress = (remaining.toFloat() / total.toFloat()).coerceIn(0f, 1f)
                 bar.name = Lang.withPlayer(players.first()) {
-                    val format = ConfigManager.string("events.bossbar.format", "&d★ {name} &7— &f{time}")
+                    val format = ConfigManager.string("events.bossbar.format", "★ {name} — {time}")
                     val plain = WonderTradeService.format(
                         format,
                         mapOf("name" to event.title, "time" to WonderTradeEvents.formatDuration((remaining + 999L) / 1000L))
