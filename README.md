@@ -217,6 +217,10 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.26.14
+
+- La confirmación muestra el mínimo del rango al que vuelve el bonus si recibes un especial.
+
 ## 0.26.13
 
 - La mejora fija del rango se ve en el mensaje del intercambio y en la confirmación.

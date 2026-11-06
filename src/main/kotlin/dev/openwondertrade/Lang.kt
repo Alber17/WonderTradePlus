@@ -92,6 +92,12 @@ object Lang {
             "&7Légendaire / Fabuleux / Ultra-Chimère / Paradoxe : &d+{gain}%",
             "&7Leggendario / Misterioso / Ultracreatura / Paradosso: &d+{gain}%"
         ),
+        "messages.previewReset" to listOf(
+            "&8Si te toca un especial, tu bonus se reinicia a 0%.",
+            "&8If you get a special, your bonus resets to 0%.",
+            "&8Si tu obtiens un spécial, ton bonus retombe à 0 %.",
+            "&8Se ottieni uno speciale, il tuo bonus torna a 0%."
+        ),
         "messages.menuBookSpecialShinyGain" to listOf(
             "&7Especial shiny: &d+{base}% + {extra}% extra = {total}%",
             "&7Shiny special: &d+{base}% + {extra}% extra = {total}%",

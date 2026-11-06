@@ -89,7 +89,7 @@
   "messages.previewBonusUsed": "&7Bonus aplicado en este intercambio: &d{percent}% &8(+{gain}%)",
   "messages.previewBonusOfferedSpecial": "&7Ofrecer un especial no usa el bonus, pero lo subirá a &d{percent}%&7.",
   "messages.previewChance": "&7Probabilidad de recibir un especial: &d{percent}%",
-  "messages.previewReset": "&8Si te toca un especial, tu bonus se reinicia a 0%.",
+  "messages.previewReset": "&8Si te toca un especial, tu bonus se reinicia a &d{percent}%&8.",
   "messages.previewEmptyPool": "&cNo hay Pokémon disponibles para ti en la pool.",
   "messages.helpAdminToggleCommand": "&e/wt on | off &7Activar o desactivar Wonder Trade",
   "messages.donationDisabled": "&cLas donaciones a la pool están desactivadas.",

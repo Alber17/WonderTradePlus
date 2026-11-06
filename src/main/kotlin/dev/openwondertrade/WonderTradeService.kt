@@ -1366,7 +1366,10 @@ object WonderTradeService {
                 mapOf("percent" to percentText(event.value), "category" to event.categoryText))
         }
         if (bonusEnabled && !offeredRare) {
-            lines += ConfigManager.string("messages.previewReset", "&8Si te toca un especial, tu bonus se reinicia a 0%.")
+            lines += format(
+                ConfigManager.string("messages.previewReset", "&8Si te toca un especial, tu bonus se reinicia a &d{percent}%&8."),
+                mapOf("percent" to percentText(WonderTradeRanks.baseBonus(player)))
+            )
         }
         return lines
     }
