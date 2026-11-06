@@ -12,9 +12,15 @@ import java.util.UUID
  * Animaciones discretas en la barra de acción (encima de la barra de objetos): una frase con una ola de brillo que
  * dura unos segundos. Solo se usa en tres momentos (recibir un especial, empezar un evento y el Top Donaciones) y
  * cada uso se puede desactivar en `animations`.
+ *
+ * Tras el último paquete, Minecraft deja el texto unos 3 segundos más. Esos segundos siguen con la ola,
+ * y al terminar se borra la barra para que el brillo y el texto desaparezcan juntos.
  */
 object WonderTradeAnimations {
     private class Animation(val uuid: UUID, val text: String, var frame: Int, val frames: Int)
+
+    /** Fotogramas extra (uno cada 2 ticks) que cubren los 3 segundos que el texto se quedaba quieto. */
+    private const val EXTRA_LINGER_FRAMES = 30
 
     private val running = ArrayList<Animation>()
     private var tickCounter = 0
@@ -31,7 +37,7 @@ object WonderTradeAnimations {
         if (!enabled(key)) return
         val seconds = ConfigManager.int("animations.durationSeconds", 3).coerceIn(1, 10)
         running.removeAll { it.uuid == player.uuid }
-        running.add(Animation(player.uuid, clean(text), 0, seconds * 10))
+        running.add(Animation(player.uuid, clean(text), 0, seconds * 10 + EXTRA_LINGER_FRAMES))
     }
 
     fun playAll(server: MinecraftServer, key: String, text: String) {
@@ -39,9 +45,8 @@ object WonderTradeAnimations {
         server.playerList.players.forEach { play(it, key, text) }
     }
 
-    private fun frameComponent(text: String, frame: Int, last: Boolean): Component {
+    private fun frameComponent(text: String, frame: Int): Component {
         val result: MutableComponent = Component.empty()
-        if (last) return result.append(Component.literal(text).setStyle(Style.EMPTY.withColor(TextColor.fromRgb(0xFFD24D))))
         text.forEachIndexed { index, char ->
             val color = palette[Math.floorMod(index - frame, palette.size)]
             result.append(Component.literal(char.toString()).setStyle(Style.EMPTY.withColor(TextColor.fromRgb(color)).withBold(true)))
@@ -63,9 +68,12 @@ object WonderTradeAnimations {
                 continue
             }
             animation.frame++
-            val last = animation.frame >= animation.frames
-            runCatching { player.displayClientMessage(frameComponent(animation.text, animation.frame, last), true) }
-            if (last) iterator.remove()
+            if (animation.frame >= animation.frames) {
+                runCatching { player.displayClientMessage(Component.empty(), true) }
+                iterator.remove()
+            } else {
+                runCatching { player.displayClientMessage(frameComponent(animation.text, animation.frame), true) }
+            }
         }
     }
 }

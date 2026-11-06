@@ -44,11 +44,7 @@
     "donatedMaximumLevel": 100,
     "playerDonationsEnabled": true,
     "size": {
-      "show": true,
-      "xsMax": 0.8,
-      "sMax": 0.95,
-      "mMax": 1.05,
-      "lMax": 1.2
+      "show": true
     }
   },
   "fallback": {

@@ -461,7 +461,7 @@ object WonderTradeEvents {
     private val pendingSetup = mutableSetOf<Int>()
     private var ensureCounter = 0
 
-    /** Se llama una vez por segundo: termina los eventos caducados, inicia los programados y actualiza barras y avisos. */
+    /** Se llama una vez por segundo: termina los eventos caducados, inicia los programados y prepara las pools. */
     fun tick(server: MinecraftServer) {
         val now = System.currentTimeMillis()
         val ended = events.filter { !it.paused && it.endAt <= now }
@@ -479,7 +479,6 @@ object WonderTradeEvents {
             runCatching { WonderTradeService.maintainEventPools(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el mantenimiento de la pool del evento.", it) }
         }
         runCatching { processPendingSetup(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló la preparación de un evento.", it) }
-        runCatching { WonderTradeEventDisplay.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló la barra de eventos.", it) }
     }
 
     private fun processPendingSetup(server: MinecraftServer) {

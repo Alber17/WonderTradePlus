@@ -101,6 +101,28 @@ class PoolStore(private val file: Path) {
         }
     }
 
+    /**
+     * Los legendarios, míticos, Ultraentes y Paradoja creados por el servidor quedan al menos al nivel mínimo.
+     * Una entrada con donante (intercambio de un jugador) conserva su nivel aunque sea más bajo.
+     */
+    fun raiseGeneratedSpecialLevels(registryAccess: RegistryAccess): Int {
+        var changed = 0
+        for (index in entries.indices) {
+            val entry = entries[index]
+            if (entry.donorUuid.isNotBlank() || !entry.donorName.equals("Servidor", ignoreCase = true)) continue
+            val pokemon = runCatching { Pokemon.loadFromJSON(registryAccess, entry.pokemonJson.deepCopy()) }.getOrNull() ?: continue
+            val before = pokemon.level
+            WonderTradeRules.enforceGeneratedSpecialLevel(pokemon)
+            if (pokemon.level == before) continue
+            entries[index] = entry.copy(
+                level = pokemon.level,
+                pokemonJson = pokemon.saveToJSON(registryAccess, JsonObject())
+            )
+            changed++
+        }
+        return changed
+    }
+
     fun load() {
         Files.createDirectories(file.parent)
         if (!Files.exists(file)) {

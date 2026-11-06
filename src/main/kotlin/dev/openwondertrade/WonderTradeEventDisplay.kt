@@ -155,7 +155,7 @@ object WonderTradeEventDisplay {
         return result
     }
 
-    /** Se llama una vez por segundo. */
+    /** Se llama en cada tick del servidor para que el degradado y el progreso avancen sin saltos de un segundo. */
     fun tick(server: MinecraftServer) {
         syncBars(server)
         processJoins(server)

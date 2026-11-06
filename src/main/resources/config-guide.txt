@@ -110,15 +110,16 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
  clampDonatedLevel + donatedMinimumLevel / donatedMaximumLevel
                             Limita el nivel de lo donado.
  playerDonationsEnabled     Permite que los jugadores aporten a la pool.
- size.show                  Muestra la talla (XS, S, M, L, XL) junto al nombre en todos los menus.
- size.xsMax / sMax / mMax / lMax
-                            Limites del tamano del Pokemon para cada talla
-                            (por encima de lMax es XL).
+ size.show                  Muestra la talla real de Cobblemon (XS, S, M, L, XL)
+                            junto al nombre en el equipo, el PC y la pool.
 
 --------------------------------------------------------------------------------
  fallback - Generacion de Pokemon al azar
 --------------------------------------------------------------------------------
  minimumLevel / maximumLevel      Nivel de los Pokemon generados.
+                            Legendarios, miticos, Ultraentes y Paradoja creados
+                            por el servidor salen como minimo al nivel 50.
+                            Si un jugador intercambia uno mas bajo, conserva ese nivel.
  speciesGenerationAttempts        Intentos para encontrar una especie valida.
  shinyBehavior                    Como tratar el shiny al generar.
 
@@ -252,8 +253,8 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
 
 --------------------------------------------------------------------------------
  gui - Menus
-  La vista de la pool muestra junto al nombre de cada Pokémon su tamaño nativo
-  de Cobblemon: XS, S, M, L o XL.
+  El equipo, el PC y la pool muestran junto al nombre la talla real de
+  Cobblemon: XS, S, M, L o XL (pool.size.show).
 --------------------------------------------------------------------------------
  enabled                    Usar menus (false = solo comandos).
  poolViewPermissionLevel    Nivel para ver la pool (0 = todos).

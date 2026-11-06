@@ -22,8 +22,10 @@ object WonderTradeService {
     private var tickCounter = 0
     private var secondCounter = 0L
     private var lastHistoryCleanupAt = 0L
+    private var minecraftServer: MinecraftServer? = null
 
-    fun initialize() {
+    fun initialize(server: MinecraftServer) {
+        minecraftServer = server
         pending.clear()
         ConfigManager.load()
         val directory = FabricLoader.getInstance().configDir.resolve("wondertradeplus")
@@ -36,6 +38,7 @@ object WonderTradeService {
         WonderTradePenalties.load(directory)
         WonderTradeSeasons.load(directory)
         pool.load()
+        raiseGeneratedSpecialLevels()
         trimAndSave()
         playerData.load()
         history.load()
@@ -59,6 +62,7 @@ object WonderTradeService {
         WonderTradeTopDonations.load()
         WonderTradePenalties.load()
         pool.load()
+        raiseGeneratedSpecialLevels()
         trimAndSave()
         playerData.load()
         history.load()
@@ -525,6 +529,7 @@ object WonderTradeService {
     fun info(text: String): Component = colour(WonderTradeService.prefix() + text)
 
     private fun addAdminEntry(pokemon: Pokemon, registryAccess: net.minecraft.core.RegistryAccess) {
+        WonderTradeRules.enforceGeneratedSpecialLevel(pokemon)
         pool.add(PoolEntry.fromPokemon(pokemon, registryAccess, "Servidor"))
     }
 
@@ -536,7 +541,21 @@ object WonderTradeService {
     fun poolReplace(entries: List<PoolEntry>) {
         pool.restore(entries)
         entryCategoryCache.clear()
+        raiseGeneratedSpecialLevels()
         trimAndSave()
+    }
+
+    /** Sube al nivel 50 los especiales generados por el servidor. Las aportaciones de jugadores se quedan como están. */
+    private fun raiseGeneratedSpecialLevels() {
+        val registry = minecraftServer?.registryAccess() ?: return
+        val raised = pool.raiseGeneratedSpecialLevels(registry)
+        if (raised > 0) {
+            WonderTradePlus.LOGGER.info(
+                "Pool: {} legendarios, míticos, Ultraentes o Paradoja generados por el servidor pasan al nivel {}.",
+                raised,
+                WonderTradeRules.SPECIAL_MINIMUM_LEVEL
+            )
+        }
     }
 
     /**
@@ -587,6 +606,7 @@ object WonderTradeService {
             if (!accept(pokemon)) continue
             val special = WonderTradeRules.isSpecialSpecies(pokemon)
             if (special && !season.includeSpecial) continue
+            WonderTradeRules.enforceGeneratedSpecialLevel(pokemon)
             result += PoolEntry.fromPokemon(pokemon, registryAccess, "Servidor")
             if (!special) normals += name
         }
@@ -596,7 +616,10 @@ object WonderTradeService {
             val name = normals[Random.nextInt(normals.size)]
             val shiny = allowShiny && Random.nextDouble() * 100.0 < season.shinyChance
             val pokemon = create(name, shiny) ?: continue
-            if (accept(pokemon)) result += PoolEntry.fromPokemon(pokemon, registryAccess, "Servidor")
+            if (accept(pokemon)) {
+                WonderTradeRules.enforceGeneratedSpecialLevel(pokemon)
+                result += PoolEntry.fromPokemon(pokemon, registryAccess, "Servidor")
+            }
         }
         return result
     }
@@ -1371,8 +1394,10 @@ object WonderTradeService {
 
     /** Se llama cada tick del servidor; una vez por segundo actualiza los menús y ejecuta mantenimiento y copias de seguridad. */
     fun tick(server: MinecraftServer) {
+        minecraftServer = server
         Lang.reset()
         WonderTradeAnimations.tick(server)
+        runCatching { WonderTradeEventDisplay.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló la barra de eventos.", it) }
         tickCounter++
         if (tickCounter % 20 != 0) return
         secondCounter++

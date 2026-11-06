@@ -18,7 +18,7 @@ class WonderTradePlus : ModInitializer {
     override fun onInitialize() {
         LOGGER.info("Registrando WonderTrade Plus...")
         // La inicialización y todas las funciones se ejecutan en el servidor.
-        ServerLifecycleEvents.SERVER_STARTED.register { WonderTradeService.initialize() }
+        ServerLifecycleEvents.SERVER_STARTED.register { server -> WonderTradeService.initialize(server) }
         ServerTickEvents.END_SERVER_TICK.register { server -> WonderTradeService.tick(server) }
         // Aviso de eventos activos al entrar (todo en el servidor).
         net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register { handler, _, _ ->

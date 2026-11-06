@@ -50,21 +50,25 @@ object WonderTradeRules {
     /** Legendario, mítico, Ultraente o Paradoja (sin contar shiny). */
     fun isSpecialSpecies(pokemon: Pokemon): Boolean = categoryLabel(pokemon) != null || isSpecial(pokemon)
 
-    /** "Especial" para filtros y pools: shiny, legendario, mítico, Ultraente o Paradoja. */
+    /** Nivel mínimo de un legendario, mítico, Ultraente o Paradoja creado por el servidor. */
+    const val SPECIAL_MINIMUM_LEVEL = 50
+
     /**
-     * Talla del Pokémon (XS, S, M, L, XL) según su modificador de tamaño. Los límites se configuran en
-     * pool.size.xsMax / sMax / mMax / lMax (por encima del último es XL).
+     * Los que genera el servidor (pool, eventos, temporada, relleno) no bajan de [SPECIAL_MINIMUM_LEVEL].
+     * Un Pokémon que aporta un jugador conserva el nivel con el que lo entregó.
      */
-    fun sizeLabel(pokemon: Pokemon): String {
-        val scale = runCatching { pokemon.scaleModifier.toDouble() }.getOrDefault(1.0)
-        return when {
-            scale < ConfigManager.double("pool.size.xsMax", 0.8) -> "XS"
-            scale < ConfigManager.double("pool.size.sMax", 0.95) -> "S"
-            scale < ConfigManager.double("pool.size.mMax", 1.05) -> "M"
-            scale < ConfigManager.double("pool.size.lMax", 1.2) -> "L"
-            else -> "XL"
+    fun enforceGeneratedSpecialLevel(pokemon: Pokemon) {
+        if (speciesCategoryKey(pokemon) != null && pokemon.level < SPECIAL_MINIMUM_LEVEL) {
+            pokemon.level = SPECIAL_MINIMUM_LEVEL
         }
     }
+
+    /**
+     * Talla real de Cobblemon (XS, S, M, L, XL). Es la misma categoría que muestra el juego,
+     * a partir del modificador de tamaño y de los límites de tamaño del servidor.
+     */
+    fun sizeLabel(pokemon: Pokemon): String =
+        runCatching { pokemon.getSizeCategory().name }.getOrDefault("M")
 
     fun isRare(pokemon: Pokemon): Boolean = pokemon.shiny || isSpecialSpecies(pokemon)
 
