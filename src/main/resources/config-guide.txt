@@ -33,8 +33,8 @@ Publicos (nivel 0):
   /wt eventos               Eventos activos y proximos.
   /wt sonidos               Preferencias de sonido personales.
   /wt pool [search <texto>] Ver la pool (gui.poolViewPermissionLevel). La busqueda
-                            admite IVs: 6x31, 5x31... o 31spd, 31hp, 31atk,
-                            31def, 31spatk, 31spdef (se combinan con el nombre).
+                            admite IVs: 6x31, 5x31... o 31hp, 31atk, 31def,
+                            31spa, 31spd, 31spe (se combinan con el nombre).
   /wt chance                Tu bonus actual.
 Administracion (admin.permissionLevel, 2 por defecto):
   /wt on | off              Activa o desactiva Wonder Trade.

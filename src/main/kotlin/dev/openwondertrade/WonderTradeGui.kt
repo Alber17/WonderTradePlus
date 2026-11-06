@@ -568,9 +568,11 @@ object WonderTradeGui {
         "hp" to com.cobblemon.mod.common.api.pokemon.stats.Stats.HP,
         "atk" to com.cobblemon.mod.common.api.pokemon.stats.Stats.ATTACK,
         "def" to com.cobblemon.mod.common.api.pokemon.stats.Stats.DEFENCE,
+        "spa" to com.cobblemon.mod.common.api.pokemon.stats.Stats.SPECIAL_ATTACK,
         "spatk" to com.cobblemon.mod.common.api.pokemon.stats.Stats.SPECIAL_ATTACK,
+        "spd" to com.cobblemon.mod.common.api.pokemon.stats.Stats.SPECIAL_DEFENCE,
         "spdef" to com.cobblemon.mod.common.api.pokemon.stats.Stats.SPECIAL_DEFENCE,
-        "spd" to com.cobblemon.mod.common.api.pokemon.stats.Stats.SPEED
+        "spe" to com.cobblemon.mod.common.api.pokemon.stats.Stats.SPEED
     )
 
     /** Texto de búsqueda ya separado: nombre, mínimo de stats a 31 y stats concretos a 31. */
@@ -578,7 +580,7 @@ object WonderTradeGui {
         val usesIvs: Boolean get() = minPerfect > 0 || perfectStats.isNotEmpty()
     }
 
-    /** Admite «6x31», «5x31»… (mínimo de IVs a 31) y «31spd», «31hp»… (ese stat a 31), combinables con el nombre. */
+    /** Admite «6x31», «5x31»… (mínimo de IVs a 31) y «31spe», «31hp»… (ese stat a 31), combinables con el nombre. */
     private fun parseQuery(query: String): ParsedQuery {
         val nameParts = mutableListOf<String>()
         var minPerfect = 0
@@ -596,10 +598,10 @@ object WonderTradeGui {
     }
 
     private fun perfectIvCount(pokemon: Pokemon): Int = runCatching {
-        ivStatTokens.values.count { pokemon.ivs.getEffectiveBattleIV(it) >= 31 }
+        ivStatTokens.values.distinct().count { pokemon.ivs.getEffectiveBattleIV(it) >= 31 }
     }.getOrDefault(0)
 
-    /** Coincide por especie ("greattusk", "great tusk", "tusk") o apodo, y por IVs perfectos («6x31», «31spd»). */
+    /** Coincide por especie ("greattusk", "great tusk", "tusk") o apodo, y por IVs perfectos («6x31», «31spe»). */
     private fun matchesQuery(entry: PoolEntry, query: String?, registryAccess: net.minecraft.core.RegistryAccess): Boolean {
         if (query.isNullOrBlank()) return true
         val parsed = parseQuery(query)
@@ -623,7 +625,7 @@ object WonderTradeGui {
         val button = Component.literal(Lang.tr("§e§n[Pulsa aquí para buscar]"))
             .setStyle(Style.EMPTY.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/wt pool search ")))
         player.sendSystemMessage(
-            WonderTradeService.colour(WonderTradeService.prefix() + Lang.tr("&7Escribe el nombre o la especie del Pokémon. &8Opcional: 6x31 (IVs perfectos), 5x31… o 31spd, 31hp, 31atk, 31def, 31spatk, 31spdef. ")).copy().append(button)
+            WonderTradeService.colour(WonderTradeService.prefix() + Lang.tr("&7Escribe el nombre o la especie del Pokémon. &8Opcional: 6x31 (IVs perfectos), 5x31… o 31hp, 31atk, 31def, 31spa, 31spd, 31spe. ")).copy().append(button)
         )
     }
 
@@ -1854,12 +1856,12 @@ object WonderTradeGui {
     /** IVs con un color por estadística; si hay chapa (plateada u oro) el IV efectivo aparece entre paréntesis. */
     private fun ivLines(pokemon: Pokemon): List<String> = runCatching {
         val stats = listOf(
-            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.HP, "HP", "&c"),
-            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.ATTACK, "ATK", "&6"),
-            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.DEFENCE, "DEF", "&e"),
-            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.SPECIAL_ATTACK, "SPATK", "&9"),
-            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.SPECIAL_DEFENCE, "SPDEF", "&a"),
-            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.SPEED, "SPD", "&d")
+            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.HP, "HP", "&a"),
+            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.ATTACK, "Atk", "&e"),
+            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.DEFENCE, "Def", "&6"),
+            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.SPECIAL_ATTACK, "SpA", "&b"),
+            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.SPECIAL_DEFENCE, "SpD", "&9"),
+            Triple(com.cobblemon.mod.common.api.pokemon.stats.Stats.SPEED, "Spe", "&d")
         )
         val parts = stats.map { (stat, label, color) ->
             val base = pokemon.ivs[stat] ?: 0

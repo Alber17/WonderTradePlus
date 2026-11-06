@@ -217,6 +217,14 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.26.16
+
+- Los IVs usan verde, amarillo, dorado, cian, azul y rosa, lo más cerca posible de los colores de los juegos.
+
+## 0.26.15
+
+- Los IVs de los menús usan HP, Atk, Def, SpA, SpD y Spe.
+
 ## 0.26.14
 
 - La confirmación muestra el mínimo del rango al que vuelve el bonus si recibes un especial.
