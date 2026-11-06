@@ -578,20 +578,29 @@ class WonderTradePlus : ModInitializer {
         .then(literal("desprogramar").then(argument("id", IntegerArgumentType.integer(1)).executes { context ->
             val item = WonderTradeSchedule.remove(IntegerArgumentType.getInteger(context, "id"))
             if (item == null) context.source.sendFailure(WonderTradeService.info(Lang.tr("&cNo existe ningún evento programado con ese id.")))
-            else context.source.sendSuccess({ WonderTradeService.info(Lang.t("&aEvento programado &f{0} &acancelado.", item.title)) }, true)
+            else context.source.sendSuccess({
+                val (color, name) = eventChat(item.type, item.categories)
+                WonderTradeService.info(Lang.t("&aEvento programado {0}{1}&a cancelado.", color, name))
+            }, true)
             1
         }))
         // Pausa o reanuda el tiempo de un evento activo (el tiempo restante y las esperas se conservan).
         .then(literal("pausar").then(argument("id", IntegerArgumentType.integer(1)).executes { context ->
             val event = WonderTradeEvents.pause(context.source.server, IntegerArgumentType.getInteger(context, "id"))
             if (event == null) context.source.sendFailure(WonderTradeService.info(Lang.tr("&cNo existe un evento en marcha con ese id (o ya está pausado).")))
-            else context.source.sendSuccess({ WonderTradeService.info(Lang.t("&aEvento &f{0} &apausado. Usa &f/wt admin eventos reanudar {1}&a.", event.title, event.id)) }, true)
+            else context.source.sendSuccess({
+                val (color, name) = eventChat(event.type, event.categories)
+                WonderTradeService.info(Lang.t("&aEvento {0}{1}&a pausado. Usa &f/wt admin eventos reanudar {2}&a.", color, name, event.id))
+            }, true)
             1
         }))
         .then(literal("reanudar").then(argument("id", IntegerArgumentType.integer(1)).executes { context ->
             val event = WonderTradeEvents.resume(context.source.server, IntegerArgumentType.getInteger(context, "id"))
             if (event == null) context.source.sendFailure(WonderTradeService.info(Lang.tr("&cNo existe ningún evento pausado con ese id.")))
-            else context.source.sendSuccess({ WonderTradeService.info(Lang.t("&aEvento &f{0} &areanudado.", event.title)) }, true)
+            else context.source.sendSuccess({
+                val (color, name) = eventChat(event.type, event.categories)
+                WonderTradeService.info(Lang.t("&aEvento {0}{1}&a reanudado.", color, name))
+            }, true)
             1
         }))
         // Historial de eventos terminados (solo administradores, heredado de /wt admin).
@@ -602,7 +611,10 @@ class WonderTradePlus : ModInitializer {
         .then(literal("parar").then(argument("id", IntegerArgumentType.integer(1)).executes { context ->
             val event = WonderTradeEvents.stop(context.source.server, IntegerArgumentType.getInteger(context, "id"))
             if (event == null) context.source.sendFailure(WonderTradeService.info(Lang.tr("&cNo existe ningún evento activo con ese id.")))
-            else context.source.sendSuccess({ WonderTradeService.info(Lang.t("&aEvento &f{0} &afinalizado.", event.title)) }, true)
+            else context.source.sendSuccess({
+                val (color, name) = eventChat(event.type, event.categories)
+                WonderTradeService.info(Lang.t("&aEvento {0}{1}&a finalizado.", color, name))
+            }, true)
             1
         }))
 
@@ -631,7 +643,8 @@ class WonderTradePlus : ModInitializer {
         }
         val item = WonderTradeSchedule.add(type, categories, duration, spec, source.textName)
         source.sendSuccess({
-            WonderTradeService.info(Lang.t("&aEvento &f{0} &aprogramado (&f#P{1}&a): &f{2}&a.", item.title, item.id, WonderTradeSchedule.describeWhen(item)))
+            val (color, name) = eventChat(item.type, item.categories)
+            WonderTradeService.info(Lang.t("&aEvento {0}{1}&a programado (&f#P{2}&a): &f{3}&a.", color, name, item.id, WonderTradeSchedule.describeWhen(item)))
         }, true)
         return 1
     }
@@ -663,7 +676,10 @@ class WonderTradePlus : ModInitializer {
             source.sendFailure(WonderTradeService.info(Lang.tr("&cLos eventos están desactivados (events.enabled).")))
             return 0
         }
-        source.sendSuccess({ WonderTradeService.info(Lang.t("&aEvento &f{0} &acreado con id &f#{1}&a.", event.title, event.id)) }, true)
+        source.sendSuccess({
+            val (color, name) = eventChat(event.type, event.categories)
+            WonderTradeService.info(Lang.t("&aEvento {0}{1}&a creado con id &f#{2}&a.", color, name, event.id))
+        }, true)
         return 1
     }
 

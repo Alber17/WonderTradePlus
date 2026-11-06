@@ -231,8 +231,8 @@ object WonderTradeSchedule {
             val lines = mutableListOf(ConfigManager.string("messages.eventReminderHeader", "&d★ Próximos eventos de Wonder Trade:"))
             list.forEach { item ->
                 lines += WonderTradeService.format(
-                    ConfigManager.string("messages.eventReminderLine", "&7- &f{name} &7— {when}"),
-                    mapOf("name" to item.title, "when" to describeWhen(item))
+                    ConfigManager.string("messages.eventReminderLine", "{color}- {name}{color} &7— {when}"),
+                    eventPlaceholders(item.type, item.categories, mapOf("when" to describeWhen(item)))
                 )
             }
             lines.joinToString("\n")
@@ -285,8 +285,8 @@ object WonderTradeSchedule {
         val lines = mutableListOf(ConfigManager.string("messages.eventUpcomingHeader", "&d&lPróximos eventos:"))
         list.forEach { item ->
             lines += WonderTradeService.format(
-                ConfigManager.string("messages.eventUpcomingLine", "&7- &f{name} &7— {when} &8({duration})"),
-                mapOf("name" to item.title, "when" to describeWhen(item), "duration" to WonderTradeEvents.formatDuration(item.durationSeconds))
+                ConfigManager.string("messages.eventUpcomingLine", "{color}- {name}{color} &7— {when} &8({duration})"),
+                eventPlaceholders(item.type, item.categories, mapOf("when" to describeWhen(item), "duration" to WonderTradeEvents.formatDuration(item.durationSeconds)))
             )
         }
         return lines
@@ -359,8 +359,8 @@ object WonderTradeSchedule {
                 if (!announced.add("${item.id}:${item.nextRunAt}:$minutes")) continue
                 WonderTradeEvents.broadcast(server) {
                     WonderTradeService.format(
-                        ConfigManager.string("messages.eventScheduledSoon", "&d★ El evento «{name}» empezará en &f{time}&d."),
-                        mapOf("name" to item.title, "time" to WonderTradeEvents.formatDuration((item.nextRunAt - now + 999L) / 1000L))
+                        ConfigManager.string("messages.eventScheduledSoon", "{color}★ El evento «{name}{color}» empezará en &f{time}&7."),
+                        eventPlaceholders(item.type, item.categories, mapOf("time" to WonderTradeEvents.formatDuration((item.nextRunAt - now + 999L) / 1000L)))
                     )
                 }
                 // A Discord solo se avisa con la antelación mayor, para no repetir el mensaje.

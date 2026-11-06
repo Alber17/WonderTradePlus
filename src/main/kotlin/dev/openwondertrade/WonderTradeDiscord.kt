@@ -296,13 +296,102 @@ object WonderTradeDiscord {
         }
     }
 
-    /** Imagen oficial del Pokémon (PokéAPI, por número de Pokédex); null si está desactivado o no hay número. */
+    /**
+     * Imagen oficial (PokéAPI). Las formas regionales tienen otro número: el de la especie
+     * muestra el Pokémon base, así que se usa el de la forma.
+     */
     private fun imageUrl(pokemon: Pokemon): String? {
         if (!ConfigManager.bool("discord.style.pokemonImages", true)) return null
-        val dex = runCatching { pokemon.species.nationalPokedexNumber }.getOrDefault(0)
-        if (dex <= 0) return null
-        return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/" + (if (pokemon.shiny) "shiny/" else "") + "$dex.png"
+        val id = regionalArtworkId(pokemon) ?: runCatching { pokemon.species.nationalPokedexNumber }.getOrDefault(0)
+        if (id <= 0) return null
+        return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/" + (if (pokemon.shiny) "shiny/" else "") + "$id.png"
     }
+
+    /** Número de arte oficial de una forma regional, o null si es la forma base. */
+    private fun regionalArtworkId(pokemon: Pokemon): Int? {
+        val labels = runCatching { pokemon.form.labels }.getOrNull().orEmpty().map { it.lowercase() }
+        val aspects = runCatching { pokemon.aspects }.getOrNull().orEmpty().map { it.lowercase() }
+        val region = when {
+            "alolan_form" in labels || "alolan" in aspects -> "alola"
+            "galarian_form" in labels || "galarian" in aspects -> "galar"
+            "hisuian_form" in labels || "hisuian" in aspects -> "hisui"
+            "paldean_form" in labels || "paldean" in aspects -> "paldea"
+            else -> return null
+        }
+        val species = when (val path = pokemon.species.resourceIdentifier.path.lowercase()) {
+            "mrmime", "mr_mime" -> "mr-mime"
+            else -> path
+        }
+        val form = runCatching { pokemon.form.name }.getOrDefault("").lowercase()
+        val key = when {
+            form.startsWith("paldea-") -> "$species-paldea-${form.removePrefix("paldea-")}"
+            form.contains("zen") && region == "galar" -> "$species-galar-zen"
+            else -> "$species-$region"
+        }
+        return regionalArtwork[key]
+    }
+
+    /** Arte oficial de PokéAPI para cada forma regional (el número de la especie es el de la forma base). */
+    private val regionalArtwork = mapOf(
+        "rattata-alola" to 10091,
+        "raticate-alola" to 10092,
+        "raichu-alola" to 10100,
+        "sandshrew-alola" to 10101,
+        "sandslash-alola" to 10102,
+        "vulpix-alola" to 10103,
+        "ninetales-alola" to 10104,
+        "diglett-alola" to 10105,
+        "dugtrio-alola" to 10106,
+        "meowth-alola" to 10107,
+        "persian-alola" to 10108,
+        "geodude-alola" to 10109,
+        "graveler-alola" to 10110,
+        "golem-alola" to 10111,
+        "grimer-alola" to 10112,
+        "muk-alola" to 10113,
+        "exeggutor-alola" to 10114,
+        "marowak-alola" to 10115,
+        "meowth-galar" to 10161,
+        "ponyta-galar" to 10162,
+        "rapidash-galar" to 10163,
+        "slowpoke-galar" to 10164,
+        "slowbro-galar" to 10165,
+        "farfetchd-galar" to 10166,
+        "weezing-galar" to 10167,
+        "mr-mime-galar" to 10168,
+        "articuno-galar" to 10169,
+        "zapdos-galar" to 10170,
+        "moltres-galar" to 10171,
+        "slowking-galar" to 10172,
+        "corsola-galar" to 10173,
+        "zigzagoon-galar" to 10174,
+        "linoone-galar" to 10175,
+        "darumaka-galar" to 10176,
+        "darmanitan-galar" to 10177,
+        "darmanitan-galar-zen" to 10178,
+        "yamask-galar" to 10179,
+        "stunfisk-galar" to 10180,
+        "growlithe-hisui" to 10229,
+        "arcanine-hisui" to 10230,
+        "voltorb-hisui" to 10231,
+        "electrode-hisui" to 10232,
+        "typhlosion-hisui" to 10233,
+        "qwilfish-hisui" to 10234,
+        "sneasel-hisui" to 10235,
+        "samurott-hisui" to 10236,
+        "lilligant-hisui" to 10237,
+        "zorua-hisui" to 10238,
+        "zoroark-hisui" to 10239,
+        "braviary-hisui" to 10240,
+        "sliggoo-hisui" to 10241,
+        "goodra-hisui" to 10242,
+        "avalugg-hisui" to 10243,
+        "decidueye-hisui" to 10244,
+        "tauros-paldea-combat" to 10250,
+        "tauros-paldea-blaze" to 10251,
+        "tauros-paldea-aqua" to 10252,
+        "wooper-paldea" to 10253
+    )
 
     private fun pokemonEmbed(title: String, description: String, pokemon: Pokemon, player: String): Embed =
         Embed(title, description, rarityColor(pokemon)).apply {

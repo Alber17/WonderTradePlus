@@ -39,6 +39,19 @@ enum class EventCategory(val key: String, private val source: String, private va
     /** Mismo nombre, con el color de /wt especiales (shiny en amarillo). */
     val coloredLabel: String get() = color + label
 
+    /**
+     * Color del aviso «ha conseguido un Pokémon de esta categoría».
+     * El shiny va en amarillo: el rosa queda para el mítico.
+     */
+    val announceColor: String
+        get() = when (this) {
+            SHINY -> "&e"
+            ULTRABEAST -> "&3"
+            PARADOX -> "&c"
+            MYTHICAL -> "&d"
+            LEGENDARY -> "&6"
+        }
+
     fun matches(pokemon: com.cobblemon.mod.common.pokemon.Pokemon): Boolean =
         if (this == SHINY) pokemon.shiny else WonderTradeRules.speciesCategoryKey(pokemon) == speciesKey
 
@@ -79,6 +92,53 @@ fun categoriesText(categories: List<EventCategory>): String = when (categories.s
     0 -> ""
     1 -> categories[0].label
     else -> categories.dropLast(1).joinToString(", ") { it.label } + " o " + categories.last().label
+}
+
+/** Una categoría pinta la frase entera. Con varias, el marco queda gris y cada nombre lleva su color. */
+fun eventAccent(categories: List<EventCategory>): String =
+    if (categories.size == 1) categories[0].announceColor else "&7"
+
+/** Nombres para meter en una frase. Con una sola no lleva códigos: el color lo pone [eventAccent]. */
+fun coloredJoin(categories: List<EventCategory>, separator: String, last: String): String {
+    if (categories.size <= 1) return categories.joinToString("") { it.label }
+    val head = categories.dropLast(1).joinToString("&7$separator") { it.announceColor + it.label }
+    return head + "&7$last" + categories.last().announceColor + categories.last().label
+}
+
+/** Color de la frase y nombre del evento. El nombre solo trae códigos cuando hay varias categorías. */
+fun eventChat(type: EventType, categories: List<EventCategory>): Pair<String, String> {
+    val joined = coloredJoin(categories, ", ", " y ")
+    val template = if (type == EventType.RISK) ConfigManager.string("events.names.risk", "Apuesta de {categories}")
+    else ConfigManager.string("events.names.receive", "Lluvia de {categories}")
+    return eventAccent(categories) to template.replace("{categories}", joined)
+}
+
+/** Color y texto de las categorías para una descripción («Mítico o Legendario»). */
+fun categoryChat(categories: List<EventCategory>): Pair<String, String> {
+    val body = when (categories.size) {
+        0 -> ""
+        1 -> categories[0].label
+        else -> coloredJoin(categories, ", ", " o ")
+    }
+    return eventAccent(categories) to body
+}
+
+fun eventPlaceholders(type: EventType, categories: List<EventCategory>, extra: Map<String, Any> = emptyMap()): Map<String, Any> {
+    val (color, name) = eventChat(type, categories)
+    val values = LinkedHashMap<String, Any>()
+    values["color"] = color
+    values["name"] = name
+    values.putAll(extra)
+    return values
+}
+
+fun categoryPlaceholders(categories: List<EventCategory>, extra: Map<String, Any> = emptyMap()): Map<String, Any> {
+    val (color, body) = categoryChat(categories)
+    val values = LinkedHashMap<String, Any>()
+    values["color"] = color
+    values["category"] = color + body
+    values.putAll(extra)
+    return values
 }
 
 /** Lee «mitico+legendario» (también con comas). Devuelve null si alguna no es válida o no hay ninguna. */
@@ -407,8 +467,8 @@ object WonderTradeEvents {
         save()
         broadcast(server) {
             WonderTradeService.format(
-                ConfigManager.string("messages.eventStarted", "&d★ ¡Evento «{name}» activo durante {duration}! &7Usa &e/wt eventos &7para ver los detalles."),
-                mapOf("name" to event.title, "duration" to formatDuration(durationSeconds))
+                ConfigManager.string("messages.eventStarted", "{color}★ ¡Evento «{name}{color}» activo durante &f{duration}&7! &7Usa &e/wt eventos &7para ver los detalles."),
+                eventPlaceholders(event.type, event.categories, mapOf("duration" to formatDuration(durationSeconds)))
             )
         }
         runCatching { WonderTradeDiscord.eventStarted(event) }
@@ -435,7 +495,10 @@ object WonderTradeEvents {
         event.pausedAt = now
         save()
         broadcast(server) {
-            WonderTradeService.format(ConfigManager.string("messages.eventPaused", "&d★ El evento «{name}» se ha pausado temporalmente."), mapOf("name" to event.title))
+            WonderTradeService.format(
+                ConfigManager.string("messages.eventPaused", "{color}★ El evento «{name}{color}» se ha pausado temporalmente."),
+                eventPlaceholders(event.type, event.categories)
+            )
         }
         runCatching { WonderTradeDiscord.eventPaused(event) }
         return event
@@ -451,8 +514,8 @@ object WonderTradeEvents {
         save()
         broadcast(server) {
             WonderTradeService.format(
-                ConfigManager.string("messages.eventResumed", "&d★ El evento «{name}» se ha reanudado. Termina en &f{time}&d."),
-                mapOf("name" to event.title, "time" to formatDuration((event.endAt - System.currentTimeMillis() + 999L) / 1000L))
+                ConfigManager.string("messages.eventResumed", "{color}★ El evento «{name}{color}» se ha reanudado. Termina en &f{time}&7."),
+                eventPlaceholders(event.type, event.categories, mapOf("time" to formatDuration((event.endAt - System.currentTimeMillis() + 999L) / 1000L)))
             )
         }
         runCatching { WonderTradeDiscord.eventResumed(event) }
@@ -497,7 +560,10 @@ object WonderTradeEvents {
 
     private fun announceEnd(server: MinecraftServer, event: WtEvent) {
         broadcast(server) {
-            WonderTradeService.format(ConfigManager.string("messages.eventEnded", "&d★ El evento «{name}» ha terminado."), mapOf("name" to event.title))
+            WonderTradeService.format(
+                ConfigManager.string("messages.eventEnded", "{color}★ El evento «{name}{color}» ha terminado."),
+                eventPlaceholders(event.type, event.categories)
+            )
         }
         runCatching { WonderTradeDiscord.eventEnded(event) }
     }
@@ -514,14 +580,15 @@ object WonderTradeEvents {
     fun describe(event: WtEvent): List<String> {
         val value = valueText(event.value)
         val cooldown = formatDuration(event.cooldownSeconds)
+        val categories = categoryPlaceholders(event.categories, mapOf("value" to value))
         val first = when (event.type) {
             EventType.RISK -> WonderTradeService.format(
-                ConfigManager.string("messages.eventRiskDescription", "&7Cada Pokémon &f{category}&7 que ofrezcas suma &d+{value}%&7 extra a tu probabilidad de especial."),
-                mapOf("value" to value, "category" to event.categoryText)
+                ConfigManager.string("messages.eventRiskDescription", "&7Cada Pokémon {category}&7 que ofrezcas suma {color}+{value}%&7 extra a tu probabilidad de especial."),
+                categories
             )
             EventType.RECEIVE -> WonderTradeService.format(
-                ConfigManager.string("messages.eventReceiveDescription", "&7Probabilidad extra de recibir un Pokémon &f{category}&7: &d+{value}%&7 en cada intercambio."),
-                mapOf("value" to value, "category" to event.categoryText)
+                ConfigManager.string("messages.eventReceiveDescription", "&7Probabilidad extra de recibir un Pokémon {category}&7: {color}+{value}%&7 en cada intercambio."),
+                categories
             )
         }
         val second = WonderTradeService.format(
@@ -550,7 +617,8 @@ object WonderTradeEvents {
         } else {
             lines += ConfigManager.string("messages.eventsHeader", "&d&lEventos activos:")
             list.forEach { event ->
-                lines += Lang.t("&d★ &f{0} &7— termina en &f{1}", event.title, formatDuration((event.endAt - now + 999L) / 1000L))
+                val (color, name) = eventChat(event.type, event.categories)
+                lines += Lang.t("{0}★ {1}{0} &7— termina en &f{2}", color, name, formatDuration((event.endAt - now + 999L) / 1000L))
                 describe(event).forEach { lines += "  $it" }
                 if (player != null) {
                     val left = remainingSeconds(player, event, now)
@@ -577,7 +645,8 @@ object WonderTradeEvents {
             list.forEach { event ->
                 val left = formatDuration((event.endAt - (if (event.paused) event.pausedAt else now) + 999L) / 1000L)
                 val state = if (event.paused) Lang.t("&6PAUSADO &7quedan &f{0}", left) else Lang.t("&7termina en &f{0}", left)
-                lines += Lang.t("&8#{0} &d{1} &7valor &f{2}% &7espera &f{3} {4} &8({5})", event.id, event.title, valueText(event.value), formatDuration(event.cooldownSeconds), state, event.createdBy)
+                val (color, name) = eventChat(event.type, event.categories)
+                lines += Lang.t("&8#{0} {1}{2}{1} &7valor &f{3}% &7espera &f{4} {5} &8({6})", event.id, color, name, valueText(event.value), formatDuration(event.cooldownSeconds), state, event.createdBy)
                 lines += Lang.t("   &7WT hechos: &f{0} &7· jugadores: &f{1}", event.trades, event.playerIds.size)
             }
             lines += Lang.tr("&7Pausar/reanudar: &e/wt admin eventos pausar|reanudar <id> &7· Historial: &e/wt admin eventos historial")
@@ -587,7 +656,8 @@ object WonderTradeEvents {
         if (scheduled.isNotEmpty()) {
             lines += Lang.tr("&d&lProgramados:")
             scheduled.forEach { item ->
-                lines += Lang.t("&8P{0} &d{1} &7dura &f{2} &7— &f{3} &8({4})", item.id, item.title, formatDuration(item.durationSeconds), WonderTradeSchedule.describeWhen(item), item.createdBy)
+                val (color, name) = eventChat(item.type, item.categories)
+                lines += Lang.t("&8P{0} {1}{2}{1} &7dura &f{3} &7— &f{4} &8({5})", item.id, color, name, formatDuration(item.durationSeconds), WonderTradeSchedule.describeWhen(item), item.createdBy)
             }
             lines += Lang.tr("&7Cancelar: &e/wt admin eventos desprogramar <id>")
         }
@@ -618,7 +688,8 @@ object WonderTradeEvents {
         return active(now).map { event ->
             val left = remainingSeconds(player, event, now)
             val state = if (left <= 0L) Lang.tr("&aDisponible") else Lang.t("&f{0}", formatDuration(left))
-            Lang.t("&d★ {0} &8— {1}", event.title, state)
+            val (color, name) = eventChat(event.type, event.categories)
+            Lang.t("{0}★ {1}{0} &8— {2}", color, name, state)
         }
     }
 

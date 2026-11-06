@@ -217,6 +217,14 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.26.25
+
+- Shiny se anuncia en amarillo. En Discord, las formas regionales muestran su propia imagen.
+
+## 0.26.24
+
+- Los avisos de Lluvia y Apuesta usan el mismo color que el mensaje de haber recibido esa categoría.
+
 ## 0.26.23
 
 - El libro de `/wt` ya no pone en amarillo los porcentajes shiny.

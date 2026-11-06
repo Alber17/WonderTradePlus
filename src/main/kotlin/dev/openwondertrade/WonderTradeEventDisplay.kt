@@ -42,8 +42,8 @@ object WonderTradeEventDisplay {
             val details = ConfigManager.bool("events.joinNotice.showDetails", false)
             active.forEach { event ->
                 lines += WonderTradeService.format(
-                    ConfigManager.string("messages.eventJoinLine", "&7- &f{name} &7(termina en &f{time}&7)"),
-                    mapOf("name" to event.title, "time" to WonderTradeEvents.formatDuration((event.endAt - now + 999L) / 1000L))
+                    ConfigManager.string("messages.eventJoinLine", "{color}- {name}{color} &7(termina en &f{time}&7)"),
+                    eventPlaceholders(event.type, event.categories, mapOf("time" to WonderTradeEvents.formatDuration((event.endAt - now + 999L) / 1000L)))
                 )
                 if (details) WonderTradeEvents.describe(event).forEach { lines += "  $it" }
             }

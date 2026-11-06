@@ -88,13 +88,16 @@ object ConfigManager {
             "broadcastShinyUltraBeast" to ("&d&3◆ {player} ha añadido un ULTRAENTE SHINY al pool de Wonder Trade: &f{pokemon}&d!" to "&3◆ {player} ha añadido un ULTRAENTE SHINY al pool de Wonder Trade: &f{pokemon}&3!"),
             "broadcastShinyPastParadox" to ("&d&c⌛ {player} ha añadido un Pokémon del PASADO SHINY al pool de Wonder Trade: &f{pokemon}&d!" to "&c⌛ {player} ha añadido un Pokémon del PASADO SHINY al pool de Wonder Trade: &f{pokemon}&c!"),
             "broadcastShinyFutureParadox" to ("&d&b⚛ {player} ha añadido un Pokémon del FUTURO SHINY al pool de Wonder Trade: &f{pokemon}&d!" to "&b⚛ {player} ha añadido un Pokémon del FUTURO SHINY al pool de Wonder Trade: &f{pokemon}&b!"),
-            "broadcastShiny" to ("&d {player} ha añadido un Pokémon shiny al pool de Wonder Trade: &f{pokemon}&d!" to "&d{player} ha añadido un Pokémon shiny al pool de Wonder Trade: &f{pokemon}&d!")
+            "broadcastShiny" to ("&d {player} ha añadido un Pokémon shiny al pool de Wonder Trade: &f{pokemon}&d!" to "&e{player} ha añadido un Pokémon shiny al pool de Wonder Trade: &f{pokemon}&e!")
         )
         root.getAsJsonObject("messages")?.let { messages ->
             for ((key, pair) in messageFixes) {
                 val current = messages.get(key)?.let { node -> runCatching { node.asString }.getOrNull() }
                 if (current == pair.first) messages.addProperty(key, pair.second)
             }
+            val pinkShiny = "&d{player} ha añadido un Pokémon shiny al pool de Wonder Trade: &f{pokemon}&d!"
+            val currentShiny = messages.get("broadcastShiny")?.let { node -> runCatching { node.asString }.getOrNull() }
+            if (currentShiny == pinkShiny) messages.addProperty("broadcastShiny", "&e{player} ha añadido un Pokémon shiny al pool de Wonder Trade: &f{pokemon}&e!")
         }
         // Migración 0.21.0: el nombre del mod pasa a negrita; un prefijo sin personalizar se actualiza.
         root.getAsJsonObject("messages")?.let { messages ->

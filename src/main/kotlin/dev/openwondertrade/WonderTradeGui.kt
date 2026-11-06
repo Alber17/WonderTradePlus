@@ -853,7 +853,7 @@ object WonderTradeGui {
                 WonderTradeEvents.running(now).take(3).forEachIndexed { index, event ->
                     val left = WonderTradeEvents.formatDuration((event.endAt - (if (event.paused) event.pausedAt else now) + 999L) / 1000L)
                     menu.button(14 + index, named(
-                        if (event.paused) Items.BARRIER else Items.CLOCK, Lang.t("&d★ #{0} {1}", event.id, event.title) + if (event.paused) Lang.tr(" &6(pausado)") else "",
+                        if (event.paused) Items.BARRIER else Items.CLOCK, eventButtonName(event) + if (event.paused) Lang.tr(" &6(pausado)") else "",
                         Lang.t("&7Tiempo restante: &f{0}", left),
                         Lang.t("&7WT hechos: &f{0} &7· jugadores: &f{1}", event.trades, event.playerIds.size),
                         Lang.tr("&eClic para gestionar")
@@ -953,7 +953,7 @@ object WonderTradeGui {
         }
         val left = WonderTradeEvents.formatDuration((event.endAt - (if (event.paused) event.pausedAt else now) + 999L) / 1000L)
         menu.put(4, named(
-            Items.NETHER_STAR, Lang.t("&d#{0} {1}", event.id, event.title),
+            Items.NETHER_STAR, eventButtonName(event, star = false),
             Lang.tr("&7Estado: ") + if (event.paused) Lang.tr("&6PAUSADO") else Lang.tr("&aen marcha"),
             Lang.t("&7Tiempo restante: &f{0}", left),
             Lang.t("&7WT de evento hechos: &f{0}", event.trades),
@@ -1031,13 +1031,20 @@ object WonderTradeGui {
             item.cooldownSeconds?.let { details += Lang.t("&7Espera: &f{0}", WonderTradeEvents.formatDuration(it)) }
             details += Lang.t("&7Creado por: &f{0}", item.createdBy)
             details += Lang.tr("&cClic para cancelar")
-            menu.button(index, named(Items.CLOCK, Lang.t("&d#P{0} {1}", item.id, item.title), *details.toTypedArray())) {
+            val (color, name) = eventChat(item.type, item.categories)
+            menu.button(index, named(Items.CLOCK, Lang.t("{0}#P{1} {2}{0}", color, item.id, name), *details.toTypedArray())) {
                 WonderTradeSchedule.remove(item.id)
                 renderAdminScheduled(menu)
             }
         }
         menu.button(48, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdminEvents(it) }
         menu.button(50, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
+    }
+
+    /** Nombre del evento con el color del aviso de recepción de esa categoría. */
+    private fun eventButtonName(event: WtEvent, star: Boolean = true): String {
+        val (color, name) = eventChat(event.type, event.categories)
+        return if (star) Lang.t("{0}★ #{1} {2}{0}", color, event.id, name) else Lang.t("{0}#{1} {2}{0}", color, event.id, name)
     }
 
     private fun eventTypeDescription(type: EventType): List<String> = when (type) {
@@ -1053,7 +1060,10 @@ object WonderTradeGui {
         EventCategory.PARADOX to Items.ENDER_PEARL
     )
 
-    private fun eventTitle(type: EventType, categories: List<EventCategory>) = eventName(type, categories)
+    private fun eventTitle(type: EventType, categories: List<EventCategory>): String {
+        val (color, name) = eventChat(type, categories)
+        return color + name
+    }
 
     private fun openEventCategory(player: ServerPlayer, type: EventType, selected: List<EventCategory> = emptyList()) {
         open(player, Lang.t("&5Eventos &8- &d{0}", type.title), 3) { renderEventCategory(it, type, selected) }
@@ -1067,14 +1077,14 @@ object WonderTradeGui {
         menu.put(4, named(
             Items.NETHER_STAR, Lang.t("&d{0}", type.title), *eventTypeDescription(type).toTypedArray(),
             Lang.tr("&7Elige una o varias categorías."),
-            Lang.tr("&7Seleccionadas: ") + if (chosen.isEmpty()) Lang.tr("&8ninguna") else chosen.joinToString("&7, ") { it.coloredLabel }
+            Lang.tr("&7Seleccionadas: ") + if (chosen.isEmpty()) Lang.tr("&8ninguna") else chosen.joinToString("&7, ") { it.announceColor + it.label }
         ))
         val slots = listOf(11, 12, 13, 14, 15)
         EventCategory.values().forEachIndexed { index, category ->
             val isChosen = category in chosen
             menu.button(slots[index], named(
                 eventCategoryIcons[category] ?: Items.PAPER,
-                (if (isChosen) "&a✔ " else "&8· ") + category.coloredLabel,
+                (if (isChosen) "&a✔ " else "&8· ") + category.announceColor + category.label,
                 if (isChosen) Lang.tr("&eClic para quitarla") else Lang.tr("&eClic para añadirla")
             )) {
                 val next = if (isChosen) chosen - category else chosen + category
@@ -1086,7 +1096,7 @@ object WonderTradeGui {
         } else {
             menu.button(22, named(
                 Items.LIME_CONCRETE, Lang.tr("&aContinuar"),
-                Lang.tr("&7Categorías: ") + chosen.joinToString("&7, ") { it.coloredLabel }, Lang.tr("&eClic para elegir la duración")
+                Lang.tr("&7Categorías: ") + chosen.joinToString("&7, ") { it.announceColor + it.label }, Lang.tr("&eClic para elegir la duración")
             )) { openEventDuration(it, type, chosen) }
         }
         menu.button(18, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdminEvents(it) }
@@ -1097,7 +1107,7 @@ object WonderTradeGui {
         val title = eventTitle(type, categories)
         open(player, Lang.tr("&5Eventos &8- &dDuración"), 3) { menu ->
             fill(menu, 27)
-            menu.put(4, named(Items.NETHER_STAR, Lang.t("&d{0}", title), *WonderTradeEvents.describeDefault(type, categories).toTypedArray(), Lang.tr("&7Elige cuánto debe durar.")))
+            menu.put(4, named(Items.NETHER_STAR, title, *WonderTradeEvents.describeDefault(type, categories).toTypedArray(), Lang.tr("&7Elige cuánto debe durar.")))
             val maximum = WonderTradeEvents.maximumDurationSeconds()
             val options = ConfigManager.strings("events.menuDurations")
                 .mapNotNull { text -> WonderTradeEvents.parseDuration(text)?.takeIf { it <= maximum } }
@@ -1107,7 +1117,7 @@ object WonderTradeGui {
             options.forEachIndexed { index, seconds ->
                 menu.button(slots[index], named(
                     Items.CLOCK, Lang.t("&e{0}", WonderTradeEvents.formatDuration(seconds)),
-                    Lang.t("&7Iniciar «{0}» durante este tiempo.", title), Lang.tr("&eClic para iniciar")
+                    Lang.t("&7Iniciar «{0}&7» durante este tiempo.", title), Lang.tr("&eClic para iniciar")
                 )) { p ->
                     val event = WonderTradeEvents.create(p.server, type, categories, seconds, null, null, p.gameProfile.name)
                     if (event == null) p.sendSystemMessage(WonderTradeService.info(Lang.tr("&cLos eventos están desactivados.")))
@@ -1410,7 +1420,7 @@ object WonderTradeGui {
         val current = seconds.coerceIn(minimum, maximum)
         menu.wipe()
         fill(menu, 27)
-        menu.put(4, named(Items.NETHER_STAR, Lang.t("&d{0}", title), *WonderTradeEvents.describeDefault(type, categories).toTypedArray()))
+        menu.put(4, named(Items.NETHER_STAR, title, *WonderTradeEvents.describeDefault(type, categories).toTypedArray()))
         val steps = listOf(
             9 to -86_400L, 10 to -3_600L, 11 to -600L, 12 to -60L,
             14 to 60L, 15 to 600L, 16 to 3_600L, 17 to 86_400L
@@ -1428,7 +1438,7 @@ object WonderTradeGui {
             Lang.t("&7Mínimo: &f{0}&7  Máximo: &f{1}", WonderTradeEvents.formatDuration(minimum), WonderTradeEvents.formatDuration(maximum))
         ))
         menu.button(22, named(
-            Items.LIME_CONCRETE, Lang.t("&aIniciar «{0}»", title),
+            Items.LIME_CONCRETE, Lang.t("&aIniciar «{0}&a»", title),
             Lang.t("&7Durante &f{0}&7.", WonderTradeEvents.formatDuration(current)), Lang.tr("&eClic para iniciar")
         )) { p ->
             val event = WonderTradeEvents.create(p.server, type, categories, current, null, null, p.gameProfile.name)

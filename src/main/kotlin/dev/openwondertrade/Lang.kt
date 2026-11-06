@@ -111,6 +111,75 @@ object Lang {
             "&eShiny special&7: &e+{base}% &7+ &e{extra}% &7extra = &e{total}%",
             "&eSpécial chromatique&7 : &e+{base}% &7+ &e{extra}% &7bonus = &e{total}%",
             "&eSpeciale cromatico&7: &e+{base}% &7+ &e{extra}% &7extra = &e{total}%"
+        ),
+        "messages.eventStarted" to listOf(
+            "&d★ ¡Evento «{name}» activo durante {duration}! &7Usa &e/wt eventos &7para ver los detalles.",
+            "&d★ Event «{name}» is active for {duration}! &7Use &e/wt eventos &7to see the details.",
+            "&d★ L'événement «{name}» est actif pendant {duration} ! &7Utilise &e/wt eventos &7pour voir les détails.",
+            "&d★ L'evento «{name}» è attivo per {duration}! &7Usa &e/wt eventos &7per vedere i dettagli."
+        ),
+        "messages.eventEnded" to listOf(
+            "&d★ El evento «{name}» ha terminado.",
+            "&d★ The event «{name}» has ended.",
+            "&d★ L'événement «{name}» est terminé.",
+            "&d★ L'evento «{name}» è terminato."
+        ),
+        "messages.eventRiskDescription" to listOf(
+            "&7Cada Pokémon &f{category}&7 que ofrezcas suma &d+{value}%&7 extra a tu probabilidad de especial.",
+            "&7Each &f{category}&7 Pokémon you offer adds an extra &d+{value}%&7 to your special chance.",
+            "&7Chaque Pokémon &f{category}&7 que tu proposes ajoute un bonus de &d+{value}%&7 à ta chance de spécial.",
+            "&7Ogni Pokémon &f{category}&7 che offri aggiunge un ulteriore &d+{value}%&7 alla tua probabilità di speciale."
+        ),
+        "messages.eventReceiveDescription" to listOf(
+            "&7Probabilidad extra de recibir un Pokémon &f{category}&7: &d+{value}%&7 en cada intercambio.",
+            "&7Extra chance to receive a &f{category}&7 Pokémon: &d+{value}%&7 on every trade.",
+            "&7Chance supplémentaire de recevoir un Pokémon &f{category}&7 : &d+{value}%&7 à chaque échange.",
+            "&7Probabilità extra di ricevere un Pokémon &f{category}&7: &d+{value}%&7 a ogni scambio."
+        ),
+        "messages.previewEventShiny" to listOf(
+            "&d★ Evento: &7+{percent}% de recibir un Pokémon {category}",
+            "&d★ Event: &7+{percent}% chance to receive a {category} Pokémon",
+            "&d★ Événement : &7+{percent}% de chance de recevoir un Pokémon {category}",
+            "&d★ Evento: &7+{percent}% di probabilità di ricevere un Pokémon {category}"
+        ),
+        "messages.eventScheduledSoon" to listOf(
+            "&d★ El evento «{name}» empezará en &f{time}&d.",
+            "&d★ The event «{name}» will start in &f{time}&d.",
+            "&d★ L'événement «{name}» commencera dans &f{time}&d.",
+            "&d★ L'evento «{name}» inizierà tra &f{time}&d."
+        ),
+        "messages.eventJoinLine" to listOf(
+            "&7- &f{name} &7(termina en &f{time}&7)",
+            "&7- &f{name} &7(ends in &f{time}&7)",
+            "&7- &f{name} &7(se termine dans &f{time}&7)",
+            "&7- &f{name} &7(termina tra &f{time}&7)"
+        ),
+        "messages.eventPoolHeader" to listOf(
+            "&d★ Pokémon &f{category}&d en la pool ({count}):",
+            "&d★ &f{category}&d Pokémon in the pool ({count}):",
+            "&d★ Pokémon &f{category}&d dans le pool ({count}) :",
+            "&d★ Pokémon &f{category}&d nella pool ({count}):"
+        ),
+        "messages.eventPoolNone" to listOf(
+            "&7Ahora mismo no hay ningún Pokémon &f{category}&7 en la pool.",
+            "&7There are currently no &f{category}&7 Pokémon in the pool.",
+            "&7Il n'y a actuellement aucun Pokémon &f{category}&7 dans le pool.",
+            "&7Al momento non ci sono Pokémon &f{category}&7 nella pool."
+        ),
+        "messages.eventUpcomingLine" to listOf("&7- &f{name} &7— {when} &8({duration})"),
+        "messages.eventReminderLine" to listOf("&7- &f{name} &7— {when}"),
+        "messages.broadcastShiny" to listOf(
+            "&d{player} ha añadido un Pokémon shiny al pool de Wonder Trade: &f{pokemon}&d!",
+            "&d {player} ha añadido un Pokémon shiny al pool de Wonder Trade: &f{pokemon}&d!",
+            "&d{player} has added a shiny Pokémon to the Wonder Trade pool: &f{pokemon}&d!",
+            "&d{player} a ajouté un Pokémon chromatique au pool de Wonder Trade : &f{pokemon}&d !",
+            "&d{player} ha aggiunto un Pokémon cromatico alla pool del Wonder Trade: &f{pokemon}&d!"
+        ),
+        "messages.broadcastReceivedShiny" to listOf(
+            "&d{player} ha conseguido un shiny en el WonderTrade: &f{pokemon}&d!",
+            "&d{player} got a shiny in WonderTrade: &f{pokemon}&d!",
+            "&d{player} a obtenu un chromatique dans WonderTrade : &f{pokemon}&d !",
+            "&d{player} ha ottenuto un cromatico nel WonderTrade: &f{pokemon}&d!"
         )
     )
 

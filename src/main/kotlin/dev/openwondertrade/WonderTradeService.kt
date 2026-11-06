@@ -1302,14 +1302,16 @@ object WonderTradeService {
         val build: () -> String = {
         val lines = mutableListOf<String>()
         if (matching.isEmpty()) {
-            lines += ConfigManager.string("messages.eventPoolNone", "&7Ahora mismo no hay ningún Pokémon &f{category}&7 en la pool.")
-                .replace("{category}", event.categoryText)
+            lines += format(
+                ConfigManager.string("messages.eventPoolNone", "&7Ahora mismo no hay ningún Pokémon {category}&7 en la pool."),
+                categoryPlaceholders(event.categories)
+            )
         } else {
             val maxListed = ConfigManager.int("events.announcePokemon.maxListed", 10).coerceAtLeast(1)
             val showLevel = ConfigManager.bool("events.announcePokemon.showLevel", true)
             lines += format(
-                ConfigManager.string("messages.eventPoolHeader", "&d★ Pokémon &f{category}&d en la pool ({count}):"),
-                mapOf("category" to event.categoryText, "count" to matching.size)
+                ConfigManager.string("messages.eventPoolHeader", "{color}★ Pokémon {category}&7 en la pool ({count}):"),
+                categoryPlaceholders(event.categories, mapOf("count" to matching.size))
             )
             val names = matching.take(maxListed).map { entry ->
                 val loaded = runCatching { Pokemon.loadFromJSON(registryAccess, entry.pokemonJson.deepCopy()) }.getOrNull()
@@ -1403,8 +1405,10 @@ object WonderTradeService {
         lines += format(ConfigManager.string("messages.previewChance", "&7Probabilidad de recibir un especial: &d{percent}%"),
             mapOf("percent" to String.format("%.1f", finalChance)))
         usefulEvents.forEach { event ->
-            lines += format(ConfigManager.string("messages.previewEventShiny", "&d★ Evento: &7+{percent}% de recibir un Pokémon {category}"),
-                mapOf("percent" to percentText(event.value), "category" to event.categoryText))
+            lines += format(
+                ConfigManager.string("messages.previewEventShiny", "{color}★ Evento: {color}+{percent}% &7de recibir un Pokémon {category}"),
+                categoryPlaceholders(event.categories, mapOf("percent" to percentText(event.value)))
+            )
         }
         if (bonusEnabled && !offeredRare) {
             lines += format(
@@ -1932,7 +1936,7 @@ object WonderTradeService {
             "paradox" -> Lang.tr("&c{player} ha conseguido un Pokémon Paradoja{shinySuffix} en el WonderTrade: &f{pokemon}&c!")
             "mythical" -> Lang.tr("&d{player} ha conseguido un Pokémon Mítico{shinySuffix} en el WonderTrade: &f{pokemon}&d!")
             "legendary" -> Lang.tr("&6{player} ha conseguido un Pokémon Legendario{shinySuffix} en el WonderTrade: &f{pokemon}&6!")
-            else -> Lang.tr("&d{player} ha conseguido un shiny en el WonderTrade: &f{pokemon}&d!")
+            else -> Lang.tr("&e{player} ha conseguido un shiny en el WonderTrade: &f{pokemon}&e!")
         }
         val pokemonName = pokemon.getDisplayName().string
         broadcastLocalized(player.server) {
