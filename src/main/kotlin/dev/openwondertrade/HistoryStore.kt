@@ -10,7 +10,8 @@ import java.nio.file.Path
 /** Un intercambio ya completado. Se guarda un resumen, no el Pokémon completo. */
 data class HistoryEntry(
     val time: Long,
-    val player: String,
+    /** Nick actual del jugador (se actualiza solo si cambia de nombre; la identidad real es [uuid]). */
+    var player: String,
     val sentSpecies: String,
     val sentName: String,
     val sentLevel: Int,
@@ -19,7 +20,9 @@ data class HistoryEntry(
     val receivedName: String,
     val receivedLevel: Int,
     val receivedShiny: Boolean,
-    val fromPool: Boolean
+    val fromPool: Boolean,
+    /** UUID del jugador: es lo que identifica de verdad al dueño de la entrada (vacío en entradas antiguas hasta que se reconoce). */
+    var uuid: String = ""
 ) {
     fun toJson(): JsonObject = JsonObject().apply {
         addProperty("time", time)
@@ -33,6 +36,7 @@ data class HistoryEntry(
         addProperty("receivedLevel", receivedLevel)
         addProperty("receivedShiny", receivedShiny)
         addProperty("fromPool", fromPool)
+        if (uuid.isNotBlank()) addProperty("uuid", uuid)
     }
 
     companion object {
@@ -47,7 +51,8 @@ data class HistoryEntry(
             receivedName = json.get("receivedName")?.asString ?: "?",
             receivedLevel = json.get("receivedLevel")?.asInt ?: 1,
             receivedShiny = json.get("receivedShiny")?.asBoolean ?: false,
-            fromPool = json.get("fromPool")?.asBoolean ?: false
+            fromPool = json.get("fromPool")?.asBoolean ?: false,
+            uuid = json.get("uuid")?.takeIf { !it.isJsonNull }?.asString ?: ""
         )
     }
 }
@@ -59,8 +64,38 @@ class HistoryStore(private val file: Path) {
     val size: Int get() = entries.size
 
     /** Más recientes primero; opcionalmente solo los de un jugador. */
-    fun recent(player: String? = null): List<HistoryEntry> =
-        entries.asReversed().filter { player == null || it.player.equals(player, ignoreCase = true) }
+    fun recent(player: String? = null, uuid: String? = null): List<HistoryEntry> =
+        entries.asReversed().filter {
+            when {
+                player == null && uuid == null -> true
+                uuid != null && it.uuid.isNotBlank() -> it.uuid == uuid
+                else -> player != null && it.player.equals(player, ignoreCase = true)
+            }
+        }
+
+    /**
+     * Pone el UUID a las entradas antiguas (que solo guardaban el nick) cuando ese nick es de un jugador conocido y
+     * actualiza el nick de las entradas con UUID por el actual. Devuelve true si algo ha cambiado.
+     */
+    fun syncIdentities(known: List<Pair<java.util.UUID, String>>): Boolean {
+        val byName = known.associate { it.second.lowercase() to it.first.toString() }
+        val byUuid = known.associate { it.first.toString() to it.second }
+        var changed = false
+        for (entry in entries) {
+            if (entry.uuid.isBlank()) {
+                byName[entry.player.lowercase()]?.let { entry.uuid = it; changed = true }
+            }
+            byUuid[entry.uuid]?.let { name -> if (entry.player != name) { entry.player = name; changed = true } }
+        }
+        return changed
+    }
+
+    /** Actualiza el nick de las entradas de un jugador que ha cambiado de nombre. */
+    fun rename(uuid: String, name: String): Boolean {
+        var changed = false
+        for (entry in entries) if (entry.uuid == uuid && entry.player != name) { entry.player = name; changed = true }
+        return changed
+    }
 
     fun players(): List<String> = entries.map { it.player }.distinct()
 

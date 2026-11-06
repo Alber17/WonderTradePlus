@@ -108,6 +108,9 @@ object WonderTradeRules {
         }
     }
 
+    /** Nombre del tipo en el idioma activo (ice → Hielo), sin colores. */
+    fun typeName(id: String): String = typeNames[id.lowercase()]?.let { Lang.tr(it.second) } ?: id
+
     fun isSpeciesAllowed(speciesId: String): Boolean {
         val normalized = speciesId.lowercase()
         val blacklist = ConfigManager.strings("general.speciesBlacklist").map { it.lowercase() }.toSet()
@@ -116,6 +119,28 @@ object WonderTradeRules {
         if (ConfigManager.bool("general.useSpeciesWhitelist", false)) {
             val whitelist = ConfigManager.strings("general.speciesWhitelist").map { it.lowercase() }.toSet()
             if (normalized !in whitelist && normalized.substringAfter(':') !in whitelist) return false
+        }
+        return true
+    }
+
+    /**
+     * Formas y aspectos bloqueados (general.formBlacklist / general.aspectBlacklist). Sirven, por ejemplo, para texturas de un
+     * resource pack: cada textura se activa con un aspecto o una forma. Se admite «nombre» (cualquier especie) o «especie:nombre».
+     */
+    fun isVariantAllowed(pokemon: Pokemon): Boolean {
+        val forms = ConfigManager.strings("general.formBlacklist").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
+        val aspects = ConfigManager.strings("general.aspectBlacklist").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
+        if (forms.isEmpty() && aspects.isEmpty()) return true
+        val species = pokemon.species.resourceIdentifier.path.lowercase()
+        fun blocked(list: List<String>, value: String): Boolean =
+            list.any { it == value || it == "$species:$value" || it == "cobblemon:$species:$value" }
+        if (forms.isNotEmpty()) {
+            val form = runCatching { pokemon.form.name.lowercase() }.getOrDefault("")
+            if (form.isNotEmpty() && blocked(forms, form)) return false
+        }
+        if (aspects.isNotEmpty()) {
+            val own = runCatching { pokemon.aspects.map { it.lowercase() } }.getOrDefault(emptyList())
+            if (own.any { blocked(aspects, it) }) return false
         }
         return true
     }
@@ -132,6 +157,8 @@ object WonderTradeRules {
         val maximum = ConfigManager.int("general.maximumOfferedLevel", 100)
         if (pokemon.level !in minimum..maximum) return "levelBlocked"
         if (!isSpeciesAllowed(pokemon.species.resourceIdentifier.toString())) return "speciesBlocked"
+        if (!isVariantAllowed(pokemon)) return "speciesBlocked"
+        if (!WonderTradeSeasons.allows(pokemon)) return "seasonTypeBlocked"
         return null
     }
 }

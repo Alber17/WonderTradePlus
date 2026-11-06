@@ -8,8 +8,8 @@ import java.util.UUID
 
 /** Barra de tiempo (bossbar) de los eventos activos y aviso al entrar. Todo ocurre en el servidor. */
 object WonderTradeEventDisplay {
-    private val bars = HashMap<Int, ServerBossEvent>()
-    private val barStyle = HashMap<Int, String>()
+    private val bars = HashMap<String, ServerBossEvent>()
+    private val barStyle = HashMap<String, String>()
     private val joinQueue = HashMap<UUID, Long>()
 
     // ------------------------------------------------------------ aviso al entrar
@@ -30,8 +30,10 @@ object WonderTradeEventDisplay {
             Lang.bindPlayer(player)   // el aviso se redacta en el idioma de quien entra
             val active = WonderTradeEvents.active(now)
             val upcoming = WonderTradeSchedule.upcomingLines()
-            if (active.isEmpty() && upcoming.isEmpty()) continue
+            val seasonLine = WonderTradeSeasons.joinLine()
+            if (active.isEmpty() && upcoming.isEmpty() && seasonLine == null) continue
             val lines = mutableListOf<String>()
+            if (seasonLine != null) lines += seasonLine
             if (active.isNotEmpty()) lines += ConfigManager.string("messages.eventJoinHeader", "&d★ Hay eventos de Wonder Trade activos:")
             val details = ConfigManager.bool("events.joinNotice.showDetails", false)
             active.forEach { event ->
@@ -59,37 +61,45 @@ object WonderTradeEventDisplay {
     private fun syncBars(server: MinecraftServer) {
         val now = System.currentTimeMillis()
         val active = if (ConfigManager.bool("events.bossbar.enabled", true)) WonderTradeEvents.active(now) else emptyList()
-        // Quita las barras de eventos terminados.
-        bars.keys.toList().filter { id -> active.none { it.id == id } }.forEach { id ->
-            bars.remove(id)?.removeAllPlayers()
-            barStyle.remove(id)
+        val online = server.playerList.players
+        // Una barra por evento e idioma, para que cada jugador la vea en su propio idioma.
+        val groups: Map<String, List<ServerPlayer>> = online.groupBy { Lang.languageOf(it) ?: Lang.current() }
+        val wanted = active.flatMap { event -> groups.keys.map { "${event.id}|$it" } }.toSet()
+        // Quita las barras de eventos terminados o de idiomas que ya no usa nadie.
+        bars.keys.toList().filter { it !in wanted }.forEach { key ->
+            bars.remove(key)?.removeAllPlayers()
+            barStyle.remove(key)
         }
         if (active.isEmpty()) return
 
         val overlay = parseOverlay(ConfigManager.string("events.bossbar.overlay", "PROGRESS"))
-        val format = ConfigManager.string("events.bossbar.format", "&d★ {name} &7— &f{time}")
-        val online = server.playerList.players
         for (event in active) {
             val color = parseColor(
                 ConfigManager.string(if (event.type == EventType.RISK) "events.bossbar.risk.color" else "events.bossbar.receive.color", "PURPLE")
             )
-            // Si cambian el color o el estilo en la configuración, se vuelve a crear la barra.
-            val style = "${color.name}/${overlay.name}"
-            if (barStyle[event.id] != style) {
-                bars.remove(event.id)?.removeAllPlayers()
-                barStyle[event.id] = style
-            }
-            val bar = bars.getOrPut(event.id) {
-                ServerBossEvent(net.minecraft.network.chat.Component.empty(), color, overlay)
-            }
             val total = (event.endAt - event.startAt).coerceAtLeast(1L)
             val remaining = (event.endAt - now).coerceAtLeast(0L)
-            bar.progress = (remaining.toFloat() / total.toFloat()).coerceIn(0f, 1f)
-            bar.name = WonderTradeService.colour(
-                WonderTradeService.format(format, mapOf("name" to event.title, "time" to WonderTradeEvents.formatDuration((remaining + 999L) / 1000L)))
-            )
-            online.forEach { if (!bar.players.contains(it)) bar.addPlayer(it) }
-            bar.players.toList().forEach { if (!online.contains(it)) bar.removePlayer(it) }
+            for ((language, players) in groups) {
+                val key = "${event.id}|$language"
+                // Si cambian el color o el estilo en la configuración, se vuelve a crear la barra.
+                val style = "${color.name}/${overlay.name}"
+                if (barStyle[key] != style) {
+                    bars.remove(key)?.removeAllPlayers()
+                    barStyle[key] = style
+                }
+                val bar = bars.getOrPut(key) {
+                    ServerBossEvent(net.minecraft.network.chat.Component.empty(), color, overlay)
+                }
+                bar.progress = (remaining.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+                bar.name = Lang.withPlayer(players.first()) {
+                    val format = ConfigManager.string("events.bossbar.format", "&d★ {name} &7— &f{time}")
+                    WonderTradeService.colour(
+                        WonderTradeService.format(format, mapOf("name" to event.title, "time" to WonderTradeEvents.formatDuration((remaining + 999L) / 1000L)))
+                    )
+                }
+                players.forEach { if (!bar.players.contains(it)) bar.addPlayer(it) }
+                bar.players.toList().forEach { if (!players.contains(it)) bar.removePlayer(it) }
+            }
         }
     }
 

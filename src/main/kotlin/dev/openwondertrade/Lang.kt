@@ -8,7 +8,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 /**
- * Idiomas del mod. El idioma principal es es_es (español de España) y el secundario en_us.
+ * Idiomas del mod. El idioma principal es es_es (español de España); también vienen en_us, fr_fr (francés) e it_it (italiano).
  *
  * Cada idioma es un archivo `config/wondertradeplus/lang/<código>.json` con dos tipos de entradas:
  *  - rutas de configuración (`messages.success`, `discord.donationMessage`, `events.names.risk`...): el texto de ese ajuste;
@@ -19,7 +19,7 @@ import java.nio.file.Path
  */
 object Lang {
     private val gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
-    private val bundled = listOf("es_es", "en_us")
+    private val bundled = listOf("es_es", "en_us", "fr_fr", "it_it")
     const val DEFAULT = "es_es"
 
     private var directory: Path? = null

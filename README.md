@@ -405,6 +405,29 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 - Gradle no se ha ejecutado en el entorno de edición.
 
 
+## 0.26.1
+
+- Eventos de temporada: `excludeSpecies` para quitar especies de la pool del evento (0.26.2 retira `speciesChances`).
+
+## 0.26.0
+
+- Eventos de temporada (Navidad): entre dos fechas la pool pasa a ser temática (tipo hielo) y solo se pueden intercambiar Pokémon de ese tipo; la pool original se guarda y vuelve al terminar. Todo se configura en `seasonal`, sin comandos.
+
+## 0.25.1
+
+- `general.formBlacklist` y `general.aspectBlacklist`: bloqueo de formas y aspectos (por ejemplo texturas de un resource pack) al ofrecer y al recibir.
+
+## 0.25.0
+
+- Historial por UUID (los menús siguen mostrando nicks): cambiar de nick ya no hace perder el historial.
+- Barra de evento en el idioma de cada jugador.
+- Pool: nuevos filtros Shiny, Ultraentes, Paradoja y Legendarios (legendarios y míticos juntos) y orden por especie A-Z.
+- Ejemplo de lista negra de especies (`general.speciesBlacklist`) en la configuración.
+
+## 0.24.0
+
+- Nuevos idiomas: francés (`fr_fr`) e italiano (`it_it`). Los jugadores los eligen con `/wt idioma` o se detectan por el idioma de su Minecraft.
+
 ## 0.23.0
 
 - Avisos de Discord en formato tarjeta (embeds) con colores por rareza, imagen del Pokémon y campos; el fin de un evento lista los nicks de quienes consiguieron algo gracias a él.

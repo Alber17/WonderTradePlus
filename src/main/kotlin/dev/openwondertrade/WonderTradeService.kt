@@ -34,10 +34,12 @@ object WonderTradeService {
         WonderTradeSchedule.load(directory)
         WonderTradeTopDonations.load(directory)
         WonderTradePenalties.load(directory)
+        WonderTradeSeasons.load(directory)
         pool.load()
         trimAndSave()
         playerData.load()
         history.load()
+        syncHistoryIdentities()
         val historyRemoved = history.pruneOlderThanDays(ConfigManager.int("history.autoDeleteAfterDays", 30))
         if (historyRemoved > 0) WonderTradePlus.LOGGER.info("Historial: {} entradas antiguas eliminadas automáticamente.", historyRemoved)
         WonderTradePlus.LOGGER.info("WonderTrade Plus {} preparado.", WonderTradePlus.MOD_VERSION)
@@ -60,6 +62,7 @@ object WonderTradeService {
         trimAndSave()
         playerData.load()
         history.load()
+        syncHistoryIdentities()
         val historyRemoved = history.pruneOlderThanDays(ConfigManager.int("history.autoDeleteAfterDays", 30))
         if (historyRemoved > 0) WonderTradePlus.LOGGER.info("Historial: {} entradas antiguas eliminadas al recargar.", historyRemoved)
         pending.clear()
@@ -405,6 +408,12 @@ object WonderTradeService {
 
     fun poolEntries(): List<PoolEntry> = pool.all()
 
+    /** El historial se identifica por UUID: asigna UUID a las entradas antiguas y actualiza los nicks cambiados. */
+    private fun syncHistoryIdentities() {
+        runCatching { if (history.syncIdentities(playerData.knownPlayers())) history.save() }
+            .onFailure { WonderTradePlus.LOGGER.warn("No se pudo actualizar la identidad del historial: {}", it.message) }
+    }
+
     // ------------------------------------------------------------ administración
 
     private fun recordHistory(player: ServerPlayer, sent: Pokemon, received: Pokemon, fromPool: Boolean, now: Long) {
@@ -422,7 +431,8 @@ object WonderTradeService {
                     receivedName = received.getDisplayName().string,
                     receivedLevel = received.level,
                     receivedShiny = received.shiny,
-                    fromPool = fromPool
+                    fromPool = fromPool,
+                    uuid = player.uuid.toString()
                 ),
                 ConfigManager.int("history.maxEntries", 1000).coerceAtLeast(1)
             )
@@ -430,10 +440,13 @@ object WonderTradeService {
         }.onFailure { WonderTradePlus.LOGGER.error("No se pudo guardar el historial de intercambios.", it) }
     }
 
-    fun historyEntries(player: String? = null): List<HistoryEntry> = history.recent(player)
+    fun historyEntries(player: String? = null): List<HistoryEntry> {
+        val uuid = player?.let { name -> playerData.knownPlayers().firstOrNull { it.second.equals(name, ignoreCase = true) }?.first?.toString() }
+        return history.recent(player, uuid)
+    }
 
     /** Historial propio: solo se puede pedir el del jugador que lo consulta, nunca el de otro. */
-    fun ownHistory(player: ServerPlayer): List<HistoryEntry> = history.recent(player.gameProfile.name)
+    fun ownHistory(player: ServerPlayer): List<HistoryEntry> = history.recent(player.gameProfile.name, player.uuid.toString())
 
     /** Diagnóstico para admins (/wt admin estado): versión, datos cargados, copias de seguridad, permisos, etc. */
     fun statusComponent(server: MinecraftServer): Component {
@@ -493,6 +506,7 @@ object WonderTradeService {
     fun rememberPlayer(player: ServerPlayer) {
         var changed = false
         playerData.setName(player.uuid, player.gameProfile.name)
+        runCatching { if (history.rename(player.uuid.toString(), player.gameProfile.name)) history.save() }
         profileSkin(player)?.let { (value, signature) -> changed = playerData.setSkin(player.uuid, value, signature) }
         if (changed) playerData.save()
     }
@@ -512,6 +526,79 @@ object WonderTradeService {
 
     private fun addAdminEntry(pokemon: Pokemon, registryAccess: net.minecraft.core.RegistryAccess) {
         pool.add(PoolEntry.fromPokemon(pokemon, registryAccess, "Servidor"))
+    }
+
+    // ------------------------------------------------------------ eventos de temporada (ver WonderTradeSeasons)
+
+    fun poolSnapshot(): List<PoolEntry> = pool.snapshot()
+
+    /** Sustituye la pool por [entries] y la guarda (la original ya está guardada aparte por WonderTradeSeasons). */
+    fun poolReplace(entries: List<PoolEntry>) {
+        pool.restore(entries)
+        entryCategoryCache.clear()
+        trimAndSave()
+    }
+
+    /**
+     * Genera la pool temática de un evento de temporada: una vuelta por todas las especies que encajan (los legendarios,
+     * míticos, Ultraentes y Paradoja solo una vez) y después se repiten las normales hasta llegar a `poolSize`.
+     */
+    fun seasonalGenerate(player: ServerPlayer, season: Season): List<PoolEntry> {
+        val registryAccess = player.server.registryAccess()
+        val low = ConfigManager.int("fallback.minimumLevel", 1).coerceIn(1, 100)
+        val high = ConfigManager.int("fallback.maximumLevel", 100).coerceIn(low, 100)
+        val allowShiny = ConfigManager.bool("general.allowShinyPokemon", true)
+        val maximum = ConfigManager.int("pool.maximumEntries", 500).coerceAtLeast(1)
+        val target = minOf(season.poolSize, maximum)
+
+        // Especies excluidas de la pool del evento (excludeSpecies).
+        val excluded = season.excluded
+        val candidates = PokemonSpecies.species.filter { species ->
+            val id = species.resourceIdentifier.path.lowercase()
+            id !in excluded &&
+            (id in season.extraSpecies || runCatching {
+                species.primaryType.name.lowercase() in season.types || ((species.secondaryType?.name?.lowercase() ?: "") in season.types)
+            }.getOrDefault(false))
+        }.shuffled()
+
+        fun create(speciesName: String, shiny: Boolean): Pokemon? = try {
+            PokemonProperties().apply {
+                this.species = speciesName
+                this.level = Random.nextInt(low, high + 1)
+                this.shiny = shiny
+            }.create(player)
+        } catch (exception: Exception) {
+            null
+        }
+
+        val result = mutableListOf<PoolEntry>()
+        val normals = mutableListOf<String>()
+        fun accept(pokemon: Pokemon): Boolean =
+            season.matches(pokemon) && WonderTradeRules.isSpeciesAllowed(pokemon.species.resourceIdentifier.toString()) &&
+                WonderTradeRules.isVariantAllowed(pokemon) &&
+                (ConfigManager.bool("general.allowSpecialPokemon", true) || !WonderTradeRules.isSpecialSpecies(pokemon))
+
+        // Primera vuelta: una de cada especie.
+        for (species in candidates) {
+            if (result.size >= target) break
+            val name = species.resourceIdentifier.path
+            val shiny = allowShiny && Random.nextDouble() * 100.0 < season.shinyChance
+            val pokemon = create(name, shiny) ?: continue
+            if (!accept(pokemon)) continue
+            val special = WonderTradeRules.isSpecialSpecies(pokemon)
+            if (special && !season.includeSpecial) continue
+            result += PoolEntry.fromPokemon(pokemon, registryAccess, "Servidor")
+            if (!special) normals += name
+        }
+        // Siguientes vueltas: solo especies normales, con otro nivel y otro Pokémon cada vez.
+        var guard = target * 4
+        while (result.size < target && normals.isNotEmpty() && guard-- > 0) {
+            val name = normals[Random.nextInt(normals.size)]
+            val shiny = allowShiny && Random.nextDouble() * 100.0 < season.shinyChance
+            val pokemon = create(name, shiny) ?: continue
+            if (accept(pokemon)) result += PoolEntry.fromPokemon(pokemon, registryAccess, "Servidor")
+        }
+        return result
     }
 
     private fun trimAndSave() {
@@ -662,7 +749,8 @@ object WonderTradeService {
         if (!ConfigManager.bool("general.allowShinyPokemon", true) && candidate.shiny) return false
         if (!ConfigManager.bool("general.allowSpecialPokemon", true) && WonderTradeRules.isSpecialSpecies(candidate)) return false
         if (!ConfigManager.bool("general.allowAlphaPokemon", true) && candidate.isAlpha) return false
-        return WonderTradeRules.isSpeciesAllowed(candidate.species.resourceIdentifier.toString())
+        return WonderTradeRules.isSpeciesAllowed(candidate.species.resourceIdentifier.toString()) && WonderTradeRules.isVariantAllowed(candidate) &&
+            WonderTradeSeasons.poolAllows(candidate)
     }
 
     private fun generateRandom(player: ServerPlayer, low: Int, high: Int, attempts: Int, shiny: Boolean?, accept: (Pokemon) -> Boolean): Pokemon? {
@@ -991,7 +1079,22 @@ object WonderTradeService {
             if (!ConfigManager.bool("general.allowSpecialPokemon", true) && entry.special) return@filter false
             if (!ConfigManager.bool("general.allowAlphaPokemon", true) && entry.alpha) return@filter false
             if (!WonderTradeRules.isSpeciesAllowed(entry.species)) return@filter false
+            if (!entryVariantAllowed(entry, player.server.registryAccess())) return@filter false
             true
+        }
+    }
+
+    private val entryVariantCache = HashMap<String, Boolean>()
+    private var variantCacheKey = ""
+
+    /** Comprueba las listas de formas y aspectos bloqueados contra una entrada de la pool (con caché por entrada). */
+    private fun entryVariantAllowed(entry: PoolEntry, registryAccess: net.minecraft.core.RegistryAccess): Boolean {
+        val key = ConfigManager.strings("general.formBlacklist").joinToString(",") + "|" + ConfigManager.strings("general.aspectBlacklist").joinToString(",")
+        if (key == "|") return true
+        if (key != variantCacheKey) { entryVariantCache.clear(); variantCacheKey = key }
+        return entryVariantCache.getOrPut(entry.id) {
+            runCatching { Pokemon.loadFromJSON(registryAccess, entry.pokemonJson.deepCopy()) }.getOrNull()
+                ?.let { WonderTradeRules.isVariantAllowed(it) } ?: true
         }
     }
 
@@ -1162,7 +1265,7 @@ object WonderTradeService {
     private val entryCategoryCache = HashMap<String, String>()
 
     /** Categoría de especie de una entrada de la pool (legendary, mythical, ultraBeast, paradox) o null. */
-    private fun entryCategoryKey(entry: PoolEntry, registryAccess: net.minecraft.core.RegistryAccess): String? {
+    fun entryCategoryKey(entry: PoolEntry, registryAccess: net.minecraft.core.RegistryAccess): String? {
         val id = entry.species.substringAfter(':').lowercase()
         if (id in WonderTradeRules.pastParadox || id in WonderTradeRules.futureParadox) return "paradox"
         val key = entryCategoryCache.getOrPut(entry.id) {
@@ -1275,6 +1378,7 @@ object WonderTradeService {
         secondCounter++
         runCatching { WonderTradeEvents.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el control de eventos.", it) }
         runCatching { WonderTradePenalties.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el control de penalizaciones.", it) }
+        runCatching { WonderTradeSeasons.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el evento de temporada.", it) }
         runCatching { WonderTradeTopDonations.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el Top Donaciones.", it) }
         server.playerList.players.forEach { player -> Lang.withPlayer(player) { WonderTradeGui.refreshCooldown(player) } }
         runCatching { checkCooldownNotices(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el aviso de disponibilidad.", it) }
@@ -1803,7 +1907,8 @@ object WonderTradeService {
         Lang.withPlayer(player) {
             val fallback = defaultMessage(key)
             val template = ConfigManager.string("messages.$key", fallback)
-            player.sendSystemMessage(colour(WonderTradeService.prefix() + format(template, values)))
+            val extra = if (key.startsWith("season")) WonderTradeSeasons.placeholders() else emptyMap()
+            player.sendSystemMessage(colour(WonderTradeService.prefix() + format(template, extra + values)))
         }
     }
 
@@ -1826,6 +1931,7 @@ object WonderTradeService {
 
     private fun defaultMessage(key: String): String = when (key) {
         "tradeDisabled" -> Lang.tr("&cWonder Trade está desactivado temporalmente.")
+        "seasonTypeBlocked" -> Lang.tr("&cDurante el evento de {event} solo se pueden intercambiar Pokémon de tipo {types}.")
         "cooldownFinished" -> Lang.tr("&a¡Ya puedes hacer Wonder Trade otra vez! Usa &e/wt&a.")
         "emptySlot" -> Lang.tr("&cNo tienes ningún Pokémon en ese slot.")
         "invalidSlot" -> Lang.tr("&cEl slot debe estar entre 1 y 6.")

@@ -1002,5 +1002,22 @@
   "&7Probabilidad mínima de especial: &d{0}%": "&7Minimum special chance: &d{0}%",
   "&7Mejora fija en cada intercambio: &a+{0}%": "&7Fixed boost on every trade: &a+{0}%",
   "&7Ganancia por Pokémon ofrecido: &ax{0}": "&7Gain per Pokémon offered: &ax{0}",
-  "&a✔ Es tu rango": "&a✔ This is your rank"
+  "&a✔ Es tu rango": "&a✔ This is your rank",
+  "&6Shiny": "&6Shiny",
+  "&7Ordena por fecha de incorporación o por especie.": "&7Sorts by date added or by species.",
+  "&eEspecie: A-Z": "&eSpecies: A-Z",
+  "messages.seasonStart": "&b❄ The {name} event has started! Until {end} the pool is themed and only {types}-type Pokémon can be traded. The original pool is saved and will return when the event ends.",
+  "messages.seasonEnd": "&b❄ The {name} event has ended. The original pool is available again!",
+  "messages.seasonJoin": "&b❄ {name} event active until {end}: only {types}-type Pokémon can be traded.",
+  "messages.seasonTypeBlocked": "&cDuring the {event} event only {types}-type Pokémon can be traded.",
+  "discord.seasonStartMessage": "Until **{end}** the pool is themed and only **{types}**-type Pokémon can be traded. The original pool is saved and will return when the event ends.",
+  "discord.seasonEndMessage": "The **{name}** event has ended. The original pool is available again!",
+  "discord.titles.seasonStart": "❄️ {name} event!",
+  "discord.titles.seasonEnd": "🎁 End of the {name} event",
+  "&cDurante el evento de {event} solo se pueden intercambiar Pokémon de tipo {types}.": "&cDuring the {event} event only {types}-type Pokémon can be traded.",
+  "&d★ Ha terminado el evento de temporada. La pool vuelve a la normalidad.": "&d★ The seasonal event has ended. The pool is back to normal.",
+  "🧊 Tipos": "🧊 Types",
+  "📅 Hasta": "📅 Until",
+  "🎴 Pokémon en la pool": "🎴 Pokémon in the pool",
+  "Navidad": "Christmas"
 }

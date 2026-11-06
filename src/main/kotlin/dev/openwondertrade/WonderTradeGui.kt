@@ -101,7 +101,8 @@ class GuiMenu(
 
 enum class PoolSort(private val source: String) {
     NEWEST("&eHora añadida: descendente"),
-    OLDEST("&eHora añadida: ascendente");
+    OLDEST("&eHora añadida: ascendente"),
+    SPECIES("&eEspecie: A-Z");
 
     /** Texto en el idioma activo (se calcula al usarlo para que el cambio de idioma se aplique al momento). */
     val label: String get() = Lang.tr(source)
@@ -112,16 +113,25 @@ enum class PoolSort(private val source: String) {
 enum class PoolFilter(private val source: String) {
     ALL("&eTodos"),
     SPECIAL("&dEspeciales"),
-    NORMAL("&7Normales");
+    NORMAL("&7Normales"),
+    SHINY("&6Shiny"),
+    ULTRA_BEAST("&3Ultraentes"),
+    PARADOX("&cParadoja"),
+    LEGENDARY("&6Legendarios");
 
     val label: String get() = Lang.tr(source)
 
     fun next(): PoolFilter = values()[(ordinal + 1) % values().size]
 
-    fun matches(entry: PoolEntry): Boolean = when (this) {
+    fun matches(entry: PoolEntry, registryAccess: net.minecraft.core.RegistryAccess): Boolean = when (this) {
         ALL -> true
         SPECIAL -> WonderTradeRules.isRareEntry(entry)
         NORMAL -> !WonderTradeRules.isRareEntry(entry)
+        SHINY -> entry.shiny
+        ULTRA_BEAST -> WonderTradeService.entryCategoryKey(entry, registryAccess) == "ultraBeast"
+        PARADOX -> WonderTradeService.entryCategoryKey(entry, registryAccess) == "paradox"
+        // Legendarios y míticos juntos.
+        LEGENDARY -> WonderTradeService.entryCategoryKey(entry, registryAccess).let { it == "legendary" || it == "mythical" }
     }
 }
 
@@ -460,10 +470,11 @@ object WonderTradeGui {
         menu.wipe()
         fill(menu, 54)
         val all = WonderTradeService.poolEntries()
-        val filtered = all.filter { filter.matches(it) && matchesQuery(it, query, player.server.registryAccess()) }
+        val filtered = all.filter { filter.matches(it, player.server.registryAccess()) && matchesQuery(it, query, player.server.registryAccess()) }
         val entries = when (sort) {
             PoolSort.NEWEST -> filtered.sortedByDescending { it.addedAt }
             PoolSort.OLDEST -> filtered.sortedBy { it.addedAt }
+            PoolSort.SPECIES -> filtered.sortedWith(compareBy({ it.species.substringAfter(':').lowercase() }, { -it.addedAt }))
         }
         val pages = maxOf(1, (entries.size + POOL_PER_PAGE - 1) / POOL_PER_PAGE)
         val page = requestedPage.coerceIn(0, pages - 1)
@@ -494,7 +505,6 @@ object WonderTradeGui {
         }
         if (entries.isEmpty()) menu.put(22, named(Items.BARRIER, Lang.tr("&cNo hay Pokémon con este filtro")))
 
-        val special = all.count { WonderTradeRules.isRareEntry(it) }
         menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) {
             if (admin) openAdmin(it) else openMain(it)
         }
@@ -513,7 +523,7 @@ object WonderTradeGui {
         if (page > 0) menu.button(48, named(Items.ARROW, Lang.tr("&ePágina anterior")), "pageTurn") { renderPool(menu, it, page - 1, admin, filter, deleteMode, sort, query) }
         menu.put(49, named(Items.PAPER, Lang.t("&fPágina {0}/{1}", page + 1, pages), Lang.t("&7{0} Pokémon con este filtro", entries.size)))
         if (page < pages - 1) menu.button(50, named(Items.ARROW, Lang.tr("&ePágina siguiente")), "pageTurn") { renderPool(menu, it, page + 1, admin, filter, deleteMode, sort, query) }
-        val counts = mapOf(PoolFilter.ALL to all.size, PoolFilter.SPECIAL to special, PoolFilter.NORMAL to all.size - special)
+        val counts = PoolFilter.values().associateWith { option -> all.count { option.matches(it, registryAccess) } }
         val options = PoolFilter.values().map { option ->
             if (option == filter) Lang.t("&e▶ {0} &f{1}", option.label, counts[option])
             else Lang.t("&8   {0} {1}", option.label.drop(2), counts[option])
@@ -521,7 +531,7 @@ object WonderTradeGui {
         val sortOptions = PoolSort.values().map { option ->
             if (option == sort) Lang.t("&e▶ {0}", option.label) else Lang.t("&8   {0}", option.label.drop(2))
         }
-        menu.button(51, named(Items.CLOCK, Lang.tr("&fOrdenar pool"), *sortOptions.toTypedArray(), Lang.tr("&7Ordena por fecha de incorporación."), Lang.tr("&eClic para cambiar"))) {
+        menu.button(51, named(Items.CLOCK, Lang.tr("&fOrdenar pool"), *sortOptions.toTypedArray(), Lang.tr("&7Ordena por fecha de incorporación o por especie."), Lang.tr("&eClic para cambiar"))) {
             renderPool(menu, it, 0, admin, filter, deleteMode, sort.next(), query)
         }
         if (query != null) {

@@ -193,5 +193,13 @@
   "discord.titles.eventPaused": "⏸️ Evento en pausa: {name}",
   "discord.titles.eventResumed": "▶️ Evento reanudado: {name}",
   "discord.titles.topDonations": "★ Top Donaciones de {month}",
-  "messages.helpRanksCommand": "&e/wt rangos &7Ver todos los rangos y sus ventajas"
+  "messages.helpRanksCommand": "&e/wt rangos &7Ver todos los rangos y sus ventajas",
+  "messages.seasonStart": "&b❄ ¡Empieza el evento de {name}! Hasta el {end} la pool es temática y solo se pueden intercambiar Pokémon de tipo {types}. La pool original se guarda y volverá al terminar el evento.",
+  "messages.seasonEnd": "&b❄ Ha terminado el evento de {name}. ¡La pool original vuelve a estar disponible!",
+  "messages.seasonJoin": "&b❄ Evento de {name} activo hasta el {end}: solo se pueden intercambiar Pokémon de tipo {types}.",
+  "messages.seasonTypeBlocked": "&cDurante el evento de {event} solo se pueden intercambiar Pokémon de tipo {types}.",
+  "discord.seasonStartMessage": "Hasta el **{end}** la pool es temática y solo se pueden intercambiar Pokémon de tipo **{types}**. La pool original se guarda y volverá al terminar el evento.",
+  "discord.seasonEndMessage": "El evento de **{name}** ha terminado. ¡La pool original vuelve a estar disponible!",
+  "discord.titles.seasonStart": "❄️ ¡Evento de {name}!",
+  "discord.titles.seasonEnd": "🎁 Fin del evento de {name}"
 }

@@ -10,6 +10,25 @@ La configuración inicial se copia en `config/wondertradeplus/config.json`. Edit
 
 El sistema también aplica `antiAbuse.excludeOwnDonations`: un jugador nunca puede recibir una entrada que haya donado él mismo.
 
+## `seasonal`
+
+Eventos de temporada, por ejemplo la Navidad. Entre `startDate` y `endDate` (`MM-DD`, ambas incluidas; pueden cruzar el año) la pool se sustituye por una temática de los `types` indicados (Pokémon de tipo hielo por defecto) y, con `restrictTrades`, solo se pueden intercambiar Pokémon de esos tipos. No hay comandos.
+
+La pool que había **no se borra**: se guarda en `config/wondertradeplus/seasonal/pool-original-<id>.json` y se recupera al terminar. La pool del evento se archiva en `pool-event-<id>-<año>.json`. El estado vive en `seasonal-state.json` (no lo borres durante un evento); si el servidor está apagado cuando acaba, se restaura al arrancar. Al volver, la antigüedad de las entradas originales se desplaza para que la caducidad no cuente el tiempo del evento.
+
+- `enabled`: interruptor general.
+- `events[]`: `id`, `enabled`, `name` (se traduce con los archivos de `lang`, por ejemplo la clave `Navidad`), `startDate`, `endDate`, `types` (en inglés: `ice`), `extraSpecies` (especies que valen aunque no tengan el tipo, p. ej. `stantler`), `excludeSpecies` (especies que no deben salir en la pool del evento, p. ej. `["kyurem"]`), `restrictTrades`, `poolSize`, `shinyChancePercent`, `includeLegendary`.
+- Se comprueba cada 30 segundos y, para empezar, hace falta algún jugador conectado (Cobblemon necesita uno para generar Pokémon).
+- Avisos en el chat, al entrar y en Discord (`discord.events.seasonal`, `discord.titles.seasonStart/seasonEnd`, `discord.style.colors.seasonStart/seasonEnd`). Textos en `lang`: `messages.seasonStart/seasonEnd/seasonJoin/seasonTypeBlocked` y `discord.seasonStartMessage/seasonEndMessage`.
+
+Ejemplo de un segundo evento:
+
+```json
+{ "id": "verano", "enabled": true, "name": "Verano", "startDate": "07-01", "endDate": "08-31",
+  "types": ["water", "fire"], "extraSpecies": [], "restrictTrades": false,
+  "poolSize": 100, "shinyChancePercent": 2.0, "includeLegendary": true }
+```
+
 ## `topDonations`
 
 - Top Donaciones se celebra en los meses definidos por `everyMonth`, `firstYear`, `oddMonthsInFirstYear` y `alternateYears`.
@@ -39,7 +58,23 @@ El sistema también aplica `antiAbuse.excludeOwnDonations`: un jugador nunca pue
 - `allowShinyPokemon`, `allowSpecialPokemon`, `allowAlphaPokemon`: permiten o bloquean esas categorías tanto para lo ofrecido como para lo recibido.
 - `allowHeldItems`: permite Pokémon que llevan un objeto equipado.
 - `minimumOfferedLevel`, `maximumOfferedLevel`: rango de nivel aceptado para el Pokémon ofrecido.
-- `speciesBlacklist`: especies prohibidas; admite `ditto` y `cobblemon:ditto`.
+- `speciesBlacklist`: especies bloqueadas (no se pueden ofrecer ni se reciben). Admite `ditto` y `cobblemon:ditto`, en minúsculas y sin espacios, y bloquea la especie con todas sus formas. Está vacía por defecto. Ejemplo en `config.json`:
+
+  ```json
+  "general": {
+    "speciesBlacklist": ["mewtwo", "cobblemon:rayquaza", "greattusk"]
+  }
+  ```
+- `formBlacklist` y `aspectBlacklist`: formas y aspectos bloqueados al ofrecer y al recibir. Pensadas para texturas de un resource pack del servidor, que Cobblemon activa con un aspecto o una forma; el nombre se encuentra en el pack (`assets/cobblemon/bedrock/pokemon/resolvers/`, líneas `"aspects": ["nombre"]`). Admiten `nombre` (cualquier especie) o `especie:nombre`. Vacías por defecto. Ejemplo:
+
+  ```json
+  "general": {
+    "formBlacklist": ["ninetales:alola"],
+    "aspectBlacklist": ["skin-roja", "pikachu:gorra"]
+  }
+  ```
+
+  Los Pokémon que ya estén en la pool con ese aspecto no se entregan, pero siguen en ella hasta que un admin los borre. El mod no puede saber qué jugadores tienen el resource pack: el bloqueo es igual para todos.
 - `useSpeciesWhitelist`: activa el modo lista blanca.
 - `speciesWhitelist`: especies admitidas cuando la lista blanca está activa.
 
@@ -205,7 +240,7 @@ Los avisos se envían a todos los jugadores que puedan intercambiar, no solo a a
 
 ## Idioma (0.20.0)
 
-- `general.language`: `es_es` (por defecto) o `en_us`. Archivos en `config/wondertradeplus/lang/`. Para otro idioma, copia `en_us.json`, traduce los valores y usa su nombre como código.
+- `general.language`: `es_es` (por defecto), `en_us`, `fr_fr` (francés) o `it_it` (italiano). Archivos en `config/wondertradeplus/lang/`. Para otro idioma, copia `en_us.json`, traduce los valores y usa su nombre como código.
 - Un texto escrito a mano en `config.json` (`messages.*`, `discord.*Message`, `events.names.*`) tiene prioridad sobre el idioma.
 - `penalties.reasons` (motivos rápidos del menú) y `penalties.historySize` (límite del historial).
 

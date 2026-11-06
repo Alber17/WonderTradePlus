@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.23.7**.
+- Versión actual: **0.26.2**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -337,6 +337,41 @@
 - El nombre del mod en el prefijo va en negrita: **[WonderTrade]**.
 - Panel de administración: «Reiniciar estadísticas» abre un menú con «Borrar todas» o las cabezas de los jugadores conectados y desconectados para reiniciar solo a uno (con confirmación).
 - Panel de administración: cada botón puede exigir un rango (`admin.buttonLevels.*`); sin él se ve bloqueado y avisa al pulsarlo.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.26.2
+
+- Eventos de temporada: se quita `speciesChances`; se mantiene `excludeSpecies`.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.26.1
+
+- Eventos de temporada: `excludeSpecies` (especies que no salen en la pool del evento) y `speciesChances` (% de la pool que ocupa cada especie). Vacías por defecto.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.26.0
+
+- Eventos de temporada (`seasonal`): la Navidad viene configurada (15-12 a 06-01, tipo hielo, pool de 100, solo se pueden intercambiar Pokémon de tipo hielo). La pool original se guarda aparte y se restaura al terminar; la del evento se archiva. Sin comandos nuevos, con avisos en el chat, al entrar y en Discord, traducido a es, en, fr e it.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.25.1
+
+- Nuevas listas `general.formBlacklist` y `general.aspectBlacklist` (vacías por defecto, con ejemplo en la guía y en la documentación) para bloquear formas y aspectos, por ejemplo las texturas de un resource pack del servidor. Bloquean al ofrecer y al recibir; admiten `nombre` o `especie:nombre`.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.25.0
+
+- Historial por UUID: cada intercambio guarda el UUID del jugador, así que un cambio de nick no hace perder historial. Los menús y comandos siguen mostrando nicks (se actualizan al nick actual cuando el jugador entra). Las entradas antiguas, que solo tenían el nick, reciben su UUID al arrancar si ese jugador es conocido; las de jugadores desconocidos siguen buscándose por nick.
+- Lista negra de especies: ya existía (`general.speciesBlacklist`); ahora está documentada con ejemplo en `config-guide.txt` y `docs/CONFIGURATION.md`. Está vacía por defecto.
+- Barra de evento en el idioma de cada jugador (una barra por evento e idioma).
+- Pool: nuevos filtros Shiny, Ultraentes, Paradoja y Legendarios (legendarios y míticos juntos) y nuevo orden por especie A-Z. Traducido a es, en, fr e it.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+## 0.24.0
+
+- Nuevos idiomas: francés (`fr_fr`) e italiano (`it_it`), con las mismas 1004 entradas que el inglés y la terminología oficial de Pokémon. Aparecen solos en `/wt idioma`, se eligen con `general.language` y se detectan por el idioma del cliente de Minecraft (fr_fr, fr_ca…, it_it).
+- Los archivos nuevos se copian a `config/wondertradeplus/lang/` al arrancar; los que ya existan no se sobrescriben.
+- Las traducciones son automáticas: conviene que las revise alguien nativo.
 - Gradle no se ha ejecutado en el entorno de edición.
 
 ## 0.23.7

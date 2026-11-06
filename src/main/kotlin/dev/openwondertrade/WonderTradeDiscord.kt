@@ -205,6 +205,27 @@ object WonderTradeDiscord {
         }
     }
 
+    /** Inicio y fin de un evento de temporada (por ejemplo la Navidad). */
+    fun season(season: Season, started: Boolean, count: Int) {
+        Lang.withPlayer(null) {
+            if (!eventsEnabled("seasonal")) return
+            val values = WonderTradeSeasons.placeholders(season)
+            val description = WonderTradeService.format(
+                if (started) ConfigManager.string("discord.seasonStartMessage", "Hasta el **{end}** la pool es temática y solo se pueden intercambiar Pokémon de tipo **{types}**. La pool original se guarda y volverá al terminar el evento.")
+                else ConfigManager.string("discord.seasonEndMessage", "El evento de **{name}** ha terminado. ¡La pool original vuelve a estar disponible!"),
+                values
+            )
+            val title = if (started) ConfigManager.string("discord.titles.seasonStart", "❄️ ¡Evento de {name}!") else ConfigManager.string("discord.titles.seasonEnd", "🎁 Fin del evento de {name}")
+            val embed = Embed(WonderTradeService.format(title, values), description, colorOf(if (started) "seasonStart" else "seasonEnd", if (started) "#74B9FF" else "#B2BEC3"))
+            if (started) {
+                embed.field(Lang.tr("🧊 Tipos"), values["types"].toString())
+                embed.field(Lang.tr("📅 Hasta"), values["end"].toString())
+            }
+            embed.field(Lang.tr("🎴 Pokémon en la pool"), count.toString())
+            postEvent(embed)
+        }
+    }
+
     fun eventPaused(event: WtEvent) {
         Lang.withPlayer(null) {
             if (!eventsEnabled("pause")) return

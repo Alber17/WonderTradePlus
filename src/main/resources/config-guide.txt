@@ -63,7 +63,25 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
  allowShinyPokemon / allowSpecialPokemon / allowAlphaPokemon / allowHeldItems
                             Permiten ofrecer shiny, especiales, alfa u objetos.
  minimumOfferedLevel / maximumOfferedLevel   Nivel minimo y maximo ofrecible.
- speciesBlacklist           Especies que nadie puede ofrecer.
+ speciesBlacklist           Especies bloqueadas: nadie puede ofrecerlas ni recibirlas.
+                            Escribelas entre comillas, en minusculas y sin espacios,
+                            separadas por comas. Bloquea la especie con todas sus formas.
+                            Ejemplo (en config.json, dentro de "general"):
+                              "speciesBlacklist": ["mewtwo", "cobblemon:rayquaza", "greattusk"]
+                            Lista vacia ([]) = no se bloquea ninguna.
+ formBlacklist              Formas bloqueadas (ofrecer y recibir). Sirve para texturas
+                            de un resource pack que activa una forma.
+                              "formBlacklist": ["alola", "ninetales:alola"]
+                            «nombre» bloquea esa forma en cualquier especie y
+                            «especie:nombre» solo en esa especie.
+ aspectBlacklist            Aspectos bloqueados (ofrecer y recibir). Cobblemon activa
+                            cada textura extra con un aspecto; su nombre sale del
+                            resource pack (assets/cobblemon/bedrock/pokemon/resolvers,
+                            lineas "aspects": ["nombre"]). Mismo formato:
+                              "aspectBlacklist": ["skin-roja", "pikachu:gorra"]
+                            Ambas listas vacias ([]) = no se bloquea nada. Los Pokemon
+                            que ya esten en la pool con esa forma/aspecto no se
+                            entregan, pero siguen en ella hasta que un admin los borre.
  useSpeciesWhitelist / speciesWhitelist      Si true, solo se pueden ofrecer
                             las especies de la lista blanca.
 
@@ -379,6 +397,55 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
  especie repetida para quien lo ejecuta. Se apaga solo al reiniciar el servidor.
 
 --------------------------------------------------------------------------------
+ seasonal - Eventos de temporada (Navidad...)
+--------------------------------------------------------------------------------
+ Entre dos fechas, la pool se sustituye por una tematica (por ejemplo, todos los
+ Pokemon de tipo hielo) y solo se pueden intercambiar Pokemon de ese tipo. La
+ pool que habia NO se borra: se guarda en config/wondertradeplus/seasonal/
+ pool-original-<id>.json y se recupera al terminar el evento. No hay comandos:
+ empieza y termina solo segun las fechas (se comprueba cada 30 segundos; para
+ empezar hace falta algun jugador conectado).
+
+ enabled                    Interruptor general de los eventos de temporada.
+ events                     Lista de eventos; cada uno tiene:
+   id                         Nombre interno (sin espacios), p. ej. "navidad".
+   enabled                    Activa o desactiva ese evento.
+   name                       Nombre que se muestra (se traduce con el idioma:
+                              pon su traduccion en lang/<idioma>.json).
+   startDate / endDate        Fechas MM-DD, ambas incluidas. Pueden cruzar el
+                              ano: "12-15" a "01-06" va del 15 de diciembre al
+                              6 de enero. Zona horaria: events.schedule.timezone.
+   types                      Tipos permitidos, en ingles y minusculas:
+                              ["ice"]. Un Pokemon vale si alguno de sus tipos
+                              esta en la lista (un agua/hielo vale).
+   extraSpecies               Especies que valen aunque no sean de esos tipos,
+                              p. ej. ["stantler", "delibird"]. Vacio por defecto.
+   excludeSpecies             Especies que NO deben salir en la pool del evento,
+                              p. ej. ["kyurem", "articuno"]. Vacio por defecto.
+   restrictTrades             true = solo se pueden ofrecer Pokemon del evento.
+                              false = la pool es tematica pero se puede ofrecer
+                              cualquier Pokemon.
+   poolSize                   Cuantos Pokemon tiene la pool del evento (maximo
+                              pool.maximumEntries). Se genera una vez cada especie
+                              y se repiten las normales hasta llegar a la cifra.
+   shinyChancePercent         % de que cada Pokemon generado sea shiny.
+   includeLegendary           Incluir legendarios, miticos, Ultraentes y Paradoja
+                              que encajen (una vez cada uno).
+ Ejemplo para anadir otro evento (dentro de "seasonal" > "events"):
+   { "id": "verano", "enabled": true, "name": "Verano", "startDate": "07-01",
+     "endDate": "08-31", "types": ["water", "fire"], "extraSpecies": [],
+     "restrictTrades": false, "poolSize": 100, "shinyChancePercent": 2.0,
+     "includeLegendary": true }
+ Al terminar: la pool del evento se archiva en seasonal/pool-event-<id>-<ano>.json
+ y la original vuelve con su antiguedad congelada (la caducidad no cuenta el
+ tiempo del evento). Si el servidor esta apagado cuando acaba, se restaura al
+ arrancar. Estado en seasonal-state.json: NO lo borres durante un evento.
+ Avisos: en el chat, al entrar al servidor y en Discord (discord.events.seasonal,
+ titulos discord.titles.seasonStart/seasonEnd, colores style.colors.seasonStart/End).
+ Los textos estan en lang (messages.seasonStart, seasonEnd, seasonJoin,
+ seasonTypeBlocked y discord.seasonStartMessage, seasonEndMessage).
+
+--------------------------------------------------------------------------------
  messages - Todos los textos
 --------------------------------------------------------------------------------
  Desde la 0.20.0 los textos de fabrica viven en la carpeta lang (uno por idioma).
@@ -395,7 +462,7 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
  event.json              Eventos activos, esperas, estadisticas e historial.
  event-schedule.json     Eventos programados.
  penalties.json          Penalizaciones vigentes, historial y avisos pendientes.
- lang/                   Idiomas (es_es.json, en_us.json y los que anadas).
+ lang/                   Idiomas (es_es, en_us, fr_fr, it_it y los que anadas).
  maintenance-state.json  Control del reinicio mensual de la pool.
  backups/                Copias automaticas.
  config-guide.txt        Esta guia (se regenera).

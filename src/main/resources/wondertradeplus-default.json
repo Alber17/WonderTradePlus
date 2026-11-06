@@ -12,6 +12,8 @@
     "minimumOfferedLevel": 1,
     "maximumOfferedLevel": 100,
     "speciesBlacklist": [],
+    "formBlacklist": [],
+    "aspectBlacklist": [],
     "useSpeciesWhitelist": false,
     "speciesWhitelist": [],
     "language": "es_es",
@@ -92,7 +94,8 @@
       "topDonations": true,
       "mentionRoleId": "",
       "listPlayers": true,
-      "maxPlayersListed": 15
+      "maxPlayersListed": 15,
+      "seasonal": true
     },
     "avatarUrl": "",
     "style": {
@@ -113,7 +116,9 @@
         "eventSoon": "#F1C40F",
         "paused": "#95A5A6",
         "resumed": "#3498DB",
-        "top": "#E67E22"
+        "top": "#E67E22",
+        "seasonStart": "#74B9FF",
+        "seasonEnd": "#B2BEC3"
       }
     }
   },
@@ -382,5 +387,26 @@
     "cooldownReady": true,
     "volume": 0.45,
     "pitch": 1.0
+  },
+  "seasonal": {
+    "enabled": true,
+    "events": [
+      {
+        "id": "navidad",
+        "enabled": true,
+        "name": "Navidad",
+        "startDate": "12-15",
+        "endDate": "01-06",
+        "types": [
+          "ice"
+        ],
+        "extraSpecies": [],
+        "excludeSpecies": [],
+        "restrictTrades": true,
+        "poolSize": 100,
+        "shinyChancePercent": 2.0,
+        "includeLegendary": true
+      }
+    ]
   }
 }
