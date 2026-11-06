@@ -217,6 +217,34 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.26.23
+
+- El libro de `/wt` ya no pone en amarillo los porcentajes shiny.
+
+## 0.26.22
+
+- Cancelar usa el `eject_button` de Cobblemon. En el admin, Volver dice solo «Volver».
+
+## 0.26.21
+
+- Eliminar pool es un vacío de estructura y Volver es cristal verde lima en todos los menús.
+
+## 0.26.20
+
+- Historial, Donaciones y Reiniciar estadísticas usan libro y pluma, libro y libro verde.
+
+## 0.26.19
+
+- Ejecutar mantenimiento usa un bloque de comandos de repetición en lugar de una tolva.
+
+## 0.26.18
+
+- En Datos del panel de admin: Historial, Donaciones y Reiniciar estadísticas. Donaciones guarda cada donación directa y se consulta por jugador.
+
+## 0.26.17
+
+- `/wt topdonaciones` ya no existe. El comando es `/wt donaciones`.
+
 ## 0.26.16
 
 - Los IVs usan verde, amarillo, dorado, cian, azul y rosa, lo más cerca posible de los colores de los juegos.

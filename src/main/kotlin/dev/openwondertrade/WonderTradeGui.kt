@@ -182,6 +182,14 @@ object WonderTradeGui {
         open(player, title, 6) { renderPool(it, player, page, admin, filter, deleteMode, sort, query) }
     }
 
+    fun openDonationHistory(player: ServerPlayer, page: Int = 0) {
+        if (!player.hasPermissions(WonderTradeService.adminLevel())) {
+            WonderTradeService.send(player, "adminOnly")
+            return
+        }
+        open(player, Lang.tr("&5Wonder Trade &8- &aDonaciones"), 6) { renderDonationPlayers(it, player, page) }
+    }
+
     fun openHistory(player: ServerPlayer, filter: String? = null, page: Int = 0) {
         if (!player.hasPermissions(WonderTradeService.adminLevel())) {
             WonderTradeService.send(player, "adminOnly")
@@ -286,7 +294,7 @@ object WonderTradeGui {
                     mapOf("gain" to WonderTradeService.normalBonusGainText())
                 )
                 bookLore += WonderTradeService.format(
-                    ConfigManager.string("messages.menuBookShinyGain", "&ePokémon shiny&7 (sin categoría especial): &e+{gain}%"),
+                    ConfigManager.string("messages.menuBookShinyGain", "&ePokémon shiny&7 (sin categoría especial): &f+{gain}%"),
                     mapOf("gain" to WonderTradeService.specialBonusGainText())
                 )
                 bookLore += WonderTradeService.format(
@@ -294,7 +302,7 @@ object WonderTradeGui {
                     mapOf("gain" to WonderTradeService.specialBonusGainText())
                 )
                 bookLore += WonderTradeService.format(
-                    ConfigManager.string("messages.menuBookSpecialShinyGain", "&eEspecial shiny&7: &e+{base}% &7+ &e{extra}% &7extra = &e{total}%"),
+                    ConfigManager.string("messages.menuBookSpecialShinyGain", "&eEspecial shiny&7: &f+{base}% &7+ &f{extra}% &7extra = &a{total}%"),
                     mapOf(
                         "base" to WonderTradeService.specialBonusGainText(),
                         "extra" to WonderTradeService.specialShinyExtraGainText(),
@@ -365,7 +373,7 @@ object WonderTradeGui {
                 Lang.t("&7Usa el idioma de tu Minecraft ({0}).", Lang.nameOf(current)),
                 if (chosen == null) Lang.tr("&7Idioma elegido") else Lang.tr("&eClic para elegir")
             )) { chooseLanguage(it, "auto") }
-            menu.button(18, named(Items.ARROW, Lang.tr("&aVolver"))) { openMain(it) }
+            menu.button(18, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openMain(it) }
             menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
         }
     }
@@ -402,7 +410,7 @@ object WonderTradeGui {
                     }
                 }
             }
-            menu.button(rows * 9 - 9, named(Items.ARROW, Lang.tr("&aVolver"))) { openMain(it) }
+            menu.button(rows * 9 - 9, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openMain(it) }
             menu.button(rows * 9 - 1, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
         }
     }
@@ -671,7 +679,7 @@ object WonderTradeGui {
                     openSpecialList(it, key, 0)
                 }
             }
-            menu.button(22, named(Items.ARROW, Lang.tr("&aVolver"))) { openMain(it) }
+            menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openMain(it) }
             menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
         }
     }
@@ -702,7 +710,7 @@ object WonderTradeGui {
         if (page > 0) menu.button(48, named(Items.ARROW, Lang.tr("&ePágina anterior")), "pageTurn") { renderSpecialList(menu, it, key, page - 1) }
         menu.put(49, named(Items.PAPER, Lang.t("&7Página {0}/{1}", page + 1, pages), Lang.t("&7{0}&7: &f{1}", categoryLabel, list.size)))
         if (page < pages - 1) menu.button(50, named(Items.ARROW, Lang.tr("&ePágina siguiente")), "pageTurn") { renderSpecialList(menu, it, key, page + 1) }
-        menu.button(45, named(Items.ARROW, Lang.tr("&aVolver"))) { openSpecials(it) }
+        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openSpecials(it) }
         menu.button(53, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
@@ -743,7 +751,7 @@ object WonderTradeGui {
                     openAdminFill(it)
                 }
             }
-            btn(15, "deletePool", named(Items.BARRIER, Lang.tr("&cEliminar pool"), Lang.tr("&7Elige qué origen quieres eliminar."), Lang.tr("&eAbrir opciones"))) {
+            btn(15, "deletePool", named(Items.STRUCTURE_VOID, Lang.tr("&cEliminar pool"), Lang.tr("&7Elige qué origen quieres eliminar."), Lang.tr("&eAbrir opciones"))) {
                 openAdminPoolDeleteOptions(it)
             }
 
@@ -779,7 +787,10 @@ object WonderTradeGui {
             btn(29, "history", named(Items.WRITABLE_BOOK, ConfigManager.string("messages.adminMenuHistory", "&eHistorial"), Lang.tr("&7Últimos intercambios."))) {
                 openHistory(it)
             }
-            btn(31, "resetStats", named(Items.BOOK, Lang.tr("&eReiniciar estadísticas"), Lang.tr("&7Reinicia las estadísticas de todos o de un jugador."), Lang.tr("&cNo se puede deshacer."), Lang.tr("&eClic para abrir"))) {
+            btn(31, "donations", named(Items.BOOK, Lang.tr("&aDonaciones"), Lang.tr("&7Qué ha donado cada jugador."), Lang.tr("&eClic para ver"))) {
+                openDonationHistory(it)
+            }
+            btn(33, "resetStats", named(Items.KNOWLEDGE_BOOK, Lang.tr("&eReiniciar estadísticas"), Lang.tr("&7Reinicia las estadísticas de todos o de un jugador."), Lang.tr("&cNo se puede deshacer."), Lang.tr("&eClic para abrir"))) {
                 openResetStatsMenu(it)
             }
 
@@ -790,7 +801,7 @@ object WonderTradeGui {
                 WonderTradeService.send(it, "reload")
                 openAdmin(it)
             }
-            btn(40, "maintenance", named(Items.HOPPER, ConfigManager.string("messages.adminMenuMaintenance", "&aEjecutar mantenimiento"), Lang.tr("&7Caducidad y purga de la pool."))) {
+            btn(40, "maintenance", named(Items.REPEATING_COMMAND_BLOCK, ConfigManager.string("messages.adminMenuMaintenance", "&aEjecutar mantenimiento"), Lang.tr("&7Caducidad y purga de la pool."))) {
                 val (expired, generated) = WonderTradeService.maintainPool(it.server)
                 it.sendSystemMessage(WonderTradeService.info(Lang.t("&aMantenimiento: &f{0} &aPokémon eliminados, &f{1} &agenerados.", expired, generated)))
                 openAdmin(it)
@@ -867,7 +878,7 @@ object WonderTradeGui {
                 Items.WRITABLE_BOOK, Lang.tr("&dHistorial de eventos"),
                 Lang.tr("&7Eventos terminados con sus WT y jugadores."), Lang.tr("&eClic para ver")
             )) { openEventHistory(it) }
-            menu.button(22, named(Items.ARROW, Lang.tr("&aVolver al panel admin"))) { openAdmin(it) }
+            menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdmin(it) }
             menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
         }
     }
@@ -916,7 +927,7 @@ object WonderTradeGui {
                 p.sendSystemMessage(WonderTradeService.info(if (ok) Lang.tr("&aLa hora navideña ha finalizado.") else Lang.tr("&cNo hay ninguna sesión que finalizar.")))
                 openChristmasAdmin(p)
             }
-            menu.button(22, named(Items.ARROW, Lang.tr("&aVolver a eventos"))) { openAdminEvents(it) }
+            menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver a eventos"))) { openAdminEvents(it) }
             menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
         }
     }
@@ -937,7 +948,7 @@ object WonderTradeGui {
         val event = WonderTradeEvents.running(now).firstOrNull { it.id == id }
         if (event == null) {
             menu.put(13, named(Items.BARRIER, Lang.tr("&cEste evento ya no está en marcha")))
-            menu.button(22, named(Items.ARROW, Lang.tr("&aVolver"))) { openAdminEvents(it) }
+            menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdminEvents(it) }
             return
         }
         val left = WonderTradeEvents.formatDuration((event.endAt - (if (event.paused) event.pausedAt else now) + 999L) / 1000L)
@@ -964,7 +975,7 @@ object WonderTradeGui {
             WonderTradeEvents.stop(p.server, id)
             openAdminEvents(p)
         }
-        menu.button(22, named(Items.ARROW, Lang.tr("&aVolver"))) { openAdminEvents(it) }
+        menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdminEvents(it) }
         menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
@@ -987,7 +998,7 @@ object WonderTradeGui {
                     Lang.t("&8{0}", r.reason)
                 ))
             }
-            menu.button(45, named(Items.ARROW, Lang.tr("&aVolver"))) { openAdminEvents(it) }
+            menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdminEvents(it) }
             menu.button(53, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
         }
     }
@@ -1025,7 +1036,7 @@ object WonderTradeGui {
                 renderAdminScheduled(menu)
             }
         }
-        menu.button(48, named(Items.ARROW, Lang.tr("&aVolver"))) { openAdminEvents(it) }
+        menu.button(48, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdminEvents(it) }
         menu.button(50, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
@@ -1078,7 +1089,7 @@ object WonderTradeGui {
                 Lang.tr("&7Categorías: ") + chosen.joinToString("&7, ") { it.coloredLabel }, Lang.tr("&eClic para elegir la duración")
             )) { openEventDuration(it, type, chosen) }
         }
-        menu.button(18, named(Items.ARROW, Lang.tr("&aVolver"))) { openAdminEvents(it) }
+        menu.button(18, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdminEvents(it) }
         menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
@@ -1107,7 +1118,7 @@ object WonderTradeGui {
                 Items.CLOCK, Lang.tr("&6Tiempo personalizado"),
                 Lang.tr("&7Ajusta la duración exacta con botones"), Lang.tr("&7de minutos, horas y días."), Lang.tr("&eClic para elegir")
             )) { openEventCustomDuration(it, type, categories) }
-            menu.button(22, named(Items.ARROW, Lang.tr("&aVolver"))) { openEventCategory(it, type, categories) }
+            menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openEventCategory(it, type, categories) }
             menu.button(26, named(Items.CLOCK, Lang.tr("&6Programar evento"), Lang.tr("&7En lugar de iniciarlo ahora, elige"), Lang.tr("&7cuándo debe comenzar."), Lang.tr("&eAbrir programación"))) { openEventScheduleDuration(it, type, categories) }
             menu.button(25, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
         }
@@ -1135,7 +1146,7 @@ object WonderTradeGui {
         menu.button(13, named(Items.REPEATER, Lang.tr("&6Tiempo personalizado"), Lang.tr("&7Ajusta la duración con botones + y -."), Lang.tr("&eClic para personalizar"))) {
             renderScheduleCustomDuration(menu, type, categories, 3600L)
         }
-        menu.button(22, named(Items.ARROW, Lang.tr("&aVolver"))) { openEventDuration(it, type, categories) }
+        menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openEventDuration(it, type, categories) }
         menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
@@ -1158,7 +1169,7 @@ object WonderTradeGui {
         menu.button(22, named(Items.LIME_CONCRETE, Lang.tr("&aContinuar"), Lang.t("&7Duración: &f{0}", WonderTradeEvents.formatDuration(current)))) {
             renderScheduleDay(menu, type, categories, current)
         }
-        menu.button(18, named(Items.ARROW, Lang.tr("&aVolver"))) { renderScheduleDuration(menu, type, categories) }
+        menu.button(18, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { renderScheduleDuration(menu, type, categories) }
         menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
@@ -1175,7 +1186,7 @@ object WonderTradeGui {
                 renderEventScheduleTime(menu, type, categories, durationSeconds, day, LocalTime.of(20, 0))
             }
         }
-        menu.button(22, named(Items.ARROW, Lang.tr("&aVolver"))) { renderScheduleDuration(menu, type, categories) }
+        menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { renderScheduleDuration(menu, type, categories) }
         menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
@@ -1203,7 +1214,7 @@ object WonderTradeGui {
         menu.button(22, named(Items.LIME_CONCRETE, Lang.tr("&aContinuar"), Lang.t("&7Día: &f{0}", dayLabel), Lang.t("&7Hora: &f{0}", formatted), Lang.tr("&eElegir repetición"))) {
             renderScheduleRepeat(menu, type, categories, durationSeconds, day, time)
         }
-        menu.button(18, named(Items.ARROW, Lang.tr("&aVolver"))) { renderScheduleDay(menu, type, categories, durationSeconds) }
+        menu.button(18, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { renderScheduleDay(menu, type, categories, durationSeconds) }
         menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
@@ -1237,7 +1248,7 @@ object WonderTradeGui {
                 else finishSchedule(p, type, categories, durationSeconds, WonderTradeSchedule.fromMenu(day, time.hour, time.minute, repeat))
             }
         }
-        menu.button(22, named(Items.ARROW, Lang.tr("&aVolver"))) { renderEventScheduleTime(menu, type, categories, durationSeconds, day, time) }
+        menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { renderEventScheduleTime(menu, type, categories, durationSeconds, day, time) }
         menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
@@ -1257,7 +1268,7 @@ object WonderTradeGui {
                 finishSchedule(p, type, categories, durationSeconds, WonderTradeSchedule.fromMenu(day, time.hour, time.minute, ScheduleRepeat.MONTHLY, ordinal))
             }
         }
-        menu.button(22, named(Items.ARROW, Lang.tr("&aVolver"))) { renderScheduleRepeat(menu, type, categories, durationSeconds, day, time) }
+        menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { renderScheduleRepeat(menu, type, categories, durationSeconds, day, time) }
         menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
@@ -1334,7 +1345,7 @@ object WonderTradeGui {
                 WonderTradeService.colour(WonderTradeService.prefix() + Lang.t("&7Escribe el nombre del jugador (tiempo: &f{0}&7). ", label)).copy().append(button)
             )
         }
-        menu.button(45, named(Items.ARROW, Lang.tr("&aVolver"))) { openAdmin(it) }
+        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdmin(it) }
         // Motivo: un clic recorre los motivos rápidos (el último es «sin motivo»); «Escribir motivo» pide uno propio.
         menu.button(46, named(Items.WRITABLE_BOOK, Lang.t("&6Motivo: {0}", reasonLabel), Lang.tr("&7Se muestra al jugador y queda en el historial."), Lang.tr("&eClic para cambiar de motivo rápido"))) { p ->
             val presets = WonderTradePenalties.presetReasons()
@@ -1373,7 +1384,7 @@ object WonderTradeGui {
                     openPenalized(p, millis)
                 }
             }
-            menu.button(49, named(Items.ARROW, Lang.tr("&aVolver"))) { openPenalties(it, millis, 0) }
+            menu.button(49, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openPenalties(it, millis, 0) }
             menu.button(53, named(Items.CLOCK, Lang.tr("&eHistorial"), Lang.tr("&7Últimas penalizaciones, perdones y caducidades."))) { openPenaltyHistory(it, millis) }
         }
     }
@@ -1388,7 +1399,7 @@ object WonderTradeGui {
                 val item = when (record.action) { "pardoned" -> Items.LIME_DYE; "expired" -> Items.GRAY_DYE; else -> Items.RED_DYE }
                 menu.put(index, named(item, "&f${record.name}", WonderTradePenalties.describeRecord(record)))
             }
-            menu.button(49, named(Items.ARROW, Lang.tr("&aVolver"))) { openPenalized(it, millis) }
+            menu.button(49, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openPenalized(it, millis) }
         }
     }
 
@@ -1424,7 +1435,7 @@ object WonderTradeGui {
             if (event == null) p.sendSystemMessage(WonderTradeService.info(Lang.tr("&cLos eventos están desactivados.")))
             openAdminEvents(p)
         }
-        menu.button(18, named(Items.ARROW, Lang.tr("&aVolver"))) { openEventDuration(it, type, categories) }
+        menu.button(18, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openEventDuration(it, type, categories) }
         menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
@@ -1466,7 +1477,7 @@ object WonderTradeGui {
                     }
                 }
             }
-            menu.button(22, named(Items.ARROW, Lang.tr("&aVolver al panel admin"))) { openAdmin(it) }
+            menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdmin(it) }
             menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
         }
     }
@@ -1487,7 +1498,7 @@ object WonderTradeGui {
                 openAdminDonors(p)
             }
             menu.button(15, named(Items.TNT, Lang.tr("&4Eliminar toda la pool"), Lang.tr("&7Elimina todas las entradas, sin importar su origen."), Lang.tr("&cPide confirmación."))) { openClearPoolConfirm(it) }
-            menu.button(22, named(Items.ARROW, Lang.tr("&aVolver al panel admin"))) { openAdmin(it) }
+            menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdmin(it) }
         }
     }
 
@@ -1562,7 +1573,7 @@ object WonderTradeGui {
                 Lang.tr("&7Muestra las cabezas de los jugadores"), Lang.tr("&7conectados y desconectados."), Lang.tr("&eClic para abrir")
             )
             menu.button(15, head) { openResetStatsPlayers(it, 0) }
-            menu.button(22, named(Items.ARROW, Lang.tr("&aVolver"))) { openAdmin(it) }
+            menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdmin(it) }
         }
     }
 
@@ -1614,7 +1625,7 @@ object WonderTradeGui {
                 else p.sendSystemMessage(WonderTradeService.info(Lang.t("&cNo hay datos guardados de &f{0}&c.", name)))
                 openResetStatsPlayers(p, page)
             }
-            menu.button(15, named(Items.ARROW, Lang.tr("&aCancelar"))) { openResetStatsPlayers(it, page) }
+            menu.button(15, named(cobblemonItem("eject_button"), Lang.tr("&aCancelar"))) { openResetStatsPlayers(it, page) }
         }
     }
 
@@ -1626,7 +1637,7 @@ object WonderTradeGui {
                 p.sendSystemMessage(WonderTradeService.info(Lang.t("&aEstadísticas reiniciadas para &f{0} &ajugadores.", affected)))
                 openAdmin(p)
             }
-            menu.button(15, named(Items.ARROW, Lang.tr("&aCancelar"))) { openResetStatsMenu(it) }
+            menu.button(15, named(cobblemonItem("eject_button"), Lang.tr("&aCancelar"))) { openResetStatsMenu(it) }
         }
     }
 
@@ -1640,7 +1651,7 @@ object WonderTradeGui {
                 p.sendSystemMessage(WonderTradeService.info(Lang.t("&aSe han eliminado &f{0} &aPokémon generados por el servidor.", removed)))
                 openAdminPoolDeleteOptions(p)
             }
-            menu.button(15, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aCancelar"), Lang.tr("&7Volver a la selección de eliminaciones."))) { openAdminPoolDeleteOptions(it) }
+            menu.button(15, named(cobblemonItem("eject_button"), Lang.tr("&aCancelar"), Lang.tr("&7Volver a la selección de eliminaciones."))) { openAdminPoolDeleteOptions(it) }
         }
     }
 
@@ -1696,6 +1707,76 @@ object WonderTradeGui {
         }.onFailure { WonderTradePlus.LOGGER.debug("No se pudo reproducir el sonido {} de Wonder Trade Plus.", key, it) }
     }
 
+    private fun renderDonationPlayers(menu: GuiMenu, admin: ServerPlayer, requestedPage: Int) {
+        menu.wipe()
+        fill(menu, 54)
+        val donors = WonderTradeService.donationDonors()
+        val pages = maxOf(1, (donors.size + POOL_PER_PAGE - 1) / POOL_PER_PAGE)
+        val page = requestedPage.coerceIn(0, pages - 1)
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm")
+        val online = admin.server.playerList.players.associateBy { it.uuid }
+        donors.drop(page * POOL_PER_PAGE).take(POOL_PER_PAGE).forEachIndexed { index, (uuidText, name, summary) ->
+            val (count, last) = summary
+            val uuid = runCatching { java.util.UUID.fromString(uuidText) }.getOrNull()
+            val target = uuid?.let { online[it] }
+            val skin = target?.let { WonderTradeService.profileSkin(it) } ?: uuid?.let { WonderTradeService.savedSkin(it) }
+            val head = playerHead(
+                name, uuid, skin, Lang.t("&f{0}", name),
+                if (target != null) Lang.tr("&aConectado") else Lang.tr("&7Desconectado"),
+                Lang.t("&7Donaciones: &f{0}", count),
+                Lang.t("&7Última: &f{0}", dateFormat.format(Date(last))),
+                Lang.tr("&eClic para ver")
+            )
+            menu.button(index, head) { renderDonationEntries(menu, it, uuidText, name, 0) }
+        }
+        if (donors.isEmpty()) menu.put(22, named(Items.BARRIER, Lang.tr("&cTodavía no hay donaciones")))
+        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdmin(it) }
+        if (page > 0) menu.button(48, named(Items.ARROW, Lang.tr("&ePágina anterior")), "pageTurn") { renderDonationPlayers(menu, it, page - 1) }
+        menu.put(49, named(Items.PAPER, Lang.t("&fPágina {0}/{1}", page + 1, pages), Lang.t("&7{0} jugadores", donors.size)))
+        if (page < pages - 1) menu.button(50, named(Items.ARROW, Lang.tr("&ePágina siguiente")), "pageTurn") { renderDonationPlayers(menu, it, page + 1) }
+        menu.button(53, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
+    }
+
+    private fun renderDonationEntries(menu: GuiMenu, admin: ServerPlayer, uuidText: String, name: String, requestedPage: Int) {
+        menu.wipe()
+        fill(menu, 54)
+        val entries = WonderTradeService.donationEntries(uuidText.ifBlank { null }, name)
+        val pages = maxOf(1, (entries.size + POOL_PER_PAGE - 1) / POOL_PER_PAGE)
+        val page = requestedPage.coerceIn(0, pages - 1)
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm")
+        entries.drop(page * POOL_PER_PAGE).take(POOL_PER_PAGE).forEachIndexed { index, entry ->
+            menu.put(index, donationStack(admin, entry, dateFormat))
+        }
+        if (entries.isEmpty()) menu.put(22, named(Items.BARRIER, Lang.tr("&cEste jugador no tiene donaciones")))
+        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { renderDonationPlayers(menu, it, 0) }
+        if (page > 0) menu.button(48, named(Items.ARROW, Lang.tr("&ePágina anterior")), "pageTurn") { renderDonationEntries(menu, it, uuidText, name, page - 1) }
+        menu.put(49, named(Items.PAPER, Lang.t("&fPágina {0}/{1}", page + 1, pages), Lang.t("&7{0} donaciones de {1}", entries.size, name)))
+        if (page < pages - 1) menu.button(50, named(Items.ARROW, Lang.tr("&ePágina siguiente")), "pageTurn") { renderDonationEntries(menu, it, uuidText, name, page + 1) }
+        menu.button(53, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
+    }
+
+    private fun donationStack(player: ServerPlayer, entry: DonationEntry, dateFormat: SimpleDateFormat): ItemStack {
+        val pokemon = runCatching {
+            com.cobblemon.mod.common.api.pokemon.PokemonProperties().apply {
+                this.species = entry.species
+                this.level = entry.level.coerceIn(1, 100)
+                this.shiny = entry.shiny
+            }.create(player)
+        }.getOrNull()
+        val icon = pokemon?.let { runCatching { PokemonItem.from(it) }.getOrNull() } ?: ItemStack(Items.PAPER)
+        val color = pokemon?.let { WonderTradeRules.nameColor(it) } ?: "&f"
+        icon.set(DataComponents.CUSTOM_NAME, lit(color + entry.name))
+        val lines = mutableListOf(
+            Lang.t("&7Nivel: &f{0}", entry.level),
+            Lang.t("&7Fecha: &f{0}", dateFormat.format(Date(entry.time)))
+        )
+        pokemon?.let { WonderTradeRules.typesLabel(it) }?.let { lines.add(1, Lang.tr("&7Tipo: ") + it) }
+        if (entry.shiny) lines.add(Lang.tr("&eShiny"))
+        pokemon?.let { WonderTradeRules.categoryLabel(it) }?.let { lines.add(Lang.tr("&7Categoría: ") + it) }
+        icon.set(DataComponents.LORE, ItemLore(lines.map<String, Component> { lit(it) }))
+        return icon
+    }
+
     private fun renderHistory(menu: GuiMenu, player: ServerPlayer, filter: String?, requestedPage: Int, own: Boolean = false) {
         menu.wipe()
         fill(menu, 54)
@@ -1711,7 +1792,7 @@ object WonderTradeGui {
         if (entries.isEmpty()) menu.put(22, named(Items.BARRIER, Lang.tr("&cNo hay intercambios registrados")))
 
         if (own) menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver al equipo"))) { openMain(it) }
-        else menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver al panel admin"))) { openAdmin(it) }
+        else menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdmin(it) }
         if (page > 0) menu.button(48, named(Items.ARROW, Lang.tr("&ePágina anterior")), "pageTurn") { renderHistory(menu, it, filter, page - 1, own) }
         menu.put(49, named(Items.PAPER, Lang.t("&fPágina {0}/{1}", page + 1, pages), Lang.t("&7{0} intercambios", entries.size) + if (filter != null) Lang.t(" de {0}", filter) else ""))
         if (page < pages - 1) menu.button(50, named(Items.ARROW, Lang.tr("&ePágina siguiente")), "pageTurn") { renderHistory(menu, it, filter, page + 1, own) }
@@ -1771,7 +1852,7 @@ object WonderTradeGui {
                 else WonderTradeService.tradeFromStore(p, fromPc, pokemon.uuid)
                 p.closeContainer()
             }
-            menu.button(15, named(Items.RED_CONCRETE, Lang.tr("&cCancelar"))) { openMain(it, donationMode) }
+            menu.button(15, named(cobblemonItem("eject_button"), Lang.tr("&cCancelar"))) { openMain(it, donationMode) }
         }
     }
 

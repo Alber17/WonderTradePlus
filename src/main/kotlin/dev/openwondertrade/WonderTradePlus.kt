@@ -143,9 +143,8 @@ class WonderTradePlus : ModInitializer {
             })
             // PERMISO: público; qué Pokémon cuentan como míticos, legendarios, Ultraentes y Paradoja.
             .then(literal("especiales").executes { openSpecialsCommand(it) })
-            // PERMISO: público; Top Donaciones del mes (puntos, ranking y próximo mes activo). «topdonaciones» es alias.
+            // PERMISO: público; Top Donaciones del mes (puntos, ranking y próximo mes activo).
             .then(literal("donaciones").executes { showTopDonationsCommand(it) })
-            .then(literal("topdonaciones").executes { showTopDonationsCommand(it) })
             // PERMISO: público; muestra tu rango y sus ventajas. «rank» es alias de «rango».
             .then(literal("rango").executes { context -> showOwnRank(context) })
             .then(literal("rank").executes { context -> showOwnRank(context) })

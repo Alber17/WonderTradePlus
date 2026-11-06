@@ -19,6 +19,7 @@ object WonderTradeService {
     private lateinit var pool: PoolStore
     private lateinit var playerData: PlayerDataStore
     private lateinit var history: HistoryStore
+    private lateinit var donationHistory: DonationHistoryStore
     private var tickCounter = 0
     private var secondCounter = 0L
     private var lastHistoryCleanupAt = 0L
@@ -32,6 +33,7 @@ object WonderTradeService {
         pool = PoolStore(directory.resolve("pool.json"))
         playerData = PlayerDataStore(directory.resolve("player-data.json"))
         history = HistoryStore(directory.resolve("history.json"))
+        donationHistory = DonationHistoryStore(directory.resolve("donation-history.json"))
         WonderTradeEvents.load(directory)
         WonderTradeSchedule.load(directory)
         WonderTradeTopDonations.load(directory)
@@ -42,9 +44,13 @@ object WonderTradeService {
         trimAndSave()
         playerData.load()
         history.load()
+        donationHistory.load()
         syncHistoryIdentities()
-        val historyRemoved = history.pruneOlderThanDays(ConfigManager.int("history.autoDeleteAfterDays", 30))
+        val historyDays = ConfigManager.int("history.autoDeleteAfterDays", 30)
+        val historyRemoved = history.pruneOlderThanDays(historyDays)
         if (historyRemoved > 0) WonderTradePlus.LOGGER.info("Historial: {} entradas antiguas eliminadas automáticamente.", historyRemoved)
+        val donationsRemoved = donationHistory.pruneOlderThanDays(historyDays)
+        if (donationsRemoved > 0) WonderTradePlus.LOGGER.info("Historial de donaciones: {} entradas antiguas eliminadas automáticamente.", donationsRemoved)
         WonderTradePlus.LOGGER.info("WonderTrade Plus {} preparado.", WonderTradePlus.MOD_VERSION)
     }
 
@@ -66,9 +72,13 @@ object WonderTradeService {
         trimAndSave()
         playerData.load()
         history.load()
+        donationHistory.load()
         syncHistoryIdentities()
-        val historyRemoved = history.pruneOlderThanDays(ConfigManager.int("history.autoDeleteAfterDays", 30))
+        val historyDays = ConfigManager.int("history.autoDeleteAfterDays", 30)
+        val historyRemoved = history.pruneOlderThanDays(historyDays)
         if (historyRemoved > 0) WonderTradePlus.LOGGER.info("Historial: {} entradas antiguas eliminadas al recargar.", historyRemoved)
+        val donationsRemoved = donationHistory.pruneOlderThanDays(historyDays)
+        if (donationsRemoved > 0) WonderTradePlus.LOGGER.info("Historial de donaciones: {} entradas antiguas eliminadas al recargar.", donationsRemoved)
         pending.clear()
     }
 
@@ -414,7 +424,11 @@ object WonderTradeService {
 
     /** El historial se identifica por UUID: asigna UUID a las entradas antiguas y actualiza los nicks cambiados. */
     private fun syncHistoryIdentities() {
-        runCatching { if (history.syncIdentities(playerData.knownPlayers())) history.save() }
+        runCatching {
+            val known = playerData.knownPlayers()
+            if (history.syncIdentities(known)) history.save()
+            if (donationHistory.syncIdentities(known)) donationHistory.save()
+        }
             .onFailure { WonderTradePlus.LOGGER.warn("No se pudo actualizar la identidad del historial: {}", it.message) }
     }
 
@@ -443,6 +457,29 @@ object WonderTradeService {
             history.save()
         }.onFailure { WonderTradePlus.LOGGER.error("No se pudo guardar el historial de intercambios.", it) }
     }
+
+    private fun recordDonationHistory(player: ServerPlayer, pokemon: Pokemon, now: Long) {
+        if (!ConfigManager.bool("history.enabled", true)) return
+        runCatching {
+            donationHistory.add(
+                DonationEntry(
+                    time = now,
+                    player = player.gameProfile.name,
+                    uuid = player.uuid.toString(),
+                    species = pokemon.species.resourceIdentifier.path,
+                    name = pokemon.getDisplayName().string,
+                    level = pokemon.level,
+                    shiny = pokemon.shiny
+                ),
+                ConfigManager.int("history.maxEntries", 1000).coerceAtLeast(1)
+            )
+            donationHistory.save()
+        }.onFailure { WonderTradePlus.LOGGER.error("No se pudo guardar el historial de donaciones.", it) }
+    }
+
+    fun donationDonors(): List<Triple<String, String, Pair<Int, Long>>> = donationHistory.donors()
+
+    fun donationEntries(uuid: String?, name: String): List<DonationEntry> = donationHistory.recent(name, uuid)
 
     fun historyEntries(player: String? = null): List<HistoryEntry> {
         val uuid = player?.let { name -> playerData.knownPlayers().firstOrNull { it.second.equals(name, ignoreCase = true) }?.first?.toString() }
@@ -510,7 +547,10 @@ object WonderTradeService {
     fun rememberPlayer(player: ServerPlayer) {
         var changed = false
         playerData.setName(player.uuid, player.gameProfile.name)
-        runCatching { if (history.rename(player.uuid.toString(), player.gameProfile.name)) history.save() }
+        val uuid = player.uuid.toString()
+        val name = player.gameProfile.name
+        runCatching { if (history.rename(uuid, name)) history.save() }
+        runCatching { if (donationHistory.rename(uuid, name)) donationHistory.save() }
         profileSkin(player)?.let { (value, signature) -> changed = playerData.setSkin(player.uuid, value, signature) }
         if (changed) playerData.save()
     }
@@ -913,6 +953,7 @@ object WonderTradeService {
             send(player, "saveFailed")
             return
         }
+        recordDonationHistory(player, donation, now)
         send(player, "donationSuccess", mapOf("pokemon" to donation.getDisplayName().string, "size" to pool.size))
         announceDonation(player, donation)
         WonderTradeDiscord.notifyDonation(player, donation)

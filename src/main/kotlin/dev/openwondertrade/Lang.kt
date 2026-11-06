@@ -84,7 +84,11 @@ object Lang {
             "&7Pokémon shiny (sin categoría especial): &d+{gain}%",
             "&7Shiny Pokémon (no special category): &d+{gain}%",
             "&7Pokémon chromatique (sans catégorie spéciale) : &d+{gain}%",
-            "&7Pokémon cromatico (senza categoria speciale): &d+{gain}%"
+            "&7Pokémon cromatico (senza categoria speciale): &d+{gain}%",
+            "&ePokémon shiny&7 (sin categoría especial): &e+{gain}%",
+            "&eShiny Pokémon&7 (no special category): &e+{gain}%",
+            "&ePokémon chromatique&7 (sans catégorie spéciale) : &e+{gain}%",
+            "&ePokémon cromatico&7 (senza categoria speciale): &e+{gain}%"
         ),
         "messages.menuBookSpecialGain" to listOf(
             "&7Legendario / Mítico / Ultraente / Paradoja: &d+{gain}%",
@@ -102,7 +106,11 @@ object Lang {
             "&7Especial shiny: &d+{base}% + {extra}% extra = {total}%",
             "&7Shiny special: &d+{base}% + {extra}% extra = {total}%",
             "&7Spécial chromatique : &d+{base}% + {extra}% bonus = {total}%",
-            "&7Speciale cromatico: &d+{base}% + {extra}% extra = {total}%"
+            "&7Speciale cromatico: &d+{base}% + {extra}% extra = {total}%",
+            "&eEspecial shiny&7: &e+{base}% &7+ &e{extra}% &7extra = &e{total}%",
+            "&eShiny special&7: &e+{base}% &7+ &e{extra}% &7extra = &e{total}%",
+            "&eSpécial chromatique&7 : &e+{base}% &7+ &e{extra}% &7bonus = &e{total}%",
+            "&eSpeciale cromatico&7: &e+{base}% &7+ &e{extra}% &7extra = &e{total}%"
         )
     )
 

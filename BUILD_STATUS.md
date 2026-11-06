@@ -1,12 +1,40 @@
 # Estado de compilación
 
-- Versión actual: **0.26.16**.
+- Versión actual: **0.26.23**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
 - Los comandos `/wt admin ...`, el historial, el cooldown de 12 h y el autocompletado (v0.3.0) están pendientes de probar en juego.
 - Los anuncios de legendarios, Ultraentes y Paradoja pasado/futuro (v0.2.1) están pendientes de probar en juego.
 - No es una versión NeoForge/Arclight. El JAR es solo Fabric.
+
+## Cambios de la versión 0.26.23
+
+- El libro de Wonder Trade deja el amarillo solo en el nombre shiny. Los porcentajes van en blanco y el total en verde.
+
+## Cambios de la versión 0.26.22
+
+- Cancelar usa el botón de escape de Cobblemon. Los volver del admin dicen solo «Volver».
+
+## Cambios de la versión 0.26.21
+
+- Eliminar pool usa un vacío de estructura. Los botones de volver usan cristal verde lima.
+
+## Cambios de la versión 0.26.20
+
+- En Datos: Historial es libro y pluma, Donaciones es el libro normal y Reiniciar estadísticas es el libro verde.
+
+## Cambios de la versión 0.26.19
+
+- El botón Ejecutar mantenimiento del panel de admin usa un bloque de comandos de repetición.
+
+## Cambios de la versión 0.26.18
+
+- El panel de admin, en Datos, tiene Historial, Donaciones y Reiniciar estadísticas. Donaciones muestra qué ha donado cada jugador.
+
+## Cambios de la versión 0.26.17
+
+- Se elimina el alias `/wt topdonaciones`. El Top Donaciones se consulta con `/wt donaciones`.
 
 ## Cambios de la versión 0.26.16
 
