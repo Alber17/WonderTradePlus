@@ -17,6 +17,7 @@ Wonder Trade abierto y configurable para **Cobblemon**. Se distribuye como **mod
 - Listas negra y blanca de especies.
 - Protección para no intercambiar Pokémon no intercambiables, debilitados, alfa o con objeto equipado (según configuración).
 - **Anuncios en el chat** cuando alguien aporta un Pokémon shiny, legendario, Ultraente o Paradoja del pasado/futuro, cada uno con su mensaje propio y su versión shiny.
+- **Hora navideña:** del 25 de diciembre al 6 de enero se abren cuatro sesiones aleatorias de una hora al día; cada sesión genera una pool nueva, muestra una bossbar azul animada y se puede controlar desde el panel de administración.
 - Mensajes y anuncios totalmente editables.
 - Guardado JSON con escritura temporal y reemplazo atómico cuando el sistema de archivos lo permite.
 
@@ -136,6 +137,14 @@ Los avisos se envían como **tarjetas** (embeds) con color según la rareza (shi
 
 La URL del webhook es secreta; no la subas a GitHub.
 
+## Hora navideña
+
+La temporada de Navidad está configurada del **25 de diciembre al 6 de enero**, ambos incluidos. No permanece activa todo el día: se sortean **cuatro horas distintas cada día**, y en cada una se abre una sesión de **60 minutos**. Los horarios se eligen al azar entre las 24 horas del día y se separan al menos tres horas y se guardan en `seasonal-state.json`, por lo que un reinicio no vuelve a sortear ni duplica las sesiones de ese día.
+
+Cada activación genera una pool navideña nueva. Al terminar la hora, la pool temporal se archiva con una marca temporal y se restaura la pool normal con su antigüedad congelada. Para que Cobblemon pueda generar la pool debe haber al menos un jugador conectado al inicio de la sesión.
+
+La bossbar de Navidad es azul y muestra un texto con degradado azul-blanco animado y el tiempo restante. En `/wt admin` → **Gestionar eventos** → **Hora navideña** puedes iniciar una sesión manualmente, pausarla/reanudarla o finalizarla para hacer pruebas. El inicio manual funciona también fuera de las fechas navideñas.
+
 ## Estadísticas y ranking
 
 El mod guarda por jugador cuántos intercambios lleva y cuántos especiales ha recibido y aportado (desde que se instaló esta versión). `/wt stats [jugador]` lo muestra y `/wt top` enseña el ranking.
@@ -167,6 +176,7 @@ Opciones principales:
 - `admin.regionalForms`: permite activar o desactivar individualmente las opciones `alolan`, `galarian`, `hisuian` y `paldean` de `/wt admin addspecies`. El jugador escribe la opción regional igual que en `/pokegive`; el mod localiza y asigna la forma registrada en Cobblemon sin exigir `form=...`. `fallback.minimumLevel` y `fallback.maximumLevel` configuran el nivel aleatorio.
 - `antiAbuse.*`, `maintenance.*`, `backup.*`: protección, mantenimiento del pool y copias.
 - `discord.*`: avisos a Discord.
+- `seasonal.events[]`: fechas, tipos, tamaño de pool y sesiones de temporada. Para Navidad se usan `sessionsPerDay: 4` y `sessionDurationMinutes: 60`; las horas aleatorias se guardan en `seasonal-state.json` para no cambiar tras reiniciar.
 - `history.enabled` / `history.maxEntries`: registro de intercambios.
 - `history.autoDeleteAfterDays`: elimina automáticamente del historial las entradas con más de 30 días; `0` desactiva el borrado automático.
 - `cooldownNotice.normalReminderMinutes` / `cooldownNotice.eventReminderMinutes`: recordatorios de disponibilidad cada 10 minutos en condiciones normales y cada 2 minutos mientras haya un evento activo. Son configurables y se envían a todos los jugadores elegibles.
@@ -207,203 +217,19 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
-### Preferencias de sonido (0.8.3)
-- `/wt sonidos` o `/wt sounds` abre un menú individual para activar/desactivar cada sonido.
-- Las preferencias se guardan por UUID en `player-data.json`; no requiere instalar el mod en el cliente.
-- Se pueden silenciar todos los sonidos con un único interruptor.
+## 0.26.3
 
+- Navidad deja de ser una temporada continua: del 25 de diciembre al 6 de enero se programan cuatro sesiones aleatorias de 1 hora al día.
+- Cada sesión genera una pool nueva y restaura la pool original al finalizar; los horarios diarios se persisten para sobrevivir a reinicios.
+- Bossbar navideña azul con texto animado en degradado azul-blanco.
+- Nuevo menú de administración para iniciar, pausar/reanudar y finalizar manualmente la hora navideña.
+- Aviso de Discord breve al aparecer la hora navideña, indicando cuánto dura.
+- README y documentación reorganizados y actualizados.
+- Gradle no se ha ejecutado en este entorno.
 
-### 0.8.6
-- Cantidades del menú de relleno rápido configurables en `admin.fillMenu.amounts`.
-- Valores predeterminados ajustados al máximo de 500 entradas: 25, 50, 100, 250 y 500.
-- Los rellenos respetan el espacio disponible y nunca sobrepasan el máximo de la pool.
+## 0.26.2
 
-### 0.8.5
-- `/wt top` abre un selector gráfico para consultar los tres rankings: intercambios, especiales recibidos y especiales aportados.
-- El panel `/wt admin` incorpora un submenú de relleno de pool con cantidades rápidas (16, 32, 64, 128 y 256), además de herramientas para eliminar aportaciones, reiniciar estadísticas y probar Discord.
-- `/wt help` reorganizado por utilidad y `/wt top` aparece sin argumentos.
-
-
-### 0.8.7
-- Corregido `pool.maximumEntries` a 500 por defecto.
-- Opciones del relleno rápido: 25, 50, 100, 250 y 500.
-- Las configuraciones antiguas que tenían el valor predeterminado erróneo de 5000 se actualizan automáticamente.
-- Al iniciar o recargar se recorta la pool si supera el máximo configurado, respetando `pool.trimOldestFirst`.
-
-
-### 0.8.8
-- Corregido el espacio sobrante en el mensaje `broadcastShiny`.
-- La pool abierta desde el menú principal o con `/wt pool` se muestra siempre en vista normal, también para admins: el botón **Volver** lleva al menú principal. El panel de administración solo se abre con `/wt admin`.
-- El botón de orden por hora marca con una flecha ▶ la opción activa, igual que el filtro de categoría.
-- Nuevo filtro de búsqueda por nombre o especie en la pool (`/wt pool search <texto>` y botón en el menú). Se conserva al cambiar de página, filtro u orden.
-
-### 0.8.9
-- `/wt top`: se quita "Volver al menú principal"; en su lugar hay un botón Cerrar.
-- Pool (admin): «Eliminar Pokémon» aparece en rojo y negrita.
-- Rellenar pool: al elegir una cantidad se queda en el mismo menú (ya no vuelve al panel admin).
-- `/wt`: el reloj del siguiente Wonder Trade pasa a la esquina superior izquierda.
-
-### 0.9.0
-- Menú de confirmación: muestra la probabilidad real de recibir un especial (especiales disponibles en la pool, tu bonus y el resultado con este intercambio). Se puede quitar con `gui.showTradePreview: false`.
-- Nuevo `/wt on` y `/wt off` (solo admins): activa o desactiva Wonder Trade sin quitar el mod. El estado se guarda en `general.enabled` de `config.json`.
-
-### 0.11.0
-- **Purga automática:** un Pokémon normal que lleve más de 1 semana en la pool sin ser recibido se elimina y se sustituye por uno nuevo (también normal). Los especiales (shiny, legendario, mítico, Ultraente y Paradoja) no se purgan. Configuración en `maintenance.purge`: `enabled`, `afterHours` (168 = 1 semana) e `includePlayerDonations`. Se ejecuta con el mantenimiento automático y hace falta al menos un jugador conectado para generar los nuevos.
-- **Eventos por categoría:** ahora hay «Arriesgar» y «Recibir» para Shiny, Legendario, Mítico, Ultraente y Paradoja. Comando: `/wt admin eventos crear <tipo> <categoría> <duración> [valor] [espera]`. Los valores por defecto están en `events.risk` y `events.receive`.
-- **`/wt admin fill`:** corregido. Con probabilidad 100 podían salir algunos Pokémon normales porque la búsqueda de especiales se rendía demasiado pronto. Ahora insiste mucho más y, si se pidió un especial, nunca lo sustituye por un normal.
-
-### 0.10.0
-- Eventos temporales. Se ven con `/wt eventos` y los gestionan los admins con `/wt admin eventos` o el botón «Gestionar eventos» del panel.
-  - **Arriesgar Shiny:** cada shiny ofrecido suma un % extra (por defecto `+0.2%`, `events.risk.extraGain`) a tu probabilidad de especial. Se reinicia a 0 cuando te toca un especial.
-  - **Recibir Shiny:** probabilidad extra de que te entreguen un shiny de la pool (por defecto `10%`, `events.receive.chance`).
-  - Mientras un evento está activo puedes hacer un intercambio extra cada cierto tiempo (por defecto 1 por minuto) sin gastar tu tiempo normal ni tu límite diario.
-- Los eventos se guardan en `event.json` y siguen activos tras un reinicio. El reloj del menú principal muestra cuándo tienes disponible el intercambio de evento.
-
-### 0.11.1
-- Panel `/wt admin` ampliado a 6 filas: pool, servidor (eventos, on/off, historial, estadísticas) y sistema (recarga, mantenimiento, copia, Discord) en una sola página.
-- Corregido el sonido del tótem: solo suena con un legendario, mítico, Ultraente o Paradoja shiny; un shiny normal usa el sonido de especial.
-
-### 0.11.2
-- Menú de eventos: botón «Tiempo personalizado» para elegir una duración exacta sumando o restando minutos, horas y días.
-- Las categorías aparecen en el orden Shiny, Ultraente, Paradoja, Mítico y Legendario.
-
-### 0.12.0
-- **Eventos programados** (`event-schedule.json`): empiezan solos a una hora, día o fecha concretos y pueden repetirse una vez, cada día, semana, mes o año. Avisos previos configurables (`events.schedule.announceBeforeMinutes`, por defecto 10 y 1 minuto antes), zona horaria (`events.schedule.timezone`, vacía = la del servidor) y tolerancia si el servidor estaba apagado (`events.schedule.maxLateMinutes`). Se pueden ver y cancelar desde el panel (Gestionar eventos → Eventos programados). `/wt eventos` muestra también los próximos (`events.showUpcoming`).
-- **Aviso al entrar:** quien se conecta con un evento activo recibe un mensaje corto (`events.joinNotice.*`: activar, retraso y si muestra detalles).
-- **Barra de tiempo:** una bossbar con el nombre del evento y el tiempo que queda (`events.bossbar.*`: activar, formato, estilo y color distinto para Arriesgar y Recibir). Es solo de servidor.
-- **Pokémon del evento en la pool:** al empezar un evento, si hay menos Pokémon de su categoría que `events.ensurePool.minimum` (3 por defecto), se generan los que falten (máximo `maxGenerate`) y se retiran los normales más antiguos para hacer sitio (`replaceOldest`). Los especiales nunca se retiran. Se puede limitar a un tipo de evento con `events.ensurePool.types`.
-- **Anuncio al empezar:** el chat indica qué Pokémon de la categoría hay en la pool (`events.announcePokemon.*`: activar, cuántos listar y si muestra el nivel).
-
-### 0.12.1
-- Los anuncios de «LEGENDARIO/ULTRAENTE/PASADO/FUTURO SHINY» terminan con la exclamación del mismo color que el texto. Si tu `config.json` aún tenía el texto antiguo, se actualiza solo.
-- **Pool de eventos:** mientras un evento está activo, cada pocos segundos (`events.ensurePool.checkIntervalSeconds`, 10 por defecto) se comprueba que haya al menos `minimum` Pokémon de su categoría y se generan los que falten. Antes solo se comprobaba al iniciar el evento. Se puede desactivar con `events.ensurePool.keepDuringEvent: false`.
-
-### 0.13.0
-- **`/wt especiales`:** menú con la lista de Pokémon por categoría (Ultraente, Paradoja, Mítico y Legendario) para saber qué se puede dar en los eventos. Botón nuevo «Ver especiales» en el menú principal.
-- **Rangos de servidor** (`ranks` en `config.json`): cada rango tiene `baseBonus` (mínimo del bonus: al recibir un especial vuelve a ese valor en lugar de a 0, y nunca baja de él) y `gainMultiplier` (multiplica lo que suma cada Pokémon ofrecido). La lista va del rango más alto al más bajo y gana el primero que coincida.
-  - Por defecto hay 5 rangos, del más alto al más bajo: Leyenda (`baseBonus` 1.0), Maestro, Élite, Experto y Dominguero (estos cuatro con 0.0 para que pongas tú los valores).
-  - Un jugador pertenece a un rango si tiene el permiso del rango (por ejemplo `wondertradeplus.rank.leyenda` o `group.leyenda` con LuckPerms) o la etiqueta del rango (`/tag <jugador> add wt_leyenda`). Cambia `id`, `name`, `permission` y `tag` por los de tu servidor.
-  - Con LuckPerms basta con dar el permiso al grupo: `/lp group leyenda permission set wondertradeplus.rank.leyenda true`.
-  - El libro del menú muestra los incrementos del bonus.
-
-### 0.13.1
-- Los rangos por defecto son los del servidor: Leyenda, Maestro, Élite, Experto y Dominguero. Permisos `wondertradeplus.rank.<id>` y etiquetas `wt_<id>`. Si tu `config.json` tenía la lista genérica sin tocar, se actualiza sola.
-
-### 0.14.0
-- **Varias categorías en un mismo evento:** un evento ahora puede afectar a varias categorías a la vez, por ejemplo Míticos y Legendarios. En el panel (Gestionar eventos) las categorías se marcan o desmarcan con un clic y se pulsa «Continuar»; por comando se unen con `+`: `/wt admin eventos crear recibir mitico+legendario 3h`. Lo mismo vale para `programar`.
-- Se aplica a los dos tipos: «Arriesgar» suma el % extra al ofrecer un Pokémon de cualquiera de las categorías y «Recibir» da la probabilidad extra de recibir uno de cualquiera de ellas.
-- La reposición de la pool asegura el mínimo (`events.ensurePool.minimum`) de cada categoría por separado, y el anuncio al empezar lista los Pokémon de todas ellas.
-- Los eventos y programaciones guardados con una sola categoría se leen sin cambios.
-
-### 0.14.1
-- `/wt help` (admins) muestra cada comando de eventos en su línea: ver, crear, parar, programar y desprogramar. Los textos de ayuda antiguos de tu `config.json` se actualizan solos.
-
-### 0.14.2
-- `/wt especiales` muestra también las formas regionales (Alola, Galar, Hisui, Paldea) de los Pokémon de cada categoría: Articuno, Zapdos y Moltres de Galar aparecen como legendarios.
-
-### 0.15.0
-- **Aviso de fin de cooldown:** cuando termina el tiempo normal de un jugador conectado recibe un mensaje y un sonido de nota musical del bloque de notas. Se desactiva con `cooldownNotice.enabled` o `sounds.cooldownReady`, y cada jugador puede silenciarlo en `/wt sonidos`.
-- **Cooldown con evento:** si hay un evento activo y estás en espera, el chat muestra el tiempo del evento en lugar del normal (`messages.eventCooldown`).
-- **Reposición de especiales del evento:** el objetivo de cada categoría es lo que había en la pool al empezar el evento (como mínimo `events.ensurePool.minimum`). Si había 10 y alguien se lleva uno, se retira el normal más antiguo y se genera otro de la categoría, al instante tras el intercambio. Con `events.ensurePool.target` > 0 se fija una cantidad concreta.
-
-
-### 0.16.2
-- El aviso de cooldown disponible utiliza una nota musical `block.note_block.pling` con tono ligeramente agudo.
-
-### 0.16.0
-- **Consola:** la mayoría de las operaciones administrativas funcionan también desde consola: activar/desactivar, recargar, rellenar pool, añadir especies (requiere al menos un jugador conectado), borrar por origen, eliminar aportaciones, resetear estadísticas, copias, mantenimiento, Discord y gestión de eventos. Las funciones que necesitan inventario o GUI siguen siendo exclusivas del juego.
-- **Avisos de disponibilidad:** todos los jugadores elegibles reciben el aviso cuando termina su cooldown y recordatorios cada `cooldownNotice.normalReminderMinutes` (10 min por defecto); si hay un evento activo, el intervalo pasa a `cooldownNotice.eventReminderMinutes` (2 min). El sonido de disponibilidad ahora es el orbe de experiencia y respeta los ajustes individuales.
-- **Borrado de pool por origen:** desde el panel admin se puede eliminar solo lo generado por el servidor o solo las aportaciones de jugadores. También hay comandos de consola `/wt admin removegenerated` y `/wt admin removeplayers`. Se clasifica por `donorName` para conservar correctamente aportaciones antiguas que no tengan UUID.
-- **Programación desde menú:** en Gestionar eventos → elegir tipo/categorías → duración aparece «Programar evento», con opciones para iniciar en 10 min, 1 h, 3 h, mañana a la misma hora o repetir a diario/semanalmente.
-- **Caducidad del historial:** `history.autoDeleteAfterDays` borra entradas antiguas (30 días por defecto); `0` lo desactiva. La limpieza se ejecuta al iniciar, recargar y una vez por minuto.
-- README y `/wt help` actualizados.
-- Gradle no se ha ejecutado en el entorno de edición.
-
-
-## 0.16.4
-
-- El porcentaje predeterminado para el intervalo de Wonder Trades durante eventos pasa del 10 % al 20 % (`events.tradeIntervalPercent`). Esto permite 5 WT por jugador durante cada evento.
-- Se aplica tanto a eventos iniciados desde el menú como a eventos programados. Los eventos ya creados mantienen su intervalo guardado.
-
-
-## 0.16.5
-
-- Asistente «Programar evento»: ahora es un único menú que cambia de contenido (duración → día → hora → repetición) sin cerrarse ni reabrirse.
-- Repetición mensual por día de la semana: tras elegir «Mensual» se escoge primer, segundo, tercer, cuarto o último (p. ej. «cada último viernes del mes»). Las programaciones mensuales antiguas siguen usando el mismo día del mes. En consola, «mensual» con un día de la semana usa la ocurrencia de la primera fecha.
-- Menú de sonidos: el título usa un tocadiscos y el aviso de cooldown conserva el bloque musical.
-- Los Pokémon de los menús (pool, equipo, PC) muestran sus IVs con un color por estadística (HP, ATK, DEF, SPATK, SPDEF, SPD); si una chapa plateada o dorada cambia un IV, el valor efectivo aparece al lado entre paréntesis. Se puede ocultar con `menu.showIvs: false`.
-- Gradle no se ha ejecutado en el entorno de edición.
-
-
-## 0.16.6
-
-- Las esperas de los eventos por jugador ya no se pierden al reiniciar: se guardan en `event.json` (`lastUse`) y solo se descartan cuando el evento termina o su espera caduca.
-- La integración con Discord pasa a su propio archivo (`WonderTradeDiscord.kt`), con lo que `WonderTradeService.kt` queda más corto.
-- Comandos duplicados unificados internamente (un solo código para `sonidos`/`sounds`, `especiales`/`categorias`, `eventos`/`events`, `clearpool`/`admin clear`, `admin eventos`/`lista`/`programados`). Todos los nombres siguen funcionando como alias.
-- Gradle no se ha ejecutado en el entorno de edición.
-
-
-## 0.17.0
-
-- Eventos (solo administradores): cada evento cuenta sus WT de evento y los jugadores distintos; se ve en `/wt admin eventos`, en el panel (clic en un evento) y se guarda en `event.json`.
-- Historial de eventos terminados (`/wt admin eventos historial` y botón «Historial de eventos» del panel), con `events.history.keep` entradas (50 por defecto).
-- Pausar y reanudar un evento activo (`/wt admin eventos pausar|reanudar <id>` o desde el panel): el tiempo se congela, el evento no tiene efecto mientras está pausado, y al reanudar se conservan el tiempo restante y las esperas de los jugadores. Sobrevive a reinicios.
-- IVs: la búsqueda de la pool admite `6x31`, `5x31`… (mínimo de IVs perfectos) y `31spd`, `31hp`, `31atk`, `31def`, `31spatk`, `31spdef` (ese stat a 31), combinables con el nombre. Los Pokémon con 6x31 muestran una estrella.
-- Gradle no se ha ejecutado en el entorno de edición.
-
-
-## 0.17.5
-
-- Cabezas de donantes (menú «Eliminar pool → jugadores»): se guardan el UUID y la textura de skin de cada jugador al entrar y al donar/intercambiar (`player-data.json`: `skinValue`, `skinSignature`), de modo que la cabeza se ve aunque esté desconectado. Sin textura guardada se usa solo el nombre (en servidores no premium el UUID no sirve para consultar a Mojang, por eso no se envía).
-- La entrada «Servidor» aparece la primera con una cabeza de dragón propia.
-- El botón «Solo generados por jugadores» usa una cabeza con la skin del administrador que abre el menú.
-- Opcional: `gui.heads.server` y `gui.heads.players` aceptan el valor base64 de «textures» de cualquier cabeza para sustituir esas dos.
-- Gradle no se ha ejecutado en el entorno de edición.
-
-
-## 0.17.6
-
-- `/wt stats` y `/wt stats <jugador>` tienen permisos separados: `gui.statsOwnPermissionLevel` y `gui.statsOthersPermissionLevel` (ambos 0 por defecto; pon 2 en el segundo para que solo lo vean los admins).
-- Rangos: nuevo campo `improvementPercent` (% fijo que se suma a la probabilidad de especial en cada intercambio, sin consumirse). Los rangos ya guardados lo reciben automáticamente desde los valores por defecto (1, 0,75, 0,5, 0,25 y 0,1); ponlo a 0 si no lo quieres. Se muestra en `/wt rango`.
-- IVs: corregido el texto `(1x31)`. Nueva línea de naturaleza en español; si hay menta, la naturaleza de la menta aparece entre paréntesis.
-- Eventos programados: la hora ahora incluye «hora del servidor» y una cuenta atrás en horas y minutos («empieza en 5h 20min»), visible en `/wt eventos`, al entrar, en el panel y en los avisos. Recordatorio ocasional en el chat (`events.schedule.reminder`: cada 180 min, eventos dentro de 72 h, máximo 3). El aviso al entrar también muestra los próximos aunque no haya ninguno activo.
-- Reinicio mensual de la pool (`maintenance.monthlyReset`): el día 1 renueva los Pokémon normales (los especiales se conservan). La primera vez solo anota el mes para no borrar nada al actualizar; el estado se guarda en `maintenance-state.json`.
-- Especie repetida (`trade.blockRepeatSpecies`): no se puede ofrecer la misma especie dos veces seguidas (intercambio o donación). Mensaje `messages.repeatSpecies`.
-- Espera para staff: nueva clave `trade.cooldownBypassPermissionLevel` (5 = nadie se salta la espera; con 2 vuelven a saltársela los admins). Sustituye a `trade.adminBypassPermissionLevel`, que ya no se usa. Si más adelante usas LuckPerms se puede afinar por grupo.
-- Nombres de eventos más claros: «Apuesta de Shiny y Legendario» / «Lluvia de Mítico, Ultraente y Paradoja» (`events.names.risk` y `events.names.receive`).
-- Nuevo `config-guide.txt` (se regenera en cada arranque junto a `config.json`) con la explicación de cada apartado, comandos y permisos.
-- Gradle no se ha ejecutado en el entorno de edición.
-
-
-## 0.17.7
-
-- Pokémon generados para un evento: la especie ya no la elige el `random` de Cobblemon (repetía casi siempre las mismas). Ahora se sortea de la lista de especies de la categoría del evento, priorizando las que todavía no están en la pool; también incluye las formas regionales. Para eventos Shiny se sortea entre todas las especies.
-- Gradle no se ha ejecutado en el entorno de edición.
-
-
-## 0.17.8
-
-- Avisos de eventos a Discord (`discord.events`): inicio del evento (con detalles y duración), fin, aviso previo de los eventos programados (solo el más anticipado de `announceBeforeMinutes`) y pausa/reanudación. Usan marcas de tiempo de Discord (`<t:…>`), así que cada persona ve la hora y la cuenta atrás en su propia zona horaria.
-- Opcional: `discord.events.mentionRoleId` menciona un rol en esos avisos. Cada aviso se puede activar o desactivar por separado y los textos están en `discord.eventStartMessage`, `eventEndMessage`, `eventSoonMessage`, `eventPausedMessage` y `eventResumedMessage`. Requiere `discord.enabled: true` y un `webhookUrl` válido.
-- Gradle no se ha ejecutado en el entorno de edición.
-
-
-## 0.18.0
-
-- **Top Donaciones** mensual con recompensas (`topDonations`): solo cuentan las donaciones hechas con `/wt donar` en meses activos. Por defecto hay Top en los meses impares de 2026 (enero, marzo, mayo, julio, septiembre y noviembre) y se invierte cada año (2027: meses pares; 2028: impares…). Puntos: normal 1, shiny 2, Ultraente/Paradoja 3, legendario/mítico 4, sin extra por shiny + categoría (configurables en `topDonations.points`).
-- El último día del mes, a la hora `topDonations.announceHour` (20:00 por defecto), se anuncia el Top 3 con sus puntos en el chat y en Discord (`discord.events.topDonations`), y el 1.º, 2.º y 3.º reciben las recompensas definidas en `topDonations.rewards.first/second/third` (comandos de consola con `{player}`, `{rank}`, `{points}` y `{period}`). Si el ganador está desconectado, las recibe al entrar. Los ejemplos incluidos dan caramelos raros: cámbialos por lo que quieras.
-- `/wt donaciones` (alias `/wt topdonaciones`): muestra los resultados finales del Top Donaciones únicamente cuando el evento mensual ha terminado. Mientras siga activo, el comando informa de que la clasificación aún no está disponible. El estado se guarda en `top-donations.json`.
-- Límite de donaciones mensual: `donation.limitMode` (`monthly` por defecto, se reinicia el día 1) con `donation.monthlyLimit` (20 por defecto). `weekly` conserva la ventana móvil de 7 días y `donation.weeklyLimit`.
-- Anti-repetición al donar: no se puede donar la misma especie (`donation.sameSpecies.period`: `month`, `week` u `off`) ni el mismo ejemplar (`donation.blockSameIndividual`) dentro del periodo.
-- `config-guide.txt`, README y documentación actualizados.
-- Gradle no se ha ejecutado en el entorno de edición.
-
-
-## 0.18.1
-
-- Panel de administración: nuevo botón «Top Donaciones» (esmeralda/redstone) en la fila de servidor que activa o desactiva el Top Donaciones (`topDonations.enabled`) y muestra si este mes hay Top. El cambio se guarda en `config.json`.
-- Gradle no se ha ejecutado en el entorno de edición.
-
+- Retirado `speciesChances` de la configuración de temporadas; se mantiene `excludeSpecies` para excluir especies concretas.
 
 ## 0.26.1
 
@@ -486,3 +312,199 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 
 - Panel de administración redistribuido: se quita el objeto «Panel de administración» del centro superior y los botones quedan en cuatro filas con espacio entre ellos (Pool, Servidor, Datos y Sistema). Historial y Reiniciar estadísticas pasan a la nueva fila «Datos».
 - Gradle no se ha ejecutado en el entorno de edición.
+## 0.18.1
+
+- Panel de administración: nuevo botón «Top Donaciones» (esmeralda/redstone) en la fila de servidor que activa o desactiva el Top Donaciones (`topDonations.enabled`) y muestra si este mes hay Top. El cambio se guarda en `config.json`.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.18.0
+
+- **Top Donaciones** mensual con recompensas (`topDonations`): solo cuentan las donaciones hechas con `/wt donar` en meses activos. Por defecto hay Top en los meses impares de 2026 (enero, marzo, mayo, julio, septiembre y noviembre) y se invierte cada año (2027: meses pares; 2028: impares…). Puntos: normal 1, shiny 2, Ultraente/Paradoja 3, legendario/mítico 4, sin extra por shiny + categoría (configurables en `topDonations.points`).
+- El último día del mes, a la hora `topDonations.announceHour` (20:00 por defecto), se anuncia el Top 3 con sus puntos en el chat y en Discord (`discord.events.topDonations`), y el 1.º, 2.º y 3.º reciben las recompensas definidas en `topDonations.rewards.first/second/third` (comandos de consola con `{player}`, `{rank}`, `{points}` y `{period}`). Si el ganador está desconectado, las recibe al entrar. Los ejemplos incluidos dan caramelos raros: cámbialos por lo que quieras.
+- `/wt donaciones` (alias `/wt topdonaciones`): muestra los resultados finales del Top Donaciones únicamente cuando el evento mensual ha terminado. Mientras siga activo, el comando informa de que la clasificación aún no está disponible. El estado se guarda en `top-donations.json`.
+- Límite de donaciones mensual: `donation.limitMode` (`monthly` por defecto, se reinicia el día 1) con `donation.monthlyLimit` (20 por defecto). `weekly` conserva la ventana móvil de 7 días y `donation.weeklyLimit`.
+- Anti-repetición al donar: no se puede donar la misma especie (`donation.sameSpecies.period`: `month`, `week` u `off`) ni el mismo ejemplar (`donation.blockSameIndividual`) dentro del periodo.
+- `config-guide.txt`, README y documentación actualizados.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.17.8
+
+- Avisos de eventos a Discord (`discord.events`): inicio del evento (con detalles y duración), fin, aviso previo de los eventos programados (solo el más anticipado de `announceBeforeMinutes`) y pausa/reanudación. Usan marcas de tiempo de Discord (`<t:…>`), así que cada persona ve la hora y la cuenta atrás en su propia zona horaria.
+- Opcional: `discord.events.mentionRoleId` menciona un rol en esos avisos. Cada aviso se puede activar o desactivar por separado y los textos están en `discord.eventStartMessage`, `eventEndMessage`, `eventSoonMessage`, `eventPausedMessage` y `eventResumedMessage`. Requiere `discord.enabled: true` y un `webhookUrl` válido.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.17.7
+
+- Pokémon generados para un evento: la especie ya no la elige el `random` de Cobblemon (repetía casi siempre las mismas). Ahora se sortea de la lista de especies de la categoría del evento, priorizando las que todavía no están en la pool; también incluye las formas regionales. Para eventos Shiny se sortea entre todas las especies.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.17.6
+
+- `/wt stats` y `/wt stats <jugador>` tienen permisos separados: `gui.statsOwnPermissionLevel` y `gui.statsOthersPermissionLevel` (ambos 0 por defecto; pon 2 en el segundo para que solo lo vean los admins).
+- Rangos: nuevo campo `improvementPercent` (% fijo que se suma a la probabilidad de especial en cada intercambio, sin consumirse). Los rangos ya guardados lo reciben automáticamente desde los valores por defecto (1, 0,75, 0,5, 0,25 y 0,1); ponlo a 0 si no lo quieres. Se muestra en `/wt rango`.
+- IVs: corregido el texto `(1x31)`. Nueva línea de naturaleza en español; si hay menta, la naturaleza de la menta aparece entre paréntesis.
+- Eventos programados: la hora ahora incluye «hora del servidor» y una cuenta atrás en horas y minutos («empieza en 5h 20min»), visible en `/wt eventos`, al entrar, en el panel y en los avisos. Recordatorio ocasional en el chat (`events.schedule.reminder`: cada 180 min, eventos dentro de 72 h, máximo 3). El aviso al entrar también muestra los próximos aunque no haya ninguno activo.
+- Reinicio mensual de la pool (`maintenance.monthlyReset`): el día 1 renueva los Pokémon normales (los especiales se conservan). La primera vez solo anota el mes para no borrar nada al actualizar; el estado se guarda en `maintenance-state.json`.
+- Especie repetida (`trade.blockRepeatSpecies`): no se puede ofrecer la misma especie dos veces seguidas (intercambio o donación). Mensaje `messages.repeatSpecies`.
+- Espera para staff: nueva clave `trade.cooldownBypassPermissionLevel` (5 = nadie se salta la espera; con 2 vuelven a saltársela los admins). Sustituye a `trade.adminBypassPermissionLevel`, que ya no se usa. Si más adelante usas LuckPerms se puede afinar por grupo.
+- Nombres de eventos más claros: «Apuesta de Shiny y Legendario» / «Lluvia de Mítico, Ultraente y Paradoja» (`events.names.risk` y `events.names.receive`).
+- Nuevo `config-guide.txt` (se regenera en cada arranque junto a `config.json`) con la explicación de cada apartado, comandos y permisos.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.17.5
+
+- Cabezas de donantes (menú «Eliminar pool → jugadores»): se guardan el UUID y la textura de skin de cada jugador al entrar y al donar/intercambiar (`player-data.json`: `skinValue`, `skinSignature`), de modo que la cabeza se ve aunque esté desconectado. Sin textura guardada se usa solo el nombre (en servidores no premium el UUID no sirve para consultar a Mojang, por eso no se envía).
+- La entrada «Servidor» aparece la primera con una cabeza de dragón propia.
+- El botón «Solo generados por jugadores» usa una cabeza con la skin del administrador que abre el menú.
+- Opcional: `gui.heads.server` y `gui.heads.players` aceptan el valor base64 de «textures» de cualquier cabeza para sustituir esas dos.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.17.0
+
+- Eventos (solo administradores): cada evento cuenta sus WT de evento y los jugadores distintos; se ve en `/wt admin eventos`, en el panel (clic en un evento) y se guarda en `event.json`.
+- Historial de eventos terminados (`/wt admin eventos historial` y botón «Historial de eventos» del panel), con `events.history.keep` entradas (50 por defecto).
+- Pausar y reanudar un evento activo (`/wt admin eventos pausar|reanudar <id>` o desde el panel): el tiempo se congela, el evento no tiene efecto mientras está pausado, y al reanudar se conservan el tiempo restante y las esperas de los jugadores. Sobrevive a reinicios.
+- IVs: la búsqueda de la pool admite `6x31`, `5x31`… (mínimo de IVs perfectos) y `31spd`, `31hp`, `31atk`, `31def`, `31spatk`, `31spdef` (ese stat a 31), combinables con el nombre. Los Pokémon con 6x31 muestran una estrella.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.16.6
+
+- Las esperas de los eventos por jugador ya no se pierden al reiniciar: se guardan en `event.json` (`lastUse`) y solo se descartan cuando el evento termina o su espera caduca.
+- La integración con Discord pasa a su propio archivo (`WonderTradeDiscord.kt`), con lo que `WonderTradeService.kt` queda más corto.
+- Comandos duplicados unificados internamente (un solo código para `sonidos`/`sounds`, `especiales`/`categorias`, `eventos`/`events`, `clearpool`/`admin clear`, `admin eventos`/`lista`/`programados`). Todos los nombres siguen funcionando como alias.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.16.5
+
+- Asistente «Programar evento»: ahora es un único menú que cambia de contenido (duración → día → hora → repetición) sin cerrarse ni reabrirse.
+- Repetición mensual por día de la semana: tras elegir «Mensual» se escoge primer, segundo, tercer, cuarto o último (p. ej. «cada último viernes del mes»). Las programaciones mensuales antiguas siguen usando el mismo día del mes. En consola, «mensual» con un día de la semana usa la ocurrencia de la primera fecha.
+- Menú de sonidos: el título usa un tocadiscos y el aviso de cooldown conserva el bloque musical.
+- Los Pokémon de los menús (pool, equipo, PC) muestran sus IVs con un color por estadística (HP, ATK, DEF, SPATK, SPDEF, SPD); si una chapa plateada o dorada cambia un IV, el valor efectivo aparece al lado entre paréntesis. Se puede ocultar con `menu.showIvs: false`.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+## 0.16.4
+
+- El porcentaje predeterminado para el intervalo de Wonder Trades durante eventos pasa del 10 % al 20 % (`events.tradeIntervalPercent`). Esto permite 5 WT por jugador durante cada evento.
+- Se aplica tanto a eventos iniciados desde el menú como a eventos programados. Los eventos ya creados mantienen su intervalo guardado.
+
+
+### 0.16.2
+- El aviso de cooldown disponible utiliza una nota musical `block.note_block.pling` con tono ligeramente agudo.
+
+### 0.16.0
+- **Consola:** la mayoría de las operaciones administrativas funcionan también desde consola: activar/desactivar, recargar, rellenar pool, añadir especies (requiere al menos un jugador conectado), borrar por origen, eliminar aportaciones, resetear estadísticas, copias, mantenimiento, Discord y gestión de eventos. Las funciones que necesitan inventario o GUI siguen siendo exclusivas del juego.
+- **Avisos de disponibilidad:** todos los jugadores elegibles reciben el aviso cuando termina su cooldown y recordatorios cada `cooldownNotice.normalReminderMinutes` (10 min por defecto); si hay un evento activo, el intervalo pasa a `cooldownNotice.eventReminderMinutes` (2 min). El sonido de disponibilidad ahora es el orbe de experiencia y respeta los ajustes individuales.
+- **Borrado de pool por origen:** desde el panel admin se puede eliminar solo lo generado por el servidor o solo las aportaciones de jugadores. También hay comandos de consola `/wt admin removegenerated` y `/wt admin removeplayers`. Se clasifica por `donorName` para conservar correctamente aportaciones antiguas que no tengan UUID.
+- **Programación desde menú:** en Gestionar eventos → elegir tipo/categorías → duración aparece «Programar evento», con opciones para iniciar en 10 min, 1 h, 3 h, mañana a la misma hora o repetir a diario/semanalmente.
+- **Caducidad del historial:** `history.autoDeleteAfterDays` borra entradas antiguas (30 días por defecto); `0` lo desactiva. La limpieza se ejecuta al iniciar, recargar y una vez por minuto.
+- README y `/wt help` actualizados.
+- Gradle no se ha ejecutado en el entorno de edición.
+
+
+### 0.15.0
+- **Aviso de fin de cooldown:** cuando termina el tiempo normal de un jugador conectado recibe un mensaje y un sonido de nota musical del bloque de notas. Se desactiva con `cooldownNotice.enabled` o `sounds.cooldownReady`, y cada jugador puede silenciarlo en `/wt sonidos`.
+- **Cooldown con evento:** si hay un evento activo y estás en espera, el chat muestra el tiempo del evento en lugar del normal (`messages.eventCooldown`).
+- **Reposición de especiales del evento:** el objetivo de cada categoría es lo que había en la pool al empezar el evento (como mínimo `events.ensurePool.minimum`). Si había 10 y alguien se lleva uno, se retira el normal más antiguo y se genera otro de la categoría, al instante tras el intercambio. Con `events.ensurePool.target` > 0 se fija una cantidad concreta.
+
+
+### 0.14.2
+- `/wt especiales` muestra también las formas regionales (Alola, Galar, Hisui, Paldea) de los Pokémon de cada categoría: Articuno, Zapdos y Moltres de Galar aparecen como legendarios.
+
+### 0.14.1
+- `/wt help` (admins) muestra cada comando de eventos en su línea: ver, crear, parar, programar y desprogramar. Los textos de ayuda antiguos de tu `config.json` se actualizan solos.
+
+### 0.14.0
+- **Varias categorías en un mismo evento:** un evento ahora puede afectar a varias categorías a la vez, por ejemplo Míticos y Legendarios. En el panel (Gestionar eventos) las categorías se marcan o desmarcan con un clic y se pulsa «Continuar»; por comando se unen con `+`: `/wt admin eventos crear recibir mitico+legendario 3h`. Lo mismo vale para `programar`.
+- Se aplica a los dos tipos: «Arriesgar» suma el % extra al ofrecer un Pokémon de cualquiera de las categorías y «Recibir» da la probabilidad extra de recibir uno de cualquiera de ellas.
+- La reposición de la pool asegura el mínimo (`events.ensurePool.minimum`) de cada categoría por separado, y el anuncio al empezar lista los Pokémon de todas ellas.
+- Los eventos y programaciones guardados con una sola categoría se leen sin cambios.
+
+### 0.13.1
+- Los rangos por defecto son los del servidor: Leyenda, Maestro, Élite, Experto y Dominguero. Permisos `wondertradeplus.rank.<id>` y etiquetas `wt_<id>`. Si tu `config.json` tenía la lista genérica sin tocar, se actualiza sola.
+
+### 0.13.0
+- **`/wt especiales`:** menú con la lista de Pokémon por categoría (Ultraente, Paradoja, Mítico y Legendario) para saber qué se puede dar en los eventos. Botón nuevo «Ver especiales» en el menú principal.
+- **Rangos de servidor** (`ranks` en `config.json`): cada rango tiene `baseBonus` (mínimo del bonus: al recibir un especial vuelve a ese valor en lugar de a 0, y nunca baja de él) y `gainMultiplier` (multiplica lo que suma cada Pokémon ofrecido). La lista va del rango más alto al más bajo y gana el primero que coincida.
+  - Por defecto hay 5 rangos, del más alto al más bajo: Leyenda (`baseBonus` 1.0), Maestro, Élite, Experto y Dominguero (estos cuatro con 0.0 para que pongas tú los valores).
+  - Un jugador pertenece a un rango si tiene el permiso del rango (por ejemplo `wondertradeplus.rank.leyenda` o `group.leyenda` con LuckPerms) o la etiqueta del rango (`/tag <jugador> add wt_leyenda`). Cambia `id`, `name`, `permission` y `tag` por los de tu servidor.
+  - Con LuckPerms basta con dar el permiso al grupo: `/lp group leyenda permission set wondertradeplus.rank.leyenda true`.
+  - El libro del menú muestra los incrementos del bonus.
+
+### 0.12.1
+- Los anuncios de «LEGENDARIO/ULTRAENTE/PASADO/FUTURO SHINY» terminan con la exclamación del mismo color que el texto. Si tu `config.json` aún tenía el texto antiguo, se actualiza solo.
+- **Pool de eventos:** mientras un evento está activo, cada pocos segundos (`events.ensurePool.checkIntervalSeconds`, 10 por defecto) se comprueba que haya al menos `minimum` Pokémon de su categoría y se generan los que falten. Antes solo se comprobaba al iniciar el evento. Se puede desactivar con `events.ensurePool.keepDuringEvent: false`.
+
+### 0.12.0
+- **Eventos programados** (`event-schedule.json`): empiezan solos a una hora, día o fecha concretos y pueden repetirse una vez, cada día, semana, mes o año. Avisos previos configurables (`events.schedule.announceBeforeMinutes`, por defecto 10 y 1 minuto antes), zona horaria (`events.schedule.timezone`, vacía = la del servidor) y tolerancia si el servidor estaba apagado (`events.schedule.maxLateMinutes`). Se pueden ver y cancelar desde el panel (Gestionar eventos → Eventos programados). `/wt eventos` muestra también los próximos (`events.showUpcoming`).
+- **Aviso al entrar:** quien se conecta con un evento activo recibe un mensaje corto (`events.joinNotice.*`: activar, retraso y si muestra detalles).
+- **Barra de tiempo:** una bossbar con el nombre del evento y el tiempo que queda (`events.bossbar.*`: activar, formato, estilo y color distinto para Arriesgar y Recibir). Es solo de servidor.
+- **Pokémon del evento en la pool:** al empezar un evento, si hay menos Pokémon de su categoría que `events.ensurePool.minimum` (3 por defecto), se generan los que falten (máximo `maxGenerate`) y se retiran los normales más antiguos para hacer sitio (`replaceOldest`). Los especiales nunca se retiran. Se puede limitar a un tipo de evento con `events.ensurePool.types`.
+- **Anuncio al empezar:** el chat indica qué Pokémon de la categoría hay en la pool (`events.announcePokemon.*`: activar, cuántos listar y si muestra el nivel).
+
+### 0.11.2
+- Menú de eventos: botón «Tiempo personalizado» para elegir una duración exacta sumando o restando minutos, horas y días.
+- Las categorías aparecen en el orden Shiny, Ultraente, Paradoja, Mítico y Legendario.
+
+### 0.11.1
+- Panel `/wt admin` ampliado a 6 filas: pool, servidor (eventos, on/off, historial, estadísticas) y sistema (recarga, mantenimiento, copia, Discord) en una sola página.
+- Corregido el sonido del tótem: solo suena con un legendario, mítico, Ultraente o Paradoja shiny; un shiny normal usa el sonido de especial.
+
+### 0.11.0
+- **Purga automática:** un Pokémon normal que lleve más de 1 semana en la pool sin ser recibido se elimina y se sustituye por uno nuevo (también normal). Los especiales (shiny, legendario, mítico, Ultraente y Paradoja) no se purgan. Configuración en `maintenance.purge`: `enabled`, `afterHours` (168 = 1 semana) e `includePlayerDonations`. Se ejecuta con el mantenimiento automático y hace falta al menos un jugador conectado para generar los nuevos.
+- **Eventos por categoría:** ahora hay «Arriesgar» y «Recibir» para Shiny, Legendario, Mítico, Ultraente y Paradoja. Comando: `/wt admin eventos crear <tipo> <categoría> <duración> [valor] [espera]`. Los valores por defecto están en `events.risk` y `events.receive`.
+- **`/wt admin fill`:** corregido. Con probabilidad 100 podían salir algunos Pokémon normales porque la búsqueda de especiales se rendía demasiado pronto. Ahora insiste mucho más y, si se pidió un especial, nunca lo sustituye por un normal.
+
+### 0.10.0
+- Eventos temporales. Se ven con `/wt eventos` y los gestionan los admins con `/wt admin eventos` o el botón «Gestionar eventos» del panel.
+  - **Arriesgar Shiny:** cada shiny ofrecido suma un % extra (por defecto `+0.2%`, `events.risk.extraGain`) a tu probabilidad de especial. Se reinicia a 0 cuando te toca un especial.
+  - **Recibir Shiny:** probabilidad extra de que te entreguen un shiny de la pool (por defecto `10%`, `events.receive.chance`).
+  - Mientras un evento está activo puedes hacer un intercambio extra cada cierto tiempo (por defecto 1 por minuto) sin gastar tu tiempo normal ni tu límite diario.
+- Los eventos se guardan en `event.json` y siguen activos tras un reinicio. El reloj del menú principal muestra cuándo tienes disponible el intercambio de evento.
+
+### 0.9.0
+- Menú de confirmación: muestra la probabilidad real de recibir un especial (especiales disponibles en la pool, tu bonus y el resultado con este intercambio). Se puede quitar con `gui.showTradePreview: false`.
+- Nuevo `/wt on` y `/wt off` (solo admins): activa o desactiva Wonder Trade sin quitar el mod. El estado se guarda en `general.enabled` de `config.json`.
+
+### 0.8.9
+- `/wt top`: se quita "Volver al menú principal"; en su lugar hay un botón Cerrar.
+- Pool (admin): «Eliminar Pokémon» aparece en rojo y negrita.
+- Rellenar pool: al elegir una cantidad se queda en el mismo menú (ya no vuelve al panel admin).
+- `/wt`: el reloj del siguiente Wonder Trade pasa a la esquina superior izquierda.
+
+### 0.8.8
+- Corregido el espacio sobrante en el mensaje `broadcastShiny`.
+- La pool abierta desde el menú principal o con `/wt pool` se muestra siempre en vista normal, también para admins: el botón **Volver** lleva al menú principal. El panel de administración solo se abre con `/wt admin`.
+- El botón de orden por hora marca con una flecha ▶ la opción activa, igual que el filtro de categoría.
+- Nuevo filtro de búsqueda por nombre o especie en la pool (`/wt pool search <texto>` y botón en el menú). Se conserva al cambiar de página, filtro u orden.
+
+### 0.8.7
+- Corregido `pool.maximumEntries` a 500 por defecto.
+- Opciones del relleno rápido: 25, 50, 100, 250 y 500.
+- Las configuraciones antiguas que tenían el valor predeterminado erróneo de 5000 se actualizan automáticamente.
+- Al iniciar o recargar se recorta la pool si supera el máximo configurado, respetando `pool.trimOldestFirst`.
+
+
+### 0.8.6
+- Cantidades del menú de relleno rápido configurables en `admin.fillMenu.amounts`.
+- Valores predeterminados ajustados al máximo de 500 entradas: 25, 50, 100, 250 y 500.
+- Los rellenos respetan el espacio disponible y nunca sobrepasan el máximo de la pool.
+
+### 0.8.5
+- `/wt top` abre un selector gráfico para consultar los tres rankings: intercambios, especiales recibidos y especiales aportados.
+- El panel `/wt admin` incorpora un submenú de relleno de pool con cantidades rápidas (16, 32, 64, 128 y 256), además de herramientas para eliminar aportaciones, reiniciar estadísticas y probar Discord.
+- `/wt help` reorganizado por utilidad y `/wt top` aparece sin argumentos.
+
+
+### Preferencias de sonido (0.8.3)
+- `/wt sonidos` o `/wt sounds` abre un menú individual para activar/desactivar cada sonido.
+- Las preferencias se guardan por UUID en `player-data.json`; no requiere instalar el mod en el cliente.
+- Se pueden silenciar todos los sonidos con un único interruptor.

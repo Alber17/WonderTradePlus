@@ -194,12 +194,12 @@
   "discord.titles.eventResumed": "▶️ Evento reanudado: {name}",
   "discord.titles.topDonations": "★ Top Donaciones de {month}",
   "messages.helpRanksCommand": "&e/wt rangos &7Ver todos los rangos y sus ventajas",
-  "messages.seasonStart": "&b❄ ¡Empieza el evento de {name}! Hasta el {end} la pool es temática y solo se pueden intercambiar Pokémon de tipo {types}. La pool original se guarda y volverá al terminar el evento.",
-  "messages.seasonEnd": "&b❄ Ha terminado el evento de {name}. ¡La pool original vuelve a estar disponible!",
-  "messages.seasonJoin": "&b❄ Evento de {name} activo hasta el {end}: solo se pueden intercambiar Pokémon de tipo {types}.",
+  "messages.seasonStart": "&b❄ ¡Ha aparecido la hora navideña! La pool temática estará disponible durante {duration}.",
+  "messages.seasonEnd": "&b❄ La hora navideña ha terminado. La pool habitual vuelve a estar disponible.",
+  "messages.seasonJoin": "&b❄ Hora navideña activa: quedan {duration}.",
   "messages.seasonTypeBlocked": "&cDurante el evento de {event} solo se pueden intercambiar Pokémon de tipo {types}.",
-  "discord.seasonStartMessage": "Hasta el **{end}** la pool es temática y solo se pueden intercambiar Pokémon de tipo **{types}**. La pool original se guarda y volverá al terminar el evento.",
-  "discord.seasonEndMessage": "El evento de **{name}** ha terminado. ¡La pool original vuelve a estar disponible!",
-  "discord.titles.seasonStart": "❄️ ¡Evento de {name}!",
-  "discord.titles.seasonEnd": "🎁 Fin del evento de {name}"
+  "discord.seasonStartMessage": "Ha aparecido la hora navideña. La pool temática estará disponible durante **{duration}**. ¡Aprovecha para conseguir Pokémon de tipo **{types}**.",
+  "discord.seasonEndMessage": "La hora navideña ha terminado. La pool habitual vuelve a estar disponible.",
+  "discord.titles.seasonStart": "🎄 ¡Ha aparecido la hora navideña!",
+  "discord.titles.seasonEnd": "🎁 La hora navideña ha terminado"
 }

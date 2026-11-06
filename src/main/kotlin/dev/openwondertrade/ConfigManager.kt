@@ -106,6 +106,15 @@ object ConfigManager {
         for ((path, text) in Lang.baseEntries()) {
             if (string(path, "\u0000") == text) removePath(path)
         }
+        // Migración 0.26.3: Navidad pasa de una temporada continua a cuatro sesiones aleatorias de una hora.
+        // Solo cambia la fecha antigua que venía de fábrica; se respetan fechas personalizadas.
+        root.getAsJsonObject("seasonal")?.getAsJsonArray("events")?.firstOrNull { element ->
+            runCatching { element.asJsonObject.get("id")?.asString == "navidad" }.getOrDefault(false)
+        }?.asJsonObject?.let { christmas ->
+            if (christmas.get("startDate")?.asString == "12-15") christmas.addProperty("startDate", "12-25")
+            if (!christmas.has("sessionsPerDay")) christmas.addProperty("sessionsPerDay", 4)
+            if (!christmas.has("sessionDurationMinutes")) christmas.addProperty("sessionDurationMinutes", 60)
+        }
         save()
         writeGuide()
     }

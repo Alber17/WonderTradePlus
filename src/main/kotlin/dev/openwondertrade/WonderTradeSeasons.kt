@@ -11,7 +11,7 @@ import java.time.LocalDate
 import java.time.MonthDay
 import java.time.format.DateTimeFormatter
 
-/** Un evento de temporada de la configuración (seasonal.events), por ejemplo la Navidad. */
+/** Un evento de temporada de la configuración (seasonal.events). */
 class Season(
     val id: String,
     private val rawName: String,
@@ -23,19 +23,17 @@ class Season(
     val poolSize: Int,
     val shinyChance: Double,
     val includeSpecial: Boolean,
-    /** Especies que no deben salir en la pool del evento. */
-    val excluded: Set<String> = emptySet()
+    val excluded: Set<String> = emptySet(),
+    val sessionsPerDay: Int = 0,
+    val sessionDurationMinutes: Int = 60
 ) {
-    /** Nombre en el idioma activo (el texto de la config es la clave de traducción). */
     val name: String get() = Lang.tr(rawName)
 
-    /** ¿Está [date] dentro del periodo? Admite periodos que cruzan el año (15-12 → 06-01). */
     fun contains(date: LocalDate): Boolean {
         val day = MonthDay.from(date)
         return if (!start.isAfter(end)) !day.isBefore(start) && !day.isAfter(end) else !day.isBefore(start) || !day.isAfter(end)
     }
 
-    /** Próxima fecha de fin desde [today] (para los mensajes). */
     fun endDate(today: LocalDate): LocalDate {
         var date = end.atYear(today.year)
         if (date.isBefore(today)) date = end.atYear(today.year + 1)
@@ -48,7 +46,6 @@ class Season(
         return date
     }
 
-    /** ¿Cumple el Pokémon el tema del evento (tipo o especie extra)? */
     fun matches(pokemon: Pokemon): Boolean {
         val species = pokemon.species.resourceIdentifier.path.lowercase()
         if (species in extraSpecies) return true
@@ -57,20 +54,20 @@ class Season(
 }
 
 /**
- * Eventos de temporada: durante unas fechas la pool se sustituye por otra temática (por ejemplo Pokémon de tipo hielo en
- * Navidad) y, si se configura, solo se pueden intercambiar Pokémon de ese tipo. La pool original se guarda en un archivo
- * aparte y se recupera al terminar. Todo se controla desde la sección `seasonal` de la configuración; no hay comandos.
+ * Eventos de temporada. Las sesiones aleatorias se guardan por fecha para que no cambien al reiniciar.
+ * Cada sesión sustituye temporalmente la pool y restaura exactamente la original al terminar.
  */
 object WonderTradeSeasons {
     private val gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
     private var directory: Path? = null
-
-    // Estado persistente (seasonal-state.json): sobrevive a reinicios y caídas del servidor.
     private var activeId: String? = null
     private var startedAt = 0L
-    private var phase = ""            // "saved" = pool original guardada; "active" = pool de temporada puesta
+    private var endAt = 0L
+    private var pausedAt = 0L
+    private var phase = "" // saved, active, paused
     private var originalCount = 0
-
+    private var skipAutomaticDate = ""
+    private val dailySlots = linkedMapOf<String, List<Long>>()
     private var lastCheck = 0L
     private var gaveUpRestoring = false
     private var warnedNoPokemon = false
@@ -80,16 +77,23 @@ object WonderTradeSeasons {
 
     fun load(configDirectory: Path) {
         directory = configDirectory
-        activeId = null; startedAt = 0L; phase = ""; originalCount = 0
-        gaveUpRestoring = false; warnedNoPokemon = false
+        activeId = null; startedAt = 0L; endAt = 0L; pausedAt = 0L
+        phase = ""; originalCount = 0; skipAutomaticDate = ""
+        dailySlots.clear(); gaveUpRestoring = false; warnedNoPokemon = false
         val file = stateFile() ?: return
         if (!Files.exists(file)) return
         runCatching {
             val node = Files.newBufferedReader(file).use { JsonParser.parseReader(it).asJsonObject }
             activeId = node.get("activeId")?.takeIf { !it.isJsonNull }?.asString?.takeIf { it.isNotBlank() }
             startedAt = node.get("startedAt")?.asLong ?: 0L
+            endAt = node.get("endAt")?.asLong ?: 0L
+            pausedAt = node.get("pausedAt")?.asLong ?: 0L
             phase = node.get("phase")?.asString ?: ""
             originalCount = node.get("originalCount")?.asInt ?: 0
+            skipAutomaticDate = node.get("skipAutomaticDate")?.asString ?: ""
+            node.getAsJsonObject("dailySlots")?.entrySet()?.forEach { (date, arr) ->
+                dailySlots[date] = arr.asJsonArray.mapNotNull { runCatching { it.asLong }.getOrNull() }
+            }
         }.onFailure { WonderTradePlus.LOGGER.error("No se pudo leer seasonal-state.json.", it) }
     }
 
@@ -100,14 +104,20 @@ object WonderTradeSeasons {
             val node = JsonObject().apply {
                 if (activeId != null) addProperty("activeId", activeId)
                 addProperty("startedAt", startedAt)
+                addProperty("endAt", endAt)
+                addProperty("pausedAt", pausedAt)
                 addProperty("phase", phase)
                 addProperty("originalCount", originalCount)
+                addProperty("skipAutomaticDate", skipAutomaticDate)
+                add("dailySlots", JsonObject().also { obj ->
+                    dailySlots.forEach { (date, slots) ->
+                        obj.add(date, com.google.gson.JsonArray().also { arr -> slots.forEach { arr.add(it) } })
+                    }
+                })
             }
             Files.writeString(file, gson.toJson(node))
         }.onFailure { WonderTradePlus.LOGGER.error("No se pudo guardar seasonal-state.json.", it) }
     }
-
-    // ------------------------------------------------------------ configuración
 
     private fun parseDay(text: String): MonthDay? =
         runCatching { MonthDay.parse("--" + text.trim().removePrefix("--").replace('/', '-')) }.getOrNull()
@@ -117,89 +127,171 @@ object WonderTradeSeasons {
         val start = parseDay(node.get("startDate")?.asString ?: "") ?: return@mapNotNull null
         val end = parseDay(node.get("endDate")?.asString ?: "") ?: return@mapNotNull null
         fun list(key: String) = node.getAsJsonArray(key)?.mapNotNull { runCatching { it.asString.trim().lowercase() }.getOrNull() }?.filter { it.isNotEmpty() } ?: emptyList()
-        val enabled = node.get("enabled")?.asBoolean ?: true
-        if (!enabled) return@mapNotNull null
+        if (node.get("enabled")?.asBoolean == false) return@mapNotNull null
         Season(
-            id = id,
-            rawName = node.get("name")?.asString ?: id,
-            start = start, end = end,
-            types = list("types"),
-            extraSpecies = list("extraSpecies").map { it.substringAfter(':') },
+            id = id, rawName = node.get("name")?.asString ?: id, start = start, end = end,
+            types = list("types"), extraSpecies = list("extraSpecies").map { it.substringAfter(':') },
             restrictTrades = node.get("restrictTrades")?.asBoolean ?: true,
             poolSize = (node.get("poolSize")?.asInt ?: 100).coerceIn(1, 5000),
             shinyChance = (node.get("shinyChancePercent")?.asDouble ?: 2.0).coerceIn(0.0, 100.0),
             includeSpecial = node.get("includeLegendary")?.asBoolean ?: true,
-            excluded = list("excludeSpecies").map { it.substringAfter(':') }.toSet()
+            excluded = list("excludeSpecies").map { it.substringAfter(':') }.toSet(),
+            sessionsPerDay = (node.get("sessionsPerDay")?.asInt ?: 0).coerceIn(0, 12),
+            sessionDurationMinutes = (node.get("sessionDurationMinutes")?.asInt ?: 60).coerceIn(1, 1440)
         )
     }
 
-    /** Evento de temporada con la pool ya sustituida (null si no hay ninguno en curso). */
     fun current(): Season? {
-        val id = activeId?.takeIf { phase == "active" } ?: return null
+        val id = activeId?.takeIf { phase == "active" || phase == "paused" } ?: return null
         return allSeasons().firstOrNull { it.id == id }
     }
 
-    /** Valores para los mensajes: {name}, {event}, {types}, {start}, {end}. */
+    fun isRunning(): Boolean = phase == "active" && activeId != null
+    fun sessionEndAt(): Long = endAt
+    fun isPaused(): Boolean = phase == "paused" && activeId != null
+    fun statusText(): String = when {
+        isRunning() -> "ACTIVO"
+        isPaused() -> "PAUSADO"
+        else -> "INACTIVO"
+    }
+
     fun placeholders(season: Season? = current()): Map<String, Any> {
         season ?: return emptyMap()
         val today = LocalDate.now(WonderTradeSchedule.zone())
         val formatter = DateTimeFormatter.ofPattern("d MMMM", Lang.locale())
         val types = season.types.joinToString(", ") { WonderTradeRules.typeName(it) }
-        return mapOf(
-            "name" to season.name, "event" to season.name, "types" to types,
-            "start" to season.startDate(today).format(formatter), "end" to season.endDate(today).format(formatter)
-        )
+        return mapOf("name" to season.name, "event" to season.name, "types" to types,
+            "start" to season.startDate(today).format(formatter), "end" to season.endDate(today).format(formatter),
+            "duration" to WonderTradeEvents.formatDuration(season.sessionDurationMinutes * 60L))
     }
 
-    /** Pokémon que puede haber en la pool durante el evento (se usa al generar y al rellenar). */
     fun poolAllows(pokemon: Pokemon): Boolean = current()?.matches(pokemon) ?: true
-
-    /** ¿Se puede ofrecer este Pokémon ahora? Solo restringe durante un evento con restrictTrades. */
     fun allows(pokemon: Pokemon): Boolean {
         val season = current() ?: return true
         return !season.restrictTrades || season.matches(pokemon)
     }
 
-    /** Línea de aviso al entrar al servidor (null si no hay evento de temporada). */
     fun joinLine(): String? {
         val season = current() ?: return null
         return WonderTradeService.format(
-            ConfigManager.string("messages.seasonJoin", "&b❄ Evento de {name} activo hasta el {end}: solo se pueden intercambiar Pokémon de tipo {types}."),
-            placeholders(season)
+            ConfigManager.string("messages.seasonJoin", "&b❄ Hora navideña activa: quedan {duration}."),
+            placeholders(season) + mapOf("duration" to WonderTradeEvents.formatDuration(((endAt - System.currentTimeMillis()).coerceAtLeast(0L) + 999L) / 1000L))
         )
     }
 
-    // ------------------------------------------------------------ transiciones
+    private fun isInDateWindow(season: Season, date: LocalDate): Boolean = season.contains(date)
 
-    /** Se llama una vez por segundo; comprueba cada 30 s si hay que empezar o terminar un evento. */
+    /** Cuatro horas distintas, elegidas aleatoriamente y persistidas para que sean estables ese día. */
+    private fun slotsFor(season: Season, date: LocalDate): List<Long> {
+        val key = "${season.id}:$date"
+        dailySlots[key]?.let { return it }
+        val count = season.sessionsPerDay
+        if (count <= 0) return listOf(date.atStartOfDay(WonderTradeSchedule.zone()).toInstant().toEpochMilli())
+        val chosen = mutableListOf<Int>()
+        for (hour in (0..23).shuffled()) {
+            if (chosen.all { other -> minOf((hour - other + 24) % 24, (other - hour + 24) % 24) >= 3 }) {
+                chosen += hour
+                if (chosen.size == count) break
+            }
+        }
+        val hours = if (chosen.size == count) chosen.sorted() else (0..23).shuffled().take(count).sorted()
+        val slots = hours.map { hour -> date.atTime(hour, 0).atZone(WonderTradeSchedule.zone()).toInstant().toEpochMilli() }
+        dailySlots[key] = slots
+        // Mantener solo 30 días para que el estado no crezca indefinidamente.
+        if (dailySlots.size > 30) dailySlots.keys.take(dailySlots.size - 30).forEach { dailySlots.remove(it) }
+        saveState()
+        return slots
+    }
+
+    private fun scheduledSession(season: Season, now: Long): Long? {
+        val date = java.time.Instant.ofEpochMilli(now).atZone(WonderTradeSchedule.zone()).toLocalDate()
+        if (!isInDateWindow(season, date)) return null
+        if (season.sessionsPerDay <= 0) return slotsFor(season, date).firstOrNull { now >= it }
+        val duration = season.sessionDurationMinutes * 60_000L
+        return slotsFor(season, date).firstOrNull { now >= it && now < it + duration }
+    }
+
+    /** Control de sesiones automáticas y expiración. Se llama una vez por segundo. */
     fun tick(server: MinecraftServer) {
         val now = System.currentTimeMillis()
-        if (now - lastCheck < 30_000L) return
+        if (now - lastCheck < 1_000L) return
         lastCheck = now
-        val wanted = if (ConfigManager.bool("seasonal.enabled", true)) {
-            val today = LocalDate.now(WonderTradeSchedule.zone())
-            allSeasons().firstOrNull { it.contains(today) }
-        } else null
-        val running = activeId
-        when {
-            running != null && (wanted == null || wanted.id != running) -> if (!gaveUpRestoring) finish(server)
-            running == null && wanted != null -> begin(server, wanted)
-            running != null && phase != "active" -> allSeasons().firstOrNull { it.id == running }?.let { begin(server, it) }
+        val today = LocalDate.now(WonderTradeSchedule.zone())
+        val enabled = ConfigManager.bool("seasonal.enabled", true)
+        val season = if (enabled) allSeasons().firstOrNull { it.contains(today) } else null
+        if (activeId != null) {
+            if (phase == "paused") {
+                val configured = ConfigManager.bool("seasonal.enabled", true) && allSeasons().any { it.id == activeId }
+                if (!configured) finish(server, announceEnd = true)
+                return
+            }
+            if (phase == "saved") {
+                val savedSeason = if (ConfigManager.bool("seasonal.enabled", true)) allSeasons().firstOrNull { it.id == activeId } else null
+                if (now >= endAt || savedSeason == null) finish(server, announceEnd = true)
+                else activateSavedPool(server, savedSeason)
+                return
+            }
+            val configured = ConfigManager.bool("seasonal.enabled", true) && allSeasons().any { it.id == activeId }
+            if (now >= endAt || !configured) finish(server, announceEnd = true)
+            return
+        }
+        if (season == null || skipAutomaticDate == today.toString()) return
+        val sessionStart = scheduledSession(season, now) ?: return
+        if (season.sessionsPerDay <= 0) {
+            val endDate = season.endDate(today).plusDays(1)
+            val continuousEnd = endDate.atStartOfDay(WonderTradeSchedule.zone()).toInstant().toEpochMilli()
+            begin(server, season, continuousEnd)
+        } else {
+            val duration = season.sessionDurationMinutes * 60_000L
+            begin(server, season, now + duration)
         }
     }
 
-    private fun begin(server: MinecraftServer, season: Season) {
-        // Generar Pokémon necesita un jugador conectado; si no hay ninguno se espera a la siguiente comprobación.
-        val player = server.playerList.players.firstOrNull() ?: return
+    /** Inicia una sesión inmediata desde el panel admin, incluso fuera del calendario navideño. */
+    fun manualStart(server: MinecraftServer): Boolean {
+        if (!ConfigManager.bool("seasonal.enabled", true)) return false
+        val season = allSeasons().firstOrNull { it.id == "navidad" } ?: allSeasons().firstOrNull() ?: return false
+        if (phase == "paused" && activeId == season.id) {
+            val now = System.currentTimeMillis()
+            endAt += (now - pausedAt).coerceAtLeast(0L)
+            phase = "active"; pausedAt = 0L; saveState()
+            WonderTradeEvents.broadcast(server) { Lang.tr("&b❄ La hora navideña se ha reanudado.") }
+            return true
+        }
+        if (activeId != null) return false
+        skipAutomaticDate = ""
+        return begin(server, season, System.currentTimeMillis() + season.sessionDurationMinutes * 60_000L)
+    }
+
+    fun manualPause(server: MinecraftServer): Boolean {
+        if (!isRunning()) return false
+        phase = "paused"; pausedAt = System.currentTimeMillis(); saveState()
+        WonderTradeEvents.broadcast(server) { Lang.tr("&b❄ La hora navideña se ha pausado.") }
+        return true
+    }
+
+    fun manualFinish(server: MinecraftServer): Boolean {
+        if (activeId == null) return false
+        val today = LocalDate.now(WonderTradeSchedule.zone()).toString()
+        finish(server, announceEnd = true)
+        skipAutomaticDate = today
+        saveState()
+        return true
+    }
+
+    private fun begin(server: MinecraftServer, season: Season, sessionEnd: Long): Boolean {
+        val player = server.playerList.players.firstOrNull() ?: return false
         val entries = WonderTradeService.seasonalGenerate(player, season)
         if (entries.isEmpty()) {
             if (!warnedNoPokemon) {
                 warnedNoPokemon = true
                 WonderTradePlus.LOGGER.error("Evento de temporada «{}»: no se ha podido generar ningún Pokémon con los tipos {}. Revisa seasonal.events.", season.id, season.types)
             }
-            return
+            return false
         }
-        // 1) Guardar la pool original (solo la primera vez: si ya hay estado, la original ya está a salvo).
+        startedAt = System.currentTimeMillis()
+        endAt = sessionEnd
+        pausedAt = 0L
         if (activeId == null) {
             val original = WonderTradeService.poolSnapshot()
             val ok = runCatching {
@@ -209,26 +301,35 @@ object WonderTradeSeasons {
             }.getOrDefault(false)
             if (!ok) {
                 WonderTradePlus.LOGGER.error("Evento de temporada «{}»: no se pudo guardar la pool original; no se cambia nada.", season.id)
-                return
+                return false
             }
             activeId = season.id
-            startedAt = System.currentTimeMillis()
             originalCount = original.size
             phase = "saved"
             saveState()
         }
-        // 2) Poner la pool de temporada.
+        activatePool(server, season, entries)
+        return true
+    }
+
+    private fun activateSavedPool(server: MinecraftServer, season: Season) {
+        val player = server.playerList.players.firstOrNull() ?: return
+        val entries = WonderTradeService.seasonalGenerate(player, season)
+        if (entries.isEmpty()) return
+        activatePool(server, season, entries)
+    }
+
+    private fun activatePool(server: MinecraftServer, season: Season, entries: List<PoolEntry>) {
         WonderTradeService.poolReplace(entries)
         phase = "active"
         saveState()
-        WonderTradePlus.LOGGER.info("Evento de temporada «{}» iniciado: pool original guardada ({} Pokémon) y {} Pokémon de temporada.", season.id, originalCount, entries.size)
+        WonderTradePlus.LOGGER.info("Sesión de temporada «{}» iniciada: pool original guardada ({} Pokémon), pool temporal {} Pokémon.", season.id, originalCount, entries.size)
         announce(server, season, started = true, count = entries.size)
     }
 
-    private fun finish(server: MinecraftServer) {
+    private fun finish(server: MinecraftServer, announceEnd: Boolean) {
         val id = activeId ?: return
         val file = originalFile(id)
-        // PoolStore.load() crea un archivo vacío si no existe, así que se comprueba antes.
         if (!Files.exists(file)) {
             WonderTradePlus.LOGGER.error("Evento de temporada «{}»: falta {}; no se puede restaurar la pool original. La pool actual se conserva.", id, file)
             gaveUpRestoring = true
@@ -242,32 +343,35 @@ object WonderTradeSeasons {
         }
         val season = allSeasons().firstOrNull { it.id == id }
         val now = System.currentTimeMillis()
-        // Se archiva la pool del evento y se recupera la original.
         runCatching {
-            PoolStore(file.resolveSibling("pool-event-$id-${LocalDate.now(WonderTradeSchedule.zone()).year}.json"))
-                .also { it.restore(WonderTradeService.poolSnapshot()) }.save()
+            val stamp = startedAt.toString()
+            PoolStore(file.resolveSibling("pool-event-$id-$stamp.json")).also { it.restore(WonderTradeService.poolSnapshot()) }.save()
         }.onFailure { WonderTradePlus.LOGGER.warn("No se pudo archivar la pool del evento: {}", it.message) }
-        // Durante el evento la pool original estuvo «congelada»: se desplaza su antigüedad para que la caducidad
-        // y la purga automática no la traten como si hubiera envejecido.
         val shift = (now - startedAt).coerceAtLeast(0L)
         val restored = original.map { if (it.addedAt > 0L) it.copy(addedAt = minOf(it.addedAt + shift, now)) else it }
         WonderTradeService.poolReplace(restored)
-        activeId = null; startedAt = 0L; phase = ""; originalCount = 0
+        activeId = null; startedAt = 0L; endAt = 0L; pausedAt = 0L; phase = ""; originalCount = 0
         saveState()
-        WonderTradePlus.LOGGER.info("Evento de temporada «{}» terminado: pool original restaurada ({} Pokémon).", id, restored.size)
-        if (season != null) announce(server, season, started = false, count = restored.size)
-        else WonderTradeEvents.broadcast(server) { Lang.tr("&d★ Ha terminado el evento de temporada. La pool vuelve a la normalidad.") }
+        WonderTradePlus.LOGGER.info("Sesión de temporada «{}» terminada: pool original restaurada ({} Pokémon).", id, restored.size)
+        if (announceEnd && season != null) announce(server, season, started = false, count = restored.size)
     }
 
     private fun announce(server: MinecraftServer, season: Season, started: Boolean, count: Int) {
-        val key = if (started) "messages.seasonStart" else "messages.seasonEnd"
-        val fallback = if (started)
-            "&b❄ ¡Empieza el evento de {name}! Hasta el {end} la pool es temática y solo se pueden intercambiar Pokémon de tipo {types}. La pool original se guarda y volverá al terminar el evento."
-        else
-            "&b❄ Ha terminado el evento de {name}. ¡La pool original vuelve a estar disponible!"
-        WonderTradeEvents.broadcast(server) {
-            WonderTradeService.format(ConfigManager.string(key, fallback), placeholders(season))
+        if (started) {
+            WonderTradeEvents.broadcast(server) {
+                WonderTradeService.format(
+                    ConfigManager.string("messages.seasonStart", "&b❄ ¡Ha aparecido la hora navideña! La pool temática estará disponible durante {duration}."),
+                    placeholders(season) + mapOf("duration" to WonderTradeEvents.formatDuration(season.sessionDurationMinutes * 60L))
+                )
+            }
+        } else {
+            WonderTradeEvents.broadcast(server) {
+                WonderTradeService.format(
+                    ConfigManager.string("messages.seasonEnd", "&b❄ La hora navideña ha terminado. La pool habitual vuelve a estar disponible."),
+                    placeholders(season)
+                )
+            }
         }
-        runCatching { WonderTradeDiscord.season(season, started, count) }
+        runCatching { WonderTradeDiscord.season(season, started, count, season.sessionDurationMinutes * 60L) }
     }
 }

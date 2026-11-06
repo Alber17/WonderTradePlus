@@ -117,7 +117,7 @@
         "paused": "#95A5A6",
         "resumed": "#3498DB",
         "top": "#E67E22",
-        "seasonStart": "#74B9FF",
+        "seasonStart": "#168BFF",
         "seasonEnd": "#B2BEC3"
       }
     }
@@ -395,7 +395,7 @@
         "id": "navidad",
         "enabled": true,
         "name": "Navidad",
-        "startDate": "12-15",
+        "startDate": "12-25",
         "endDate": "01-06",
         "types": [
           "ice"
@@ -405,7 +405,9 @@
         "restrictTrades": true,
         "poolSize": 100,
         "shinyChancePercent": 2.0,
-        "includeLegendary": true
+        "includeLegendary": true,
+        "sessionsPerDay": 4,
+        "sessionDurationMinutes": 60
       }
     ]
   }

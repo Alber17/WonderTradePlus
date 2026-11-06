@@ -399,12 +399,12 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
 --------------------------------------------------------------------------------
  seasonal - Eventos de temporada (Navidad...)
 --------------------------------------------------------------------------------
- Entre dos fechas, la pool se sustituye por una tematica (por ejemplo, todos los
- Pokemon de tipo hielo) y solo se pueden intercambiar Pokemon de ese tipo. La
- pool que habia NO se borra: se guarda en config/wondertradeplus/seasonal/
- pool-original-<id>.json y se recupera al terminar el evento. No hay comandos:
- empieza y termina solo segun las fechas (se comprueba cada 30 segundos; para
- empezar hace falta algun jugador conectado).
+ Entre las fechas configuradas, la temporada puede abrir sesiones en vez de
+ permanecer activa todo el dia. Navidad: del 25 de diciembre al 6 de enero,
+ cuatro sesiones aleatorias de 60 minutos cada dia. Cada sesion genera una pool
+ nueva; al terminar se restaura la pool original. Los horarios se guardan en
+ seasonal-state.json para que no cambien tras reiniciar. Para generar Pokemon
+ hace falta al menos un jugador conectado al inicio de cada sesion.
 
  enabled                    Interruptor general de los eventos de temporada.
  events                     Lista de eventos; cada uno tiene:
@@ -412,9 +412,13 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
    enabled                    Activa o desactiva ese evento.
    name                       Nombre que se muestra (se traduce con el idioma:
                               pon su traduccion en lang/<idioma>.json).
-   startDate / endDate        Fechas MM-DD, ambas incluidas. Pueden cruzar el
-                              ano: "12-15" a "01-06" va del 15 de diciembre al
-                              6 de enero. Zona horaria: events.schedule.timezone.
+   startDate / endDate        Fechas MM-DD, ambas incluidas. Navidad usa
+                              "12-25" a "01-06" (25 dic. a 6 ene.).
+                              Zona horaria: events.schedule.timezone.
+   sessionsPerDay             Sesiones aleatorias por dia; 4 en Navidad.
+                              0 conserva el modo continuo.
+   sessionDurationMinutes     Duracion de cada sesion en minutos; 60 = 1 hora.
+                              Las horas se eligen sin repetir entre 00:00-23:00 y se separan al menos tres horas.
    types                      Tipos permitidos, en ingles y minusculas:
                               ["ice"]. Un Pokemon vale si alguno de sus tipos
                               esta en la lista (un agua/hielo vale).
@@ -436,9 +440,11 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
      "endDate": "08-31", "types": ["water", "fire"], "extraSpecies": [],
      "restrictTrades": false, "poolSize": 100, "shinyChancePercent": 2.0,
      "includeLegendary": true }
- Al terminar: la pool del evento se archiva en seasonal/pool-event-<id>-<ano>.json
- y la original vuelve con su antiguedad congelada (la caducidad no cuenta el
- tiempo del evento). Si el servidor esta apagado cuando acaba, se restaura al
+ Al terminar cada sesion: la pool temporal se archiva en seasonal/ con una
+ marca temporal y la original vuelve con su antiguedad congelada (la caducidad
+ no cuenta el tiempo del evento). La bossbar navidena es azul con degradado
+ azul-blanco animado. En el menu /wt admin > Gestionar eventos > Hora navidena
+ se puede iniciar, pausar/reanudar y finalizar manualmente. Si el servidor esta apagado cuando acaba, se restaura al
  arrancar. Estado en seasonal-state.json: NO lo borres durante un evento.
  Avisos: en el chat, al entrar al servidor y en Discord (discord.events.seasonal,
  titulos discord.titles.seasonStart/seasonEnd, colores style.colors.seasonStart/End).

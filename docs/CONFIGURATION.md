@@ -12,22 +12,18 @@ El sistema también aplica `antiAbuse.excludeOwnDonations`: un jugador nunca pue
 
 ## `seasonal`
 
-Eventos de temporada, por ejemplo la Navidad. Entre `startDate` y `endDate` (`MM-DD`, ambas incluidas; pueden cruzar el año) la pool se sustituye por una temática de los `types` indicados (Pokémon de tipo hielo por defecto) y, con `restrictTrades`, solo se pueden intercambiar Pokémon de esos tipos. No hay comandos.
-
-La pool que había **no se borra**: se guarda en `config/wondertradeplus/seasonal/pool-original-<id>.json` y se recupera al terminar. La pool del evento se archiva en `pool-event-<id>-<año>.json`. El estado vive en `seasonal-state.json` (no lo borres durante un evento); si el servidor está apagado cuando acaba, se restaura al arrancar. Al volver, la antigüedad de las entradas originales se desplaza para que la caducidad no cuente el tiempo del evento.
+Eventos de temporada. Navidad está configurada del **25 de diciembre al 6 de enero**, ambos incluidos. En lugar de permanecer activa todo el día, abre cuatro sesiones de una hora en horarios aleatorios cada día. Cada sesión genera una pool nueva y, al terminar, restaura la pool original.
 
 - `enabled`: interruptor general.
-- `events[]`: `id`, `enabled`, `name` (se traduce con los archivos de `lang`, por ejemplo la clave `Navidad`), `startDate`, `endDate`, `types` (en inglés: `ice`), `extraSpecies` (especies que valen aunque no tengan el tipo, p. ej. `stantler`), `excludeSpecies` (especies que no deben salir en la pool del evento, p. ej. `["kyurem"]`), `restrictTrades`, `poolSize`, `shinyChancePercent`, `includeLegendary`.
-- Se comprueba cada 30 segundos y, para empezar, hace falta algún jugador conectado (Cobblemon necesita uno para generar Pokémon).
-- Avisos en el chat, al entrar y en Discord (`discord.events.seasonal`, `discord.titles.seasonStart/seasonEnd`, `discord.style.colors.seasonStart/seasonEnd`). Textos en `lang`: `messages.seasonStart/seasonEnd/seasonJoin/seasonTypeBlocked` y `discord.seasonStartMessage/seasonEndMessage`.
-
-Ejemplo de un segundo evento:
-
-```json
-{ "id": "verano", "enabled": true, "name": "Verano", "startDate": "07-01", "endDate": "08-31",
-  "types": ["water", "fire"], "extraSpecies": [], "restrictTrades": false,
-  "poolSize": 100, "shinyChancePercent": 2.0, "includeLegendary": true }
-```
+- `events[]`: `id`, `enabled`, `name`, `startDate`, `endDate`, `types`, `extraSpecies`, `excludeSpecies`, `restrictTrades`, `poolSize`, `shinyChancePercent`, `includeLegendary`.
+- `sessionsPerDay`: número de sesiones aleatorias al día. `4` para Navidad. `0` mantiene el comportamiento continuo antiguo.
+- `sessionDurationMinutes`: duración de cada sesión en minutos (`60` para una hora).
+- Los horarios se sortean entre las 00:00 y las 23:00, sin repetir y separadas al menos tres horas, usando la zona horaria de `events.schedule.timezone`. Se guardan en `seasonal-state.json` y no vuelven a sortearse al reiniciar.
+- La pool original se guarda en `seasonal/pool-original-<id>.json`; las pools temporales se archivan con una marca temporal. No borres `seasonal-state.json` ni los archivos de `seasonal/` mientras una sesión esté activa.
+- Para generar Pokémon hace falta al menos un jugador conectado al inicio de la sesión.
+- La bossbar navideña es azul y muestra el tiempo restante con degradado animado azul-blanco.
+- En `/wt admin` → Gestionar eventos → Hora navideña puedes iniciar, pausar/reanudar y finalizar una sesión manualmente, incluso fuera de las fechas configuradas.
+- Los avisos se envían al chat, al entrar y a Discord (`discord.events.seasonal`, `discord.titles.seasonStart/seasonEnd`, `discord.style.colors.seasonStart/seasonEnd`). El aviso de inicio de Discord indica brevemente la duración de la sesión.
 
 ## `topDonations`
 

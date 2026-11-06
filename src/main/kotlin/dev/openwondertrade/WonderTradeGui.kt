@@ -849,6 +849,12 @@ object WonderTradeGui {
                 }
             }
             val scheduledCount = WonderTradeSchedule.all().size
+            menu.button(18, named(
+                Items.SNOWBALL, Lang.tr("&bHora navideña"),
+                Lang.t("&7Estado: &f{0}", WonderTradeSeasons.statusText()),
+                Lang.tr("&7Inicia, pausa o finaliza la sesión navideña."),
+                Lang.tr("&eClic para gestionar")
+            )) { openChristmasAdmin(it) }
             menu.button(20, named(
                 Items.COMPASS, Lang.tr("&6Eventos programados"),
                 Lang.t("&7Programados: &f{0}", scheduledCount),
@@ -861,6 +867,55 @@ object WonderTradeGui {
                 Lang.tr("&7Eventos terminados con sus WT y jugadores."), Lang.tr("&eClic para ver")
             )) { openEventHistory(it) }
             menu.button(22, named(Items.ARROW, Lang.tr("&aVolver al panel admin"))) { openAdmin(it) }
+            menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
+        }
+    }
+
+    /** Panel de pruebas del evento navideño. */
+    private fun openChristmasAdmin(player: ServerPlayer) {
+        if (!player.hasPermissions(WonderTradeService.adminLevel())) {
+            WonderTradeService.send(player, "adminOnly")
+            return
+        }
+        open(player, Lang.tr("&5Administración &8- &bHora navideña"), 3) { menu ->
+            fill(menu, 27)
+            val status = WonderTradeSeasons.statusText()
+            val season = WonderTradeSeasons.current()
+            val remaining = ((WonderTradeSeasons.sessionEndAt() - System.currentTimeMillis()).coerceAtLeast(0L) + 999L) / 1000L
+            menu.put(4, named(
+                Items.SNOW_BLOCK, Lang.tr("&bHora navideña"),
+                Lang.t("&7Estado: &f{0}", status),
+                Lang.t("&7Duración por sesión: &f{0}", season?.let { WonderTradeEvents.formatDuration(it.sessionDurationMinutes * 60L) } ?: "1 hora"),
+                if (WonderTradeSeasons.isRunning() || WonderTradeSeasons.isPaused())
+                    Lang.t("&7Tiempo restante: &f{0}", WonderTradeEvents.formatDuration(remaining))
+                else Lang.tr("&7La sesión no está activa."),
+                Lang.tr("&8El inicio manual también sirve fuera de las fechas programadas.")
+            ))
+            menu.button(10, named(
+                Items.LIME_CONCRETE, if (WonderTradeSeasons.isPaused()) Lang.tr("&aReanudar / Iniciar") else Lang.tr("&aIniciar ahora"),
+                Lang.tr("&7Genera una pool navideña nueva y comienza una sesión.")
+            )) { p ->
+                val ok = WonderTradeSeasons.manualStart(p.server)
+                p.sendSystemMessage(WonderTradeService.info(if (ok) Lang.tr("&aLa hora navideña se ha iniciado o reanudado.") else Lang.tr("&cNo se ha podido iniciar: comprueba que haya un jugador conectado y que exista una temporada configurada.")))
+                openChristmasAdmin(p)
+            }
+            menu.button(13, named(
+                Items.YELLOW_CONCRETE, Lang.tr("&6Pausar"),
+                Lang.tr("&7Congela el tiempo restante y mantiene la pool navideña.")
+            )) { p ->
+                val ok = WonderTradeSeasons.manualPause(p.server)
+                p.sendSystemMessage(WonderTradeService.info(if (ok) Lang.tr("&eLa hora navideña se ha pausado.") else Lang.tr("&cNo hay ninguna sesión activa que se pueda pausar.")))
+                openChristmasAdmin(p)
+            }
+            menu.button(16, named(
+                Items.RED_CONCRETE, Lang.tr("&cFinalizar"),
+                Lang.tr("&7Restaura la pool habitual y termina la sesión.")
+            )) { p ->
+                val ok = WonderTradeSeasons.manualFinish(p.server)
+                p.sendSystemMessage(WonderTradeService.info(if (ok) Lang.tr("&aLa hora navideña ha finalizado.") else Lang.tr("&cNo hay ninguna sesión que finalizar.")))
+                openChristmasAdmin(p)
+            }
+            menu.button(22, named(Items.ARROW, Lang.tr("&aVolver a eventos"))) { openAdminEvents(it) }
             menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
         }
     }

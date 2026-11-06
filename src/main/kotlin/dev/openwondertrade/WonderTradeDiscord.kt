@@ -205,23 +205,34 @@ object WonderTradeDiscord {
         }
     }
 
-    /** Inicio y fin de un evento de temporada (por ejemplo la Navidad). */
-    fun season(season: Season, started: Boolean, count: Int) {
+    /** Avisos de cada sesión de temporada (por ejemplo, la hora navideña). */
+    fun season(season: Season, started: Boolean, count: Int, durationSeconds: Long = season.sessionDurationMinutes * 60L) {
         Lang.withPlayer(null) {
             if (!eventsEnabled("seasonal")) return
-            val values = WonderTradeSeasons.placeholders(season)
+            val values = WonderTradeSeasons.placeholders(season) + mapOf(
+                "duration" to WonderTradeEvents.formatDuration(durationSeconds),
+                "endEpoch" to (epoch(System.currentTimeMillis()) + durationSeconds)
+            )
             val description = WonderTradeService.format(
-                if (started) ConfigManager.string("discord.seasonStartMessage", "Hasta el **{end}** la pool es temática y solo se pueden intercambiar Pokémon de tipo **{types}**. La pool original se guarda y volverá al terminar el evento.")
-                else ConfigManager.string("discord.seasonEndMessage", "El evento de **{name}** ha terminado. ¡La pool original vuelve a estar disponible!"),
+                if (started)
+                    ConfigManager.string("discord.seasonStartMessage", "Ha aparecido la hora navideña. La pool temática estará disponible durante **{duration}**. ¡Aprovecha para conseguir Pokémon de tipo **{types}**.")
+                else
+                    ConfigManager.string("discord.seasonEndMessage", "La hora navideña ha terminado. La pool habitual vuelve a estar disponible."),
                 values
             )
-            val title = if (started) ConfigManager.string("discord.titles.seasonStart", "❄️ ¡Evento de {name}!") else ConfigManager.string("discord.titles.seasonEnd", "🎁 Fin del evento de {name}")
-            val embed = Embed(WonderTradeService.format(title, values), description, colorOf(if (started) "seasonStart" else "seasonEnd", if (started) "#74B9FF" else "#B2BEC3"))
+            val title = if (started)
+                ConfigManager.string("discord.titles.seasonStart", "🎄 ¡Ha aparecido la hora navideña!")
+            else
+                ConfigManager.string("discord.titles.seasonEnd", "🎁 La hora navideña ha terminado")
+            val embed = Embed(WonderTradeService.format(title, values), description,
+                colorOf(if (started) "seasonStart" else "seasonEnd", if (started) "#168BFF" else "#B2BEC3"))
             if (started) {
-                embed.field(Lang.tr("🧊 Tipos"), values["types"].toString())
-                embed.field(Lang.tr("📅 Hasta"), values["end"].toString())
+                embed.field(Lang.tr("⏱️ Tiempo disponible"), WonderTradeEvents.formatDuration(durationSeconds))
+                embed.field(Lang.tr("🏁 Termina"), "<t:${values["endEpoch"]}:R>")
+                embed.field(Lang.tr("🧊 Temática"), season.types.joinToString(", ") { WonderTradeRules.typeName(it) })
+            } else {
+                embed.field(Lang.tr("🎴 Pokémon en la pool habitual"), count.toString())
             }
-            embed.field(Lang.tr("🎴 Pokémon en la pool"), count.toString())
             postEvent(embed)
         }
     }

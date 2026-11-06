@@ -3,12 +3,16 @@ package dev.openwondertrade
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerBossEvent
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.Style
+import net.minecraft.network.chat.TextColor
 import net.minecraft.world.BossEvent
 import java.util.UUID
 
 /** Barra de tiempo (bossbar) de los eventos activos y aviso al entrar. Todo ocurre en el servidor. */
 object WonderTradeEventDisplay {
     private val bars = HashMap<String, ServerBossEvent>()
+    private val seasonBars = HashMap<String, ServerBossEvent>()
     private val barStyle = HashMap<String, String>()
     private val joinQueue = HashMap<UUID, Long>()
 
@@ -70,7 +74,10 @@ object WonderTradeEventDisplay {
             bars.remove(key)?.removeAllPlayers()
             barStyle.remove(key)
         }
-        if (active.isEmpty()) return
+        if (active.isEmpty()) {
+            syncSeasonBars(server, groups)
+            return
+        }
 
         val overlay = parseOverlay(ConfigManager.string("events.bossbar.overlay", "PROGRESS"))
         for (event in active) {
@@ -101,6 +108,51 @@ object WonderTradeEventDisplay {
                 bar.players.toList().forEach { if (!players.contains(it)) bar.removePlayer(it) }
             }
         }
+        syncSeasonBars(server, groups)
+    }
+
+    /** Bossbar azul exclusiva de la hora navideña, con texto animado en degradado azul-blanco. */
+    private fun syncSeasonBars(server: MinecraftServer, groups: Map<String, List<ServerPlayer>>) {
+        val season = WonderTradeSeasons.current()?.takeIf { WonderTradeSeasons.isRunning() }
+        val online = groups.values.flatten()
+        if (season == null || online.isEmpty()) {
+            seasonBars.values.forEach { it.removeAllPlayers() }
+            seasonBars.clear()
+            return
+        }
+        val now = System.currentTimeMillis()
+        val total = (season.sessionDurationMinutes * 60_000L).coerceAtLeast(1L)
+        val remaining = (WonderTradeSeasons.sessionEndAt() - now).coerceAtLeast(0L)
+        for ((language, players) in groups) {
+            val key = "${season.id}|$language"
+            val bar = seasonBars.getOrPut(key) {
+                ServerBossEvent(Component.empty(), BossEvent.BossBarColor.BLUE, BossEvent.BossBarOverlay.PROGRESS)
+            }
+            bar.progress = (remaining.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+            val time = WonderTradeEvents.formatDuration((remaining + 999L) / 1000L)
+            bar.name = Lang.withPlayer(players.first()) { christmasGradient("❄ HORA NAVIDEÑA — $time", now) }
+            players.forEach { if (!bar.players.contains(it)) bar.addPlayer(it) }
+            bar.players.toList().forEach { if (!players.contains(it)) bar.removePlayer(it) }
+        }
+        val wanted = groups.keys.map { "${season.id}|$it" }.toSet()
+        seasonBars.keys.toList().filter { it !in wanted }.forEach { seasonBars.remove(it)?.removeAllPlayers() }
+    }
+
+    private fun christmasGradient(text: String, now: Long): Component {
+        val result = Component.empty()
+        val blue = intArrayOf(35, 139, 255)
+        val white = intArrayOf(245, 252, 255)
+        val phase = now / 420.0
+        text.forEachIndexed { index, char ->
+            val wave = ((index * 0.16 + phase) % 2.0)
+            val blend = if (wave <= 1.0) wave else 2.0 - wave
+            val r = (blue[0] + (white[0] - blue[0]) * blend).toInt()
+            val g = (blue[1] + (white[1] - blue[1]) * blend).toInt()
+            val b = (blue[2] + (white[2] - blue[2]) * blend).toInt()
+            val rgb = (r shl 16) or (g shl 8) or b
+            result.append(Component.literal(char.toString()).setStyle(Style.EMPTY.withColor(TextColor.fromRgb(rgb))))
+        }
+        return result
     }
 
     /** Se llama una vez por segundo. */
