@@ -56,9 +56,6 @@ object WonderTradeEventDisplay {
 
     // ------------------------------------------------------------ barras de tiempo
 
-    private fun parseColor(text: String): BossEvent.BossBarColor =
-        BossEvent.BossBarColor.values().firstOrNull { it.name.equals(text.trim(), true) } ?: BossEvent.BossBarColor.PURPLE
-
     private fun parseOverlay(text: String): BossEvent.BossBarOverlay =
         BossEvent.BossBarOverlay.values().firstOrNull { it.name.equals(text.trim(), true) } ?: BossEvent.BossBarOverlay.PROGRESS
 
@@ -81,28 +78,29 @@ object WonderTradeEventDisplay {
 
         val overlay = parseOverlay(ConfigManager.string("events.bossbar.overlay", "PROGRESS"))
         for (event in active) {
-            val color = parseColor(
-                ConfigManager.string(if (event.type == EventType.RISK) "events.bossbar.risk.color" else "events.bossbar.receive.color", "PURPLE")
-            )
+            val looks = categoryLooks(event.categories)
             val total = (event.endAt - event.startAt).coerceAtLeast(1L)
             val remaining = (event.endAt - now).coerceAtLeast(0L)
+            // Con varias categorías la barra va pasando por el color de cada una.
+            val barColor = looks[((now / 900L) % looks.size).toInt()].bar
             for ((language, players) in groups) {
                 val key = "${event.id}|$language"
-                // Si cambian el color o el estilo en la configuración, se vuelve a crear la barra.
-                val style = "${color.name}/${overlay.name}"
-                if (barStyle[key] != style) {
+                if (barStyle[key] != overlay.name) {
                     bars.remove(key)?.removeAllPlayers()
-                    barStyle[key] = style
+                    barStyle[key] = overlay.name
                 }
                 val bar = bars.getOrPut(key) {
-                    ServerBossEvent(net.minecraft.network.chat.Component.empty(), color, overlay)
+                    ServerBossEvent(Component.empty(), barColor, overlay)
                 }
+                bar.color = barColor
                 bar.progress = (remaining.toFloat() / total.toFloat()).coerceIn(0f, 1f)
                 bar.name = Lang.withPlayer(players.first()) {
                     val format = ConfigManager.string("events.bossbar.format", "&d★ {name} &7— &f{time}")
-                    WonderTradeService.colour(
-                        WonderTradeService.format(format, mapOf("name" to event.title, "time" to WonderTradeEvents.formatDuration((remaining + 999L) / 1000L)))
-                    )
+                    val plain = WonderTradeService.format(
+                        format,
+                        mapOf("name" to event.title, "time" to WonderTradeEvents.formatDuration((remaining + 999L) / 1000L))
+                    ).replace(Regex("[&§][0-9a-fk-orA-FK-OR]"), "")
+                    movingGradient(plain, looks.map { it.rgb }, now)
                 }
                 players.forEach { if (!bar.players.contains(it)) bar.addPlayer(it) }
                 bar.players.toList().forEach { if (!players.contains(it)) bar.removePlayer(it) }
@@ -130,7 +128,9 @@ object WonderTradeEventDisplay {
             }
             bar.progress = (remaining.toFloat() / total.toFloat()).coerceIn(0f, 1f)
             val time = WonderTradeEvents.formatDuration((remaining + 999L) / 1000L)
-            bar.name = Lang.withPlayer(players.first()) { christmasGradient("❄ HORA NAVIDEÑA — $time", now) }
+            bar.name = Lang.withPlayer(players.first()) {
+                movingGradient("❄ HORA NAVIDEÑA — $time", listOf(intArrayOf(35, 139, 255)), now)
+            }
             players.forEach { if (!bar.players.contains(it)) bar.addPlayer(it) }
             bar.players.toList().forEach { if (!players.contains(it)) bar.removePlayer(it) }
         }
@@ -138,21 +138,50 @@ object WonderTradeEventDisplay {
         seasonBars.keys.toList().filter { it !in wanted }.forEach { seasonBars.remove(it)?.removeAllPlayers() }
     }
 
-    private fun christmasGradient(text: String, now: Long): Component {
+    /** Color de la barra y del texto, los mismos que el menú de /wt especiales. Shiny, que no sale ahí, va en amarillo. */
+    private class CategoryLook(val bar: BossEvent.BossBarColor, val rgb: IntArray)
+
+    private fun categoryLooks(categories: List<EventCategory>): List<CategoryLook> {
+        val chosen = categories.ifEmpty { listOf(EventCategory.LEGENDARY) }
+        return chosen.map { category ->
+            when (category) {
+                EventCategory.SHINY -> CategoryLook(BossEvent.BossBarColor.YELLOW, intArrayOf(255, 255, 85))
+                EventCategory.ULTRABEAST -> CategoryLook(BossEvent.BossBarColor.BLUE, intArrayOf(0, 170, 170))
+                EventCategory.PARADOX -> CategoryLook(BossEvent.BossBarColor.RED, intArrayOf(255, 85, 85))
+                EventCategory.MYTHICAL -> CategoryLook(BossEvent.BossBarColor.PINK, intArrayOf(255, 85, 255))
+                EventCategory.LEGENDARY -> CategoryLook(BossEvent.BossBarColor.YELLOW, intArrayOf(255, 170, 0))
+            }
+        }
+    }
+
+    /**
+     * Ola de color sobre el texto. Con una sola categoría oscila entre ese color y el blanco.
+     * Con varias, recorre el color de cada una.
+     */
+    private fun movingGradient(text: String, colors: List<IntArray>, now: Long): Component {
         val result = Component.empty()
-        val blue = intArrayOf(35, 139, 255)
-        val white = intArrayOf(245, 252, 255)
         val phase = now / 420.0
+        val palette = if (colors.size <= 1) listOf(colors.firstOrNull() ?: intArrayOf(255, 255, 255), intArrayOf(245, 252, 255)) else colors
         text.forEachIndexed { index, char ->
-            val wave = ((index * 0.16 + phase) % 2.0)
-            val blend = if (wave <= 1.0) wave else 2.0 - wave
-            val r = (blue[0] + (white[0] - blue[0]) * blend).toInt()
-            val g = (blue[1] + (white[1] - blue[1]) * blend).toInt()
-            val b = (blue[2] + (white[2] - blue[2]) * blend).toInt()
-            val rgb = (r shl 16) or (g shl 8) or b
+            val rgb = if (colors.size <= 1) {
+                val wave = ((index * 0.16 + phase) % 2.0)
+                val blend = if (wave <= 1.0) wave else 2.0 - wave
+                mix(palette[0], palette[1], blend)
+            } else {
+                val pos = (index * 0.16 + phase) % palette.size
+                val left = pos.toInt()
+                mix(palette[left], palette[(left + 1) % palette.size], pos - left)
+            }
             result.append(Component.literal(char.toString()).setStyle(Style.EMPTY.withColor(TextColor.fromRgb(rgb))))
         }
         return result
+    }
+
+    private fun mix(from: IntArray, to: IntArray, blend: Double): Int {
+        val r = (from[0] + (to[0] - from[0]) * blend).toInt()
+        val g = (from[1] + (to[1] - from[1]) * blend).toInt()
+        val b = (from[2] + (to[2] - from[2]) * blend).toInt()
+        return (r shl 16) or (g shl 8) or b
     }
 
     /** Se llama en cada tick del servidor para que el degradado y el progreso avancen sin saltos de un segundo. */
