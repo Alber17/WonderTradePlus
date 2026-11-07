@@ -430,7 +430,7 @@ object WonderTradeDiscord {
         Lang.withPlayer(null) {
             if (!ConfigManager.bool("discord.enabled", false) || !ConfigManager.bool("discord.notifyDonations", true)) return
             if (!WonderTradeRules.isRare(offered)) return
-            val template = ConfigManager.string("discord.donationMessage", "{player} ha aportado un {pokemon} al pool del WonderTrade.")
+            val template = ConfigManager.string("discord.donationMessage", "Han aportado un {pokemon} al pool del WonderTrade.")
             if (template.isNotBlank()) {
                 val name = player.gameProfile.name
                 val text = WonderTradeService.format(template, mapOf("player" to name, "pokemon" to plainName(offered), "level" to offered.level, "category" to plainCategory(offered)))
@@ -444,7 +444,7 @@ object WonderTradeDiscord {
             if (!ConfigManager.bool("discord.enabled", false)) return
             notifyDonation(player, offered)
             if (ConfigManager.bool("discord.notifyReceived", true) && WonderTradeRules.isRare(incoming)) {
-                val template = ConfigManager.string("discord.receivedMessage", "{player} ha recibido un {pokemon} del pool del WonderTrade.")
+                val template = ConfigManager.string("discord.receivedMessage", "Han recibido un {pokemon} del pool del WonderTrade.")
                 val name = player.gameProfile.name
                 val text = WonderTradeService.format(template, mapOf("player" to name, "pokemon" to plainName(incoming), "level" to incoming.level, "category" to plainCategory(incoming)))
                 discordPost("", embed = pokemonEmbed(ConfigManager.string("discord.titles.received", "🎉 ¡Premio en un Wonder Trade!"), text, incoming, name))

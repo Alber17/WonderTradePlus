@@ -217,6 +217,26 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.26.33
+
+- Discord: «Han recibido» del pool y «Han aportado» al pool.
+
+## 0.26.32
+
+- Discord: el Pokémon sale del pool o entra al pool.
+
+## 0.26.31
+
+- Discord: la frase empieza por el Pokémon.
+
+## 0.26.30
+
+- Discord: la frase recupera el pool del WonderTrade y no repite el nombre del jugador.
+
+## 0.26.29
+
+- Discord: la frase del Pokémon cabe en una línea. WonderTrade ya sale en el título y en el pie.
+
 ## 0.26.28
 
 - Discord: «ha recibido» sale del pool. «Ha aportado» sigue yendo al pool.

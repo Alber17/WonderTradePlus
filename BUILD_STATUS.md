@@ -1,12 +1,32 @@
 # Estado de compilación
 
-- Versión actual: **0.26.28**.
+- Versión actual: **0.26.33**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
 - Los comandos `/wt admin ...`, el historial, el cooldown de 12 h y el autocompletado (v0.3.0) están pendientes de probar en juego.
 - Los anuncios de legendarios, Ultraentes y Paradoja pasado/futuro (v0.2.1) están pendientes de probar en juego.
 - No es una versión NeoForge/Arclight. El JAR es solo Fabric.
+
+## Cambios de la versión 0.26.33
+
+- Discord: «Han recibido un Pokémon del pool del WonderTrade» y «Han aportado un Pokémon al pool del WonderTrade».
+
+## Cambios de la versión 0.26.32
+
+- La frase de Discord dice que el Pokémon sale del pool o entra al pool.
+
+## Cambios de la versión 0.26.31
+
+- La frase de Discord empieza por el Pokémon, no por «Ha».
+
+## Cambios de la versión 0.26.30
+
+- La frase de Discord vuelve a nombrar el pool del WonderTrade y ya no repite el jugador, que sigue en el campo de abajo.
+
+## Cambios de la versión 0.26.29
+
+- La frase de Discord ya no repite WonderTrade, así cabe en una línea junto a la imagen.
 
 ## Cambios de la versión 0.26.28
 
