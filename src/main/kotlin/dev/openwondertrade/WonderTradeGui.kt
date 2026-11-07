@@ -196,7 +196,9 @@ object WonderTradeGui {
             return
         }
         val title = if (filter == null) Lang.tr("&5Wonder Trade &8- &fHistorial") else Lang.t("&5Historial &8- &f{0}", filter)
-        open(player, title, 6) { renderHistory(it, player, filter, page) }
+        open(player, title, 6) { menu ->
+            if (filter == null) renderHistoryPlayers(menu, player, page) else renderHistory(menu, player, filter, page)
+        }
     }
 
     /** Historial del propio jugador: solo muestra los intercambios hechos con su nombre, nunca los de otros. */
@@ -698,10 +700,8 @@ object WonderTradeGui {
         val categoryLabel = specialCategories.firstOrNull { it.first == key }?.second ?: key
         list.drop(page * POOL_PER_PAGE).take(POOL_PER_PAGE).forEachIndexed { index, pokemon ->
             val stack = runCatching { PokemonItem.from(pokemon) }.getOrElse { ItemStack(Items.PAPER) }
-            val formName = WonderTradeRules.formLabel(pokemon)
-            stack.set(DataComponents.CUSTOM_NAME, lit("&f" + pokemon.getDisplayName().string + (formName?.let { " &7($it)" } ?: "")))
+            stack.set(DataComponents.CUSTOM_NAME, lit("&f" + WonderTradeDiscord.plainName(pokemon)))
             val lines = mutableListOf(Lang.t("&7Categoría: {0}", categoryLabel))
-            formName?.let { lines += Lang.t("&7Forma: &f{0}", it) }
             WonderTradeRules.typesLabel(pokemon)?.let { lines += Lang.t("&7Tipo: {0}", it) }
             stack.set(DataComponents.LORE, ItemLore(lines.map<String, Component> { lit(it) }))
             menu.put(index, stack)
@@ -784,7 +784,7 @@ object WonderTradeGui {
             )) { openPenalties(it, WonderTradePenalties.selection(it.uuid) ?: defaultPenaltyMillis(), 0) }
             // Fila 3: datos
             menu.put(27, named(Items.YELLOW_STAINED_GLASS_PANE, Lang.tr("&eDatos")))
-            btn(29, "history", named(Items.WRITABLE_BOOK, ConfigManager.string("messages.adminMenuHistory", "&eHistorial"), Lang.tr("&7Últimos intercambios."))) {
+            btn(29, "history", named(Items.WRITABLE_BOOK, ConfigManager.string("messages.adminMenuHistory", "&eHistorial"), Lang.tr("&7Por jugador o historial general."))) {
                 openHistory(it)
             }
             btn(31, "donations", named(Items.BOOK, Lang.tr("&aDonaciones"), Lang.tr("&7Qué ha donado cada jugador."), Lang.tr("&eClic para ver"))) {
@@ -1315,8 +1315,9 @@ object WonderTradeGui {
         players.drop(shown * 36).take(36).forEachIndexed { index, target ->
             val active = WonderTradePenalties.active(target.uuid)
             val state = if (active != null) Lang.t("&cYa penalizado: &f{0}", WonderTradePenalties.remainingText(active)) else Lang.tr("&7Sin penalización")
+            val title = if (active != null) Lang.t("&c{0}", target.gameProfile.name) else Lang.t("&f{0}", target.gameProfile.name)
             val head = playerHead(
-                target.gameProfile.name, target.uuid, WonderTradeService.profileSkin(target), Lang.t("&f{0}", target.gameProfile.name),
+                target.gameProfile.name, target.uuid, WonderTradeService.profileSkin(target), title,
                 state, Lang.t("&7Penalizar durante: &f{0}", label), Lang.t("&7Motivo: {0}", reasonLabel), Lang.tr("&eClic para penalizar")
             )
             menu.button(index, head) { p ->
@@ -1326,19 +1327,20 @@ object WonderTradeGui {
                 renderPenalties(menu, p, millis, shown)
             }
         }
-        val steps = listOf(36 to -86_400_000L, 37 to -3_600_000L, 38 to -600_000L, 40 to 600_000L, 41 to 3_600_000L, 42 to 86_400_000L)
+        // Tiempo centrado: menos a la izquierda, reloj en el medio, más a la derecha.
+        val steps = listOf(37 to -86_400_000L, 38 to -3_600_000L, 39 to -600_000L, 41 to 600_000L, 42 to 3_600_000L, 43 to 86_400_000L)
         for ((slot, delta) in steps) {
             val text = WonderTradeEvents.formatDuration(kotlin.math.abs(delta) / 1000L)
             val item = if (delta < 0) Items.RED_STAINED_GLASS_PANE else Items.LIME_STAINED_GLASS_PANE
-            menu.button(slot, named(item, (if (delta < 0) "&c-" else "&a+") + text, Lang.t("&7Duración actual: &f{0}", label))) { p ->
+            menu.button(slot, named(item, (if (delta < 0) "&c-" else "&a+") + text, Lang.t("&7Duración actual: &f{0}", label), Lang.tr("&eClic para cambiar"))) { p ->
                 val base = if (permanent) defaultPenaltyMillis() else current
                 val next = (base + delta).coerceIn(minimum, maximum)
                 WonderTradePenalties.rememberSelection(p.uuid, next)
                 renderPenalties(menu, p, next, shown)
             }
         }
-        menu.put(39, named(Items.CLOCK, Lang.t("&6Tiempo: &f{0}", label), Lang.tr("&7Mínimo 1 minuto, máximo 365 días.")))
-        menu.button(43, named(
+        menu.put(40, named(Items.CLOCK, Lang.t("&6Tiempo: &f{0}", label), Lang.tr("&7Mínimo 1 minuto, máximo 365 días."), Lang.t("&7Motivo: {0}", reasonLabel)))
+        menu.button(44, named(
             if (permanent) Items.LIME_CONCRETE else Items.GRAY_CONCRETE, if (permanent) Lang.tr("&aPermanente: SÍ") else Lang.tr("&7Permanente: NO"),
             Lang.tr("&7Hasta que lo perdones manualmente."), Lang.tr("&eClic para cambiar")
         )) { p ->
@@ -1346,7 +1348,26 @@ object WonderTradeGui {
             WonderTradePenalties.rememberSelection(p.uuid, next)
             renderPenalties(menu, p, next, shown)
         }
-        menu.button(44, named(Items.NAME_TAG, Lang.tr("&ePor nombre"), Lang.tr("&7Para jugadores desconectados."), Lang.t("&7Usa el tiempo elegido: &f{0}", label), Lang.tr("&eClic para escribir el nombre"))) { p ->
+        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdmin(it) }
+        menu.button(46, named(Items.BOOK, Lang.tr("&6Penalizados"), Lang.t("&7{0} jugadores", WonderTradePenalties.list().size), Lang.tr("&7Ver y perdonar penalizaciones vigentes."))) { openPenalized(it, millis) }
+        // Motivo: un clic recorre los motivos rápidos (el último es «sin motivo»); «Escribir motivo» pide uno propio.
+        menu.button(47, named(Items.WRITABLE_BOOK, Lang.t("&6Motivo: {0}", reasonLabel), Lang.tr("&7Se muestra al jugador y queda en el historial."), Lang.tr("&eClic para cambiar de motivo rápido"))) { p ->
+            val presets = WonderTradePenalties.presetReasons()
+            val index = presets.indexOf(reason)
+            WonderTradePenalties.rememberReason(p.uuid, if (index + 1 < presets.size) presets[index + 1] else if (reason.isBlank()) presets.firstOrNull() ?: "" else "")
+            renderPenalties(menu, p, millis, shown)
+        }
+        if (shown > 0) menu.button(48, named(Items.ARROW, Lang.tr("&ePágina anterior"))) { renderPenalties(menu, it, millis, shown - 1) }
+        menu.put(49, named(Items.PAPER, Lang.t("&fPágina {0}/{1}", shown + 1, pages), Lang.t("&7{0} jugadores", players.size)))
+        if (shown < pages - 1) menu.button(50, named(Items.ARROW, Lang.tr("&ePágina siguiente"))) { renderPenalties(menu, it, millis, shown + 1) }
+        menu.button(51, named(Items.OAK_SIGN, Lang.tr("&eEscribir motivo"), Lang.tr("&7Escríbelo en el chat con /wt admin motivo."), Lang.tr("&eClic para escribir"))) { p ->
+            WonderTradePenalties.rememberSelection(p.uuid, if (permanent) 0L else current)
+            p.closeContainer()
+            val button = Component.literal("§e§n" + Lang.tr("[Pulsa aquí para escribir el motivo]"))
+                .setStyle(Style.EMPTY.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/wt admin motivo ")))
+            p.sendSystemMessage(WonderTradeService.colour(WonderTradeService.prefix() + Lang.tr("&7Escribe el motivo (o «ninguno»). ")).copy().append(button))
+        }
+        menu.button(52, named(Items.NAME_TAG, Lang.tr("&ePor nombre"), Lang.tr("&7Para jugadores desconectados."), Lang.t("&7Usa el tiempo elegido: &f{0}", label), Lang.tr("&eClic para escribir el nombre"))) { p ->
             WonderTradePenalties.rememberSelection(p.uuid, if (permanent) 0L else current)
             p.closeContainer()
             val button = Component.literal(Lang.tr("§e§n[Pulsa aquí para escribir el nombre]"))
@@ -1355,24 +1376,6 @@ object WonderTradeGui {
                 WonderTradeService.colour(WonderTradeService.prefix() + Lang.t("&7Escribe el nombre del jugador (tiempo: &f{0}&7). ", label)).copy().append(button)
             )
         }
-        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdmin(it) }
-        // Motivo: un clic recorre los motivos rápidos (el último es «sin motivo»); «Escribir motivo» pide uno propio.
-        menu.button(46, named(Items.WRITABLE_BOOK, Lang.t("&6Motivo: {0}", reasonLabel), Lang.tr("&7Se muestra al jugador y queda en el historial."), Lang.tr("&eClic para cambiar de motivo rápido"))) { p ->
-            val presets = WonderTradePenalties.presetReasons()
-            val index = presets.indexOf(reason)
-            WonderTradePenalties.rememberReason(p.uuid, if (index + 1 < presets.size) presets[index + 1] else if (reason.isBlank()) presets.firstOrNull() ?: "" else "")
-            renderPenalties(menu, p, millis, shown)
-        }
-        menu.button(49, named(Items.OAK_SIGN, Lang.tr("&eEscribir motivo"), Lang.tr("&7Escríbelo en el chat con /wt admin motivo."), Lang.tr("&eClic para escribir"))) { p ->
-            WonderTradePenalties.rememberSelection(p.uuid, if (permanent) 0L else current)
-            p.closeContainer()
-            val button = Component.literal("§e§n" + Lang.tr("[Pulsa aquí para escribir el motivo]"))
-                .setStyle(Style.EMPTY.withClickEvent(ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/wt admin motivo ")))
-            p.sendSystemMessage(WonderTradeService.colour(WonderTradeService.prefix() + Lang.tr("&7Escribe el motivo (o «ninguno»). ")).copy().append(button))
-        }
-        menu.button(47, named(Items.BOOK, Lang.tr("&6Penalizados"), Lang.tr("&7Ver y perdonar penalizaciones vigentes."))) { openPenalized(it, millis) }
-        if (shown > 0) menu.button(48, named(Items.ARROW, Lang.tr("&ePágina anterior"))) { renderPenalties(menu, it, millis, shown - 1) }
-        if (shown < pages - 1) menu.button(50, named(Items.ARROW, Lang.tr("&ePágina siguiente"))) { renderPenalties(menu, it, millis, shown + 1) }
         menu.button(53, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
@@ -1384,7 +1387,7 @@ object WonderTradeGui {
             if (list.isEmpty()) menu.put(22, named(Items.PAPER, Lang.tr("&7No hay jugadores penalizados")))
             list.forEachIndexed { index, penalty ->
                 val head = playerHead(
-                    penalty.name, penalty.uuid, WonderTradeService.donorSkin(penalty.uuid), Lang.t("&f{0}", penalty.name),
+                    penalty.name, penalty.uuid, WonderTradeService.donorSkin(penalty.uuid), Lang.t("&c{0}", penalty.name),
                     Lang.t("&cTiempo restante: &f{0}", WonderTradePenalties.remainingText(penalty)), Lang.t("&7Por: &f{0}", penalty.by), Lang.tr("&eClic para perdonar")
                 )
                 menu.button(index, head) { p ->
@@ -1395,7 +1398,7 @@ object WonderTradeGui {
                 }
             }
             menu.button(49, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openPenalties(it, millis, 0) }
-            menu.button(53, named(Items.CLOCK, Lang.tr("&eHistorial"), Lang.tr("&7Últimas penalizaciones, perdones y caducidades."))) { openPenaltyHistory(it, millis) }
+            menu.button(53, named(Items.WRITABLE_BOOK, Lang.tr("&eHistorial"), Lang.tr("&7Últimas penalizaciones, perdones y caducidades."))) { openPenaltyHistory(it, millis) }
         }
     }
 
@@ -1407,7 +1410,8 @@ object WonderTradeGui {
             if (records.isEmpty()) menu.put(22, named(Items.PAPER, Lang.tr("&7El historial está vacío")))
             records.forEachIndexed { index, record ->
                 val item = when (record.action) { "pardoned" -> Items.LIME_DYE; "expired" -> Items.GRAY_DYE; else -> Items.RED_DYE }
-                menu.put(index, named(item, "&f${record.name}", WonderTradePenalties.describeRecord(record)))
+                val color = when (record.action) { "pardoned" -> "&a"; "expired" -> "&7"; else -> "&c" }
+                menu.put(index, named(item, "$color${record.name}", WonderTradePenalties.describeRecord(record)))
             }
             menu.button(49, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openPenalized(it, millis) }
         }
@@ -1766,13 +1770,7 @@ object WonderTradeGui {
     }
 
     private fun donationStack(player: ServerPlayer, entry: DonationEntry, dateFormat: SimpleDateFormat): ItemStack {
-        val pokemon = runCatching {
-            com.cobblemon.mod.common.api.pokemon.PokemonProperties().apply {
-                this.species = entry.species
-                this.level = entry.level.coerceIn(1, 100)
-                this.shiny = entry.shiny
-            }.create(player)
-        }.getOrNull()
+        val pokemon = WonderTradeService.previewPokemon(player, entry.species, entry.level, entry.shiny, entry.form)
         val icon = pokemon?.let { runCatching { PokemonItem.from(it) }.getOrNull() } ?: ItemStack(Items.PAPER)
         val color = pokemon?.let { WonderTradeRules.nameColor(it) } ?: "&f"
         icon.set(DataComponents.CUSTOM_NAME, lit(color + entry.name))
@@ -1785,6 +1783,43 @@ object WonderTradeGui {
         pokemon?.let { WonderTradeRules.categoryLabel(it) }?.let { lines.add(Lang.tr("&7Categoría: ") + it) }
         icon.set(DataComponents.LORE, ItemLore(lines.map<String, Component> { lit(it) }))
         return icon
+    }
+
+    /** El historial de admin se abre por jugador. «General» muestra todos los intercambios. */
+    private fun renderHistoryPlayers(menu: GuiMenu, admin: ServerPlayer, requestedPage: Int) {
+        menu.wipe()
+        fill(menu, 54)
+        val traders = WonderTradeService.historyTraders()
+        val pages = maxOf(1, (traders.size + POOL_PER_PAGE - 1) / POOL_PER_PAGE)
+        val page = requestedPage.coerceIn(0, pages - 1)
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm")
+        val online = admin.server.playerList.players.associateBy { it.uuid }
+        traders.drop(page * POOL_PER_PAGE).take(POOL_PER_PAGE).forEachIndexed { index, (uuidText, name, summary) ->
+            val (count, last) = summary
+            val uuid = runCatching { java.util.UUID.fromString(uuidText) }.getOrNull()
+            val target = uuid?.let { online[it] }
+            val skin = target?.let { WonderTradeService.profileSkin(it) } ?: uuid?.let { WonderTradeService.savedSkin(it) }
+            val head = playerHead(
+                name, uuid, skin, Lang.t("&f{0}", name),
+                if (target != null) Lang.tr("&aConectado") else Lang.tr("&7Desconectado"),
+                Lang.t("&7Intercambios: &f{0}", count),
+                Lang.t("&7Última: &f{0}", dateFormat.format(Date(last))),
+                Lang.tr("&eClic para ver")
+            )
+            menu.button(index, head) { renderHistory(menu, it, name, 0) }
+        }
+        if (traders.isEmpty()) menu.put(22, named(Items.BARRIER, Lang.tr("&cNo hay intercambios registrados")))
+        menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdmin(it) }
+        menu.button(47, named(
+            Items.COMPASS, Lang.tr("&fGeneral"),
+            Lang.t("&7{0} intercambios", WonderTradeService.historyEntries().size),
+            Lang.tr("&7Todos los intercambios."),
+            Lang.tr("&eClic para ver")
+        )) { renderHistory(menu, it, null, 0) }
+        if (page > 0) menu.button(48, named(Items.ARROW, Lang.tr("&ePágina anterior")), "pageTurn") { renderHistoryPlayers(menu, it, page - 1) }
+        menu.put(49, named(Items.PAPER, Lang.t("&fPágina {0}/{1}", page + 1, pages), Lang.t("&7{0} jugadores", traders.size)))
+        if (page < pages - 1) menu.button(50, named(Items.ARROW, Lang.tr("&ePágina siguiente")), "pageTurn") { renderHistoryPlayers(menu, it, page + 1) }
+        menu.button(53, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
     private fun renderHistory(menu: GuiMenu, player: ServerPlayer, filter: String?, requestedPage: Int, own: Boolean = false) {
@@ -1802,7 +1837,7 @@ object WonderTradeGui {
         if (entries.isEmpty()) menu.put(22, named(Items.BARRIER, Lang.tr("&cNo hay intercambios registrados")))
 
         if (own) menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver al equipo"))) { openMain(it) }
-        else menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdmin(it) }
+        else menu.button(45, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { renderHistoryPlayers(menu, it, 0) }
         if (page > 0) menu.button(48, named(Items.ARROW, Lang.tr("&ePágina anterior")), "pageTurn") { renderHistory(menu, it, filter, page - 1, own) }
         menu.put(49, named(Items.PAPER, Lang.t("&fPágina {0}/{1}", page + 1, pages), Lang.t("&7{0} intercambios", entries.size) + if (filter != null) Lang.t(" de {0}", filter) else ""))
         if (page < pages - 1) menu.button(50, named(Items.ARROW, Lang.tr("&ePágina siguiente")), "pageTurn") { renderHistory(menu, it, filter, page + 1, own) }
@@ -1811,13 +1846,7 @@ object WonderTradeGui {
 
     private fun historyStack(player: ServerPlayer, entry: HistoryEntry, dateFormat: SimpleDateFormat): ItemStack {
         // El icono es el Pokémon que RECIBIÓ el jugador; se recrea a partir del resumen guardado.
-        val pokemon = runCatching {
-            com.cobblemon.mod.common.api.pokemon.PokemonProperties().apply {
-                this.species = entry.receivedSpecies
-                this.level = entry.receivedLevel.coerceIn(1, 100)
-                this.shiny = entry.receivedShiny
-            }.create(player)
-        }.getOrNull()
+        val pokemon = WonderTradeService.previewPokemon(player, entry.receivedSpecies, entry.receivedLevel, entry.receivedShiny, entry.receivedForm)
         val icon = pokemon?.let { runCatching { PokemonItem.from(it) }.getOrNull() } ?: ItemStack(Items.PAPER)
         val receivedTypes = pokemon?.let { WonderTradeRules.typesLabel(it) }
 
@@ -1855,7 +1884,7 @@ object WonderTradeGui {
             menu.button(11, named(
                 Items.LIME_CONCRETE,
                 if (donationMode) Lang.tr("&aConfirmar donación") else Lang.tr("&aConfirmar intercambio"),
-                Lang.t("&7Ofreces: {0}{1}", WonderTradeRules.nameColor(pokemon), pokemon.getDisplayName().string),
+                Lang.t("&7Ofreces: {0}{1}", WonderTradeRules.nameColor(pokemon), WonderTradeDiscord.plainName(pokemon)),
                 if (donationMode) Lang.tr("&7No recibirás ningún Pokémon a cambio.") else Lang.tr("&7Recibirás otro Pokémon de la pool.")
             )) { p ->
                 if (donationMode) WonderTradeService.donateFromStore(p, fromPc, pokemon.uuid)
@@ -1986,13 +2015,14 @@ object WonderTradeGui {
 
     private fun pokemonStack(pokemon: Pokemon, showOfferHint: Boolean, extra: List<String> = emptyList()): ItemStack {
         val stack = runCatching { PokemonItem.from(pokemon) }.getOrElse { ItemStack(Items.PAPER) }
-        val name = pokemon.getDisplayName().string
+        val baseName = pokemon.getDisplayName().string
+        val name = WonderTradeDiscord.plainName(pokemon)
         val size = if (ConfigManager.bool("pool.size.show", true)) " &8(&7" + WonderTradeRules.sizeLabel(pokemon) + "&8)" else ""
         stack.set(DataComponents.CUSTOM_NAME, lit(WonderTradeRules.nameColor(pokemon) + name + size))
 
         val lines = mutableListOf(Lang.t("&7Nivel: &f{0}", pokemon.level))
         WonderTradeRules.typesLabel(pokemon)?.let { lines += Lang.t("&7Tipo: {0}", it) }
-        WonderTradeRules.formLabel(pokemon)?.let { lines += Lang.t("&7Forma: &f{0}", it) }
+        if (name == baseName) WonderTradeRules.formLabel(pokemon)?.let { lines += Lang.t("&7Forma: &f{0}", it) }
         val labels = mutableListOf<String>()
         WonderTradeRules.categoryLabel(pokemon)?.let { labels += it }
         if (pokemon.shiny) labels += Lang.tr("&eShiny")

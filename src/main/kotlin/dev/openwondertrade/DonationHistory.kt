@@ -16,7 +16,9 @@ data class DonationEntry(
     val species: String,
     val name: String,
     val level: Int,
-    val shiny: Boolean
+    val shiny: Boolean,
+    /** Forma regional, igual que en el historial de intercambios. Vacío en donaciones antiguas. */
+    val form: String = ""
 ) {
     fun toJson(): JsonObject = JsonObject().apply {
         addProperty("time", time)
@@ -26,6 +28,7 @@ data class DonationEntry(
         addProperty("name", name)
         addProperty("level", level)
         addProperty("shiny", shiny)
+        if (form.isNotBlank()) addProperty("form", form)
     }
 
     companion object {
@@ -36,7 +39,8 @@ data class DonationEntry(
             species = json.get("species")?.asString ?: "",
             name = json.get("name")?.asString ?: "?",
             level = json.get("level")?.asInt ?: 1,
-            shiny = json.get("shiny")?.asBoolean ?: false
+            shiny = json.get("shiny")?.asBoolean ?: false,
+            form = json.get("form")?.takeIf { !it.isJsonNull }?.asString ?: ""
         )
     }
 }

@@ -22,7 +22,10 @@ data class HistoryEntry(
     val receivedShiny: Boolean,
     val fromPool: Boolean,
     /** UUID del jugador: es lo que identifica de verdad al dueño de la entrada (vacío en entradas antiguas hasta que se reconoce). */
-    var uuid: String = ""
+    var uuid: String = "",
+    /** Forma regional guardada como «alolan|» o «paldean|Paldea-Combat». Vacío en entradas antiguas. */
+    val sentForm: String = "",
+    val receivedForm: String = ""
 ) {
     fun toJson(): JsonObject = JsonObject().apply {
         addProperty("time", time)
@@ -37,6 +40,8 @@ data class HistoryEntry(
         addProperty("receivedShiny", receivedShiny)
         addProperty("fromPool", fromPool)
         if (uuid.isNotBlank()) addProperty("uuid", uuid)
+        if (sentForm.isNotBlank()) addProperty("sentForm", sentForm)
+        if (receivedForm.isNotBlank()) addProperty("receivedForm", receivedForm)
     }
 
     companion object {
@@ -52,7 +57,9 @@ data class HistoryEntry(
             receivedLevel = json.get("receivedLevel")?.asInt ?: 1,
             receivedShiny = json.get("receivedShiny")?.asBoolean ?: false,
             fromPool = json.get("fromPool")?.asBoolean ?: false,
-            uuid = json.get("uuid")?.takeIf { !it.isJsonNull }?.asString ?: ""
+            uuid = json.get("uuid")?.takeIf { !it.isJsonNull }?.asString ?: "",
+            sentForm = json.get("sentForm")?.takeIf { !it.isJsonNull }?.asString ?: "",
+            receivedForm = json.get("receivedForm")?.takeIf { !it.isJsonNull }?.asString ?: ""
         )
     }
 }
@@ -98,6 +105,19 @@ class HistoryStore(private val file: Path) {
     }
 
     fun players(): List<String> = entries.map { it.player }.distinct()
+
+    /** Un jugador por UUID, con su nick, cuántos intercambios tiene y la fecha del último. */
+    fun traders(): List<Triple<String, String, Pair<Int, Long>>> {
+        val grouped = linkedMapOf<String, MutableList<HistoryEntry>>()
+        for (entry in entries) {
+            val key = entry.uuid.ifBlank { entry.player.lowercase() }
+            grouped.getOrPut(key) { mutableListOf() }.add(entry)
+        }
+        return grouped.map { (_, list) ->
+            val latest = list.maxBy { it.time }
+            Triple(latest.uuid, latest.player, list.size to latest.time)
+        }.sortedBy { it.second.lowercase() }
+    }
 
     /** Borra automáticamente las entradas anteriores al número de días configurado. 0 desactiva la limpieza. */
     fun pruneOlderThanDays(days: Int, now: Long = System.currentTimeMillis()): Int {

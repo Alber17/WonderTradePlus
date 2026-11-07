@@ -442,15 +442,17 @@ object WonderTradeService {
                     time = now,
                     player = player.gameProfile.name,
                     sentSpecies = sent.species.resourceIdentifier.path,
-                    sentName = sent.getDisplayName().string,
+                    sentName = WonderTradeDiscord.plainName(sent),
                     sentLevel = sent.level,
                     sentShiny = sent.shiny,
                     receivedSpecies = received.species.resourceIdentifier.path,
-                    receivedName = received.getDisplayName().string,
+                    receivedName = WonderTradeDiscord.plainName(received),
                     receivedLevel = received.level,
                     receivedShiny = received.shiny,
                     fromPool = fromPool,
-                    uuid = player.uuid.toString()
+                    uuid = player.uuid.toString(),
+                    sentForm = formKey(sent),
+                    receivedForm = formKey(received)
                 ),
                 ConfigManager.int("history.maxEntries", 1000).coerceAtLeast(1)
             )
@@ -467,9 +469,10 @@ object WonderTradeService {
                     player = player.gameProfile.name,
                     uuid = player.uuid.toString(),
                     species = pokemon.species.resourceIdentifier.path,
-                    name = pokemon.getDisplayName().string,
+                    name = WonderTradeDiscord.plainName(pokemon),
                     level = pokemon.level,
-                    shiny = pokemon.shiny
+                    shiny = pokemon.shiny,
+                    form = formKey(pokemon)
                 ),
                 ConfigManager.int("history.maxEntries", 1000).coerceAtLeast(1)
             )
@@ -519,6 +522,9 @@ object WonderTradeService {
         return colour(WonderTradeService.prefix() + lines.joinToString("\n"))
     }
     fun historyPlayers(): List<String> = history.players()
+
+    /** Jugadores del historial: UUID, nick, número de intercambios y fecha del último. */
+    fun historyTraders(): List<Triple<String, String, Pair<Int, Long>>> = history.traders()
     fun poolDonors(): List<String> = pool.all().map { it.donorName }.distinct()
 
     /** Donantes distintos de la pool con su UUID (si la entrada lo guarda), para mostrar sus cabezas aunque estén desconectados. */
@@ -1766,6 +1772,62 @@ object WonderTradeService {
 
     private fun normalizeFormId(value: String): String = value.lowercase().filter { it.isLetterOrDigit() }
 
+    /** «alolan|», «galarian|zen» o «paldean|Paldea-Combat». Vacío si es la forma base. */
+    fun formKey(pokemon: Pokemon): String {
+        val labels = runCatching { pokemon.form.labels }.getOrNull().orEmpty().map { it.lowercase() }
+        val aspects = runCatching { pokemon.aspects }.getOrNull().orEmpty().map { it.lowercase() }
+        val form = runCatching { pokemon.form.name }.getOrDefault("")
+        val region = when {
+            "alolan_form" in labels || "alolan" in aspects || form.equals("Alola", true) || form.equals("Alolan", true) -> "alolan"
+            "galarian_form" in labels || "galarian" in aspects || form.contains("galar", true) -> "galarian"
+            "hisuian_form" in labels || "hisuian" in aspects || form.equals("Hisui", true) || form.equals("Hisuian", true) -> "hisuian"
+            "paldean_form" in labels || "paldean" in aspects || form.startsWith("Paldea", true) -> "paldean"
+            else -> ""
+        }
+        val detail = when {
+            form.startsWith("Paldea-", true) -> form
+            form.contains("zen", true) && region == "galarian" -> form
+            else -> ""
+        }
+        return if (region.isEmpty() && detail.isEmpty()) "" else "$region|$detail"
+    }
+
+    /** Recrea un Pokémon para un icono de menú, con su forma regional si se guardó. */
+    fun previewPokemon(player: ServerPlayer, species: String, level: Int, shiny: Boolean, formKey: String = ""): Pokemon? {
+        if (species.isBlank()) return null
+        val region = formKey.substringBefore('|')
+        val detail = formKey.substringAfter('|', "")
+        val text = buildList {
+            add(species)
+            if (region.isNotBlank()) add(region)
+            add("level=${level.coerceIn(1, 100)}")
+            add("shiny=$shiny")
+        }.joinToString(" ")
+        val pokemon = runCatching { PokemonProperties.parse(text).create(player) }.getOrNull() ?: return null
+        if (region.isNotBlank()) applyRegionalForm(pokemon, region)
+        if (detail.isNotBlank()) {
+            val match = pokemon.species.forms.firstOrNull { it.name.equals(detail, true) }
+            if (match != null && pokemon.form.name != match.name) {
+                pokemon.form = match
+                runCatching { pokemon.updateAspects() }
+            }
+        }
+        return pokemon
+    }
+
+    private fun applyRegionalForm(pokemon: Pokemon, regionalToken: String) {
+        val accepted = regionalFormIds[regionalToken] ?: return
+        val aspectApplied = pokemon.aspects.map(::normalizeFormId).any { it in accepted }
+        if (aspectApplied && normalizeFormId(pokemon.form.name) in accepted) return
+        val regionalForm = pokemon.species.forms.firstOrNull { form ->
+            normalizeFormId(form.name) in accepted || normalizeFormId(form.formOnlyShowdownId()) in accepted
+        } ?: return
+        if (pokemon.form.name != regionalForm.name) {
+            pokemon.form = regionalForm
+            runCatching { pokemon.updateAspects() }
+        }
+    }
+
     /**
      * Pokémon de cada categoría de especie (ultraBeast, paradox, mythical, legendary). Se calcula una vez creando
      * un ejemplar de cada especie; es solo para mostrarlo en el menú.
@@ -1775,25 +1837,13 @@ object WonderTradeService {
         val result = LinkedHashMap<String, MutableList<Pokemon>>()
         listOf("ultraBeast", "paradox", "mythical", "legendary").forEach { result[it] = mutableListOf() }
         for (species in PokemonSpecies.species.sortedBy { it.resourceIdentifier.path }) {
-            val pokemon = runCatching {
-                PokemonProperties().apply {
-                    this.species = species.resourceIdentifier.toString()
-                    this.level = 50
-                }.create(player)
-            }.getOrNull() ?: continue
+            val path = species.resourceIdentifier.path
+            val pokemon = previewPokemon(player, path, 50, false) ?: continue
             val key = WonderTradeRules.speciesCategoryKey(pokemon) ?: continue
             result[key]?.add(pokemon)
-            // Formas regionales de esa especie (por ejemplo Articuno, Zapdos y Moltres de Galar).
-            for (accepted in regionalFormIds.values) {
-                val form = species.forms.firstOrNull { candidate ->
-                    normalizeFormId(candidate.name) in accepted || normalizeFormId(candidate.formOnlyShowdownId()) in accepted
-                } ?: continue
-                val regional = runCatching {
-                    PokemonProperties().apply {
-                        this.species = species.resourceIdentifier.toString()
-                        this.level = 50
-                    }.create(player).also { it.form = form }
-                }.getOrNull() ?: continue
+            for (token in regionalFormIds.keys) {
+                val regional = previewPokemon(player, path, 50, false, "$token|") ?: continue
+                if (formKey(regional).isBlank() || regional.form.name == pokemon.form.name) continue
                 result[key]?.add(regional)
             }
         }

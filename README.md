@@ -217,6 +217,18 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.26.36
+
+- El historial de admin se abre por jugador y, dentro, se puede ver el historial general.
+
+## 0.26.35
+
+- Menú de penalizaciones más ordenado, con las mismas acciones.
+
+## 0.26.34
+
+- Los menús muestran la forma regional del Pokémon, no solo la especie base.
+
 ## 0.26.33
 
 - Discord: «Han recibido» del pool y «Han aportado» al pool.
