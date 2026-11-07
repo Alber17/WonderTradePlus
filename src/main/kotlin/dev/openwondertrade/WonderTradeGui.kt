@@ -436,25 +436,40 @@ object WonderTradeGui {
     private fun renderPc(menu: GuiMenu, player: ServerPlayer, requestedBox: Int, donationMode: Boolean) {
         menu.wipe()
         fill(menu, 54)
+        val frame = named(Items.CYAN_STAINED_GLASS_PANE, " ")
+        val accent = named(Items.LIGHT_BLUE_STAINED_GLASS_PANE, " ")
+        for (slot in listOf(0, 7, 9, 16, 18, 25, 27, 34, 36, 43, 46, 47, 51, 52)) menu.put(slot, frame)
+        for (slot in listOf(17, 26, 35, 44)) menu.put(slot, accent)
         val boxes = Cobblemon.storage.getPC(player).boxes
         if (boxes.isEmpty()) {
             menu.put(22, named(Items.BARRIER, Lang.tr("&cNo tienes cajas en el PC")))
         } else {
             val index = requestedBox.coerceIn(0, boxes.size - 1)
-            val contents = boxes[index].getNonEmptySlots()
+            val box = boxes[index]
+            val contents = box.getNonEmptySlots()
+            val custom = box.name?.takeIf { it.isNotBlank() }
+            val count = Lang.t("&7Pokémon: &f{0}&7/&f{1}", contents.size, PC_BOX_SLOTS)
+            val position = Lang.t("&fCaja {0}/{1}", index + 1, boxes.size)
             for (i in 0 until PC_BOX_SLOTS) {
-                val guiSlot = (i / 6) * 9 + (i % 6)
+                val guiSlot = (i / 6) * 9 + 1 + (i % 6)
                 val pokemon = contents[i]
                 if (pokemon == null) {
-                    menu.put(guiSlot, named(Items.LIGHT_GRAY_STAINED_GLASS_PANE, Lang.tr("&8Vacío")))
+                    menu.put(guiSlot, named(Items.GRAY_STAINED_GLASS_PANE, Lang.tr("&8Vacío")))
                 } else {
                     menu.button(guiSlot, pokemonStack(pokemon, true)) { p -> select(p, pokemon, true, donationMode) }
                 }
             }
+            val header = named(
+                Items.ENDER_CHEST,
+                if (custom != null) Lang.t("&b{0}", custom) else Lang.t("&bCaja {0}", index + 1),
+                position, count, Lang.tr("&7Elige un Pokémon de tus cajas.")
+            )
+            header.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true)
+            menu.put(8, header)
             menu.button(48, named(Items.ARROW, Lang.tr("&eCaja anterior")), "pageTurn") {
                 renderPc(menu, it, (index - 1 + boxes.size) % boxes.size, donationMode)
             }
-            menu.put(49, named(Items.PAPER, Lang.t("&fCaja {0}/{1}", index + 1, boxes.size)))
+            menu.put(49, if (custom != null) named(Items.PAPER, Lang.t("&b{0}", custom), position, count) else named(Items.PAPER, position, count))
             menu.button(50, named(Items.ARROW, Lang.tr("&eCaja siguiente")), "pageTurn") {
                 renderPc(menu, it, (index + 1) % boxes.size, donationMode)
             }

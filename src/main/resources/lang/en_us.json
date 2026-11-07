@@ -266,6 +266,8 @@
   "&8Vacío": "&8Empty",
   "&eCaja anterior": "&ePrevious box",
   "&fCaja {0}/{1}": "&fBox {0}/{1}",
+  "&bCaja {0}": "&bBox {0}",
+  "&7Pokémon: &f{0}&7/&f{1}": "&7Pokémon: &f{0}&7/&f{1}",
   "&eCaja siguiente": "&eNext box",
   "&aVolver a donar": "&aBack to donate",
   "&aVolver al equipo": "&aBack to your team",

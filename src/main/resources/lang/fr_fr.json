@@ -266,6 +266,8 @@
   "&8Vacío": "&8Vide",
   "&eCaja anterior": "&eBoîte précédente",
   "&fCaja {0}/{1}": "&fBoîte {0}/{1}",
+  "&bCaja {0}": "&bBoîte {0}",
+  "&7Pokémon: &f{0}&7/&f{1}": "&7Pokémon : &f{0}&7/&f{1}",
   "&eCaja siguiente": "&eBoîte suivante",
   "&aVolver a donar": "&aDonner à nouveau",
   "&aVolver al equipo": "&aRetour à ton équipe",

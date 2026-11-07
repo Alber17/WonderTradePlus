@@ -217,6 +217,10 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.26.37
+
+- El menú del PC muestra un marco, el nombre de la caja y los Pokémon que ocupa.
+
 ## 0.26.36
 
 - El historial de admin se abre por jugador y, dentro, se puede ver el historial general.

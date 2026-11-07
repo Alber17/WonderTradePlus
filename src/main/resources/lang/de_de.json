@@ -266,6 +266,8 @@
   "&8Vacío": "&8Leer",
   "&eCaja anterior": "&eVorherige Box",
   "&fCaja {0}/{1}": "&fBox {0}/{1}",
+  "&bCaja {0}": "&bBox {0}",
+  "&7Pokémon: &f{0}&7/&f{1}": "&7Pokémon: &f{0}&7/&f{1}",
   "&eCaja siguiente": "&eNächste Box",
   "&aVolver a donar": "&aZurück zum Spenden",
   "&aVolver al equipo": "&aZurück zum Team",
