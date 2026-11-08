@@ -893,6 +893,58 @@ object WonderTradeService {
         return FillResult(added, special, chance)
     }
 
+    data class CategoryAddResult(
+        val requested: Int,
+        val added: Int,
+        val failed: Int,
+        val counts: Map<EventCategory, Int>,
+        val insufficientSpace: Boolean = false,
+        val availableSpace: Int = 0
+    )
+
+    /**
+     * Añade Pokémon generados por el servidor de las categorías elegidas en el menú de administración.
+     * La operación se rechaza completa antes de generar nada si la pool no tiene huecos para toda la cantidad.
+     */
+    fun adminAddRandomCategories(
+        player: ServerPlayer,
+        amount: Int,
+        categories: List<EventCategory>,
+        minimumLevel: Int,
+        maximumLevel: Int
+    ): CategoryAddResult {
+        val available = poolRemainingCapacity()
+        if (amount <= 0 || amount > available) {
+            return CategoryAddResult(amount, 0, 0, emptyMap(), insufficientSpace = amount > available, availableSpace = available)
+        }
+
+        val chosen = normalizeCategories(categories)
+        if (chosen.isEmpty()) return CategoryAddResult(amount, 0, amount, emptyMap(), availableSpace = available)
+
+        val low = minimumLevel.coerceIn(1, 100)
+        val high = maximumLevel.coerceIn(low, 100)
+        val attempts = ConfigManager.int("fallback.speciesGenerationAttempts", 128).coerceIn(1, 1000)
+        val counts = linkedMapOf<EventCategory, Int>()
+        var failed = 0
+
+        repeat(amount) {
+            val category = chosen.random()
+            val pokemon = generateForCategory(player, category, low, high, attempts)
+            if (pokemon == null) {
+                failed++
+            } else {
+                // Los especiales generados por el servidor siempre respetan el nivel mínimo global.
+                WonderTradeRules.enforceGeneratedSpecialLevel(pokemon)
+                addAdminEntry(pokemon, player.server.registryAccess())
+                counts[category] = (counts[category] ?: 0) + 1
+            }
+        }
+
+        val added = counts.values.sum()
+        if (added > 0) trimAndSave()
+        return CategoryAddResult(amount, added, failed, counts, availableSpace = available)
+    }
+
     fun removeFromPool(id: String): Boolean {
         val removed = pool.remove(id)
         if (removed) pool.save()

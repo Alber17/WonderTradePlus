@@ -42,6 +42,11 @@ Administracion (admin.permissionLevel, 2 por defecto):
   /wt admin ...             Panel y subcomandos (fill, add, remove, history,
                             backup, maintenance, discord test, resetstats,
                             removeplayer, removegenerated, removeplayers, clear).
+  Panel gráfico: «Añadir Pokémon aleatorios» permite seleccionar categorías
+                            (shiny, Ultraente, Paradoja, Mítico y Legendario)
+                            y después una cantidad. Usa admin.fillMenu.amounts.
+                            Si no hay espacio para toda la cantidad, no añade
+                            ninguno y avisa al administrador en el chat.
   /wt admin eventos ...     lista | crear | programar | programados |
                             desprogramar <id> | pausar <id> | reanudar <id> |
                             historial | parar <id>.
@@ -466,3 +471,22 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
  maintenance-state.json  Control del reinicio mensual de la pool.
  backups/                Copias automaticas.
  config-guide.txt        Esta guia (se regenera).
+
+--------------------------------------------------------------------------------
+ MENU DE ADMINISTRACION - ANADIR POKEMON ALEATORIOS
+--------------------------------------------------------------------------------
+En /wt admin, el boton «Añadir Pokémon aleatorios» abre un selector de una o
+varias categorias: Shiny, Ultraente, Paradoja, Mitico y Legendario. En la
+pantalla siguiente se elige la cantidad usando admin.fillMenu.amounts.
+
+Si se eligen varias categorias, cada entrada selecciona una categoria al azar.
+Se respetan las listas de especies, las restricciones general.allowShinyPokemon,
+general.allowSpecialPokemon y general.allowAlphaPokemon, las listas de formas y
+aspectos bloqueados y las reglas de temporada. Los especiales generados por el
+servidor tienen nivel minimo 50.
+
+La accion es completa o no se ejecuta: si la cantidad elegida supera los huecos
+libres de pool.maximumEntries, no se genera ni se añade ningun Pokemon y el
+administrador recibe un aviso en el chat. Si alguna especie no puede generarse
+por las restricciones configuradas, se anade lo que si pudo generarse y se
+informa de las entradas que faltaron.

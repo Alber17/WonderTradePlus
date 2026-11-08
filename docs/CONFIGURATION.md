@@ -217,7 +217,9 @@ Cada jugador puede usar `/wt sonidos` (o `/wt sounds`) para configurar los sonid
 
 ## Menú de relleno rápido
 
-`admin.fillMenu.enabled` activa o desactiva el botón del menú de relleno del panel `/wt admin`. `admin.fillMenu.amounts` define las cantidades ofrecidas. Por defecto: `[25, 50, 100, 250, 500]`, adaptadas al máximo predeterminado de 500 entradas. El máximo de la pool se define en `pool.maximumEntries` (500 por defecto). Las configuraciones antiguas que conservaban el valor predeterminado erróneo de 5000 se migran automáticamente a 500. El menú admite hasta siete opciones y cada relleno se limita automáticamente al espacio disponible en la pool.
+`admin.fillMenu.enabled` activa o desactiva el botón **Rellenar pool** del panel `/wt admin`. `admin.fillMenu.amounts` define las cantidades ofrecidas tanto en ese menú como en el nuevo botón **Añadir Pokémon aleatorios**. Por defecto: `[25, 50, 100, 250, 500]`, adaptadas al máximo predeterminado de 500 entradas. El máximo de la pool se define en `pool.maximumEntries` (500 por defecto). Las configuraciones antiguas que conservaban el valor predeterminado erróneo de 5000 se migran automáticamente a 500. Ambos menús admiten hasta siete opciones.
+
+**Añadir Pokémon aleatorios** permite seleccionar una o varias categorías (Shiny, Ultraente, Paradoja, Mítico y Legendario) y después elegir una cantidad. Si se seleccionan varias categorías, cada Pokémon elige una de ellas al azar. Esta acción respeta las listas de especies, las restricciones `general.allow*`, las listas de formas/aspectos y las reglas de temporada. Los legendarios, míticos, Ultraentes y Paradojas generados por el servidor respetan el nivel mínimo 50. A diferencia del relleno rápido, esta acción no reduce la cantidad solicitada: si no hay suficientes huecos libres, no añade ningún Pokémon y avisa al administrador por el chat.
 
 
 ## `cooldownNotice`

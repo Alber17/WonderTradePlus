@@ -13,7 +13,8 @@ Wonder Trade abierto y configurable para **Cobblemon**. Se distribuye como **mod
 - Bonus acumulado configurable: +0,1 puntos porcentuales por un Pokémon normal, +0,5 por un Pokémon shiny o especial y +0,2 extra si el ofrecido es shiny y además legendario, mítico, Ultraente o Paradoja. El libro del menú `/wt` muestra estos porcentajes.
 - Cooldown por jugador, límite diario opcional y bypass para operadores; el menú muestra un contador que se actualiza cada segundo.
 - Sonidos configurables de cofre/Ender Chest, clics, paginación y obtención de especiales; el sonido del tótem solo suena con un legendario, mítico, Ultraente o Paradoja que además sea shiny; un shiny normal usa el sonido de especial.
-- Panel gráfico de administración en `/wt admin`, con accesos a la pool, historial, recarga, mantenimiento, copias de seguridad y vaciado protegido por confirmación.
+- Panel gráfico de administración en `/wt admin`, con accesos a la pool, historial, recarga, mantenimiento, copias de seguridad, vaciado protegido por confirmación y generación manual de Pokémon aleatorios por categorías.
+- El botón **Añadir Pokémon aleatorios** permite seleccionar una o varias categorías (shiny, Ultraente, Paradoja, Mítico y Legendario) y después elegir la cantidad. Si no hay espacio para toda la cantidad solicitada, no añade ninguno y avisa al administrador por el chat.
 - Listas negra y blanca de especies.
 - Protección para no intercambiar Pokémon no intercambiables, debilitados, alfa o con objeto equipado (según configuración).
 - **Anuncios en el chat** cuando alguien aporta un Pokémon shiny, legendario, Ultraente o Paradoja del pasado/futuro, cada uno con su mensaje propio y su versión shiny.
@@ -216,6 +217,11 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
+
+## 0.26.38
+- El panel de administración incorpora **Añadir Pokémon aleatorios**: selector múltiple de categorías y un menú de cantidades en abanico.
+- La generación respeta las listas negras/blancas, las restricciones de shiny/especial/alfa, las formas y aspectos bloqueados y las reglas de temporada. Los especiales generados por el servidor mantienen el nivel mínimo global de 50.
+- Si la pool no tiene espacio para toda la cantidad elegida, se cancela la operación completa y se informa al administrador en el chat. No se reduce silenciosamente la cantidad.
 
 ## 0.26.37
 
