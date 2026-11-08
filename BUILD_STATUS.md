@@ -10,7 +10,8 @@
 
 ## Cambios de la versión 0.27.0
 
-- «Añadir Pokémon aleatorios»: la pantalla de cantidades en abanico se sustituye por un selector con botones -1 -5 -10 / +10 +5 +1 (mismo sistema que el tiempo personalizado, pero con Pokémon).
+- Bossbar navideña: barra azul, texto en degradado rojo-blanco-verde y copo animado azul-blanco, configurable.
+- «Añadir Pokémon aleatorios»: la pantalla de cantidades en abanico se sustituye por un selector en espejo con botones -1/-5/-10/-15 a la izquierda y +1/+5/+10/+15 a la derecha (mismo sistema que el tiempo personalizado, pero con Pokémon).
 - El botón «Añadir Pokémon aleatorios» del panel usa ahora una Luxury Ball de Cobblemon como icono.
 - El botón central muestra la cantidad y avisa si no caben en la pool; el menú de categorías no cambia.
 

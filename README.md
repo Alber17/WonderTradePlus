@@ -219,8 +219,9 @@ Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyec
 
 
 ## 0.27.0
+- La bossbar de la hora navideña usa rojo, blanco y verde en el texto, barra azul y un copo de nieve animado azul-blanco (configurable en `events.bossbar.christmas`).
 - El botón **Añadir Pokémon aleatorios** del panel usa una Luxury Ball de Cobblemon como icono.
-- **Añadir Pokémon aleatorios**: la cantidad se elige con botones -1, -5, -10, +10, +5 y +1 (como el tiempo personalizado), con máximo `pool.maximumEntries`. `admin.fillMenu.amounts` ya no se usa en este menú.
+- **Añadir Pokémon aleatorios**: la cantidad se elige con botones en espejo desde el centro: -1, -5, -10 y -15 a la izquierda y +1, +5, +10 y +15 a la derecha (como el tiempo personalizado), con máximo `pool.maximumEntries`. `admin.fillMenu.amounts` ya no se usa en este menú.
 
 ## 0.26.38
 - El panel de administración incorpora **Añadir Pokémon aleatorios**: selector múltiple de categorías y un menú de cantidades en abanico.

@@ -21,7 +21,7 @@ Eventos de temporada. Navidad está configurada del **25 de diciembre al 6 de en
 - Los horarios se sortean entre las 00:00 y las 23:00, sin repetir y separadas al menos tres horas, usando la zona horaria de `events.schedule.timezone`. Se guardan en `seasonal-state.json` y no vuelven a sortearse al reiniciar.
 - La pool original se guarda en `seasonal/pool-original-<id>.json`; las pools temporales se archivan con una marca temporal. No borres `seasonal-state.json` ni los archivos de `seasonal/` mientras una sesión esté activa.
 - Para generar Pokémon hace falta al menos un jugador conectado al inicio de la sesión.
-- La bossbar navideña es azul y muestra el tiempo restante con degradado animado azul-blanco.
+- La bossbar navideña es azul y muestra el tiempo restante con degradado animado rojo-blanco-verde y un copo de nieve que pulsa entre azul y blanco. Se configura en `events.bossbar.christmas` (`barColor`, `colors`, `snowflakeColors` en `#RRGGBB`).
 - En `/wt admin` → Gestionar eventos → Hora navideña puedes iniciar, pausar/reanudar y finalizar una sesión manualmente, incluso fuera de las fechas configuradas.
 - Los avisos se envían al chat, al entrar y a Discord (`discord.events.seasonal`, `discord.titles.seasonStart/seasonEnd`, `discord.style.colors.seasonStart/seasonEnd`). El aviso de inicio de Discord indica brevemente la duración de la sesión.
 

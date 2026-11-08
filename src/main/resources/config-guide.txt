@@ -441,8 +441,9 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
      "includeLegendary": true }
  Al terminar cada sesion: la pool temporal se archiva en seasonal/ con una
  marca temporal y la original vuelve con su antiguedad congelada (la caducidad
- no cuenta el tiempo del evento). La bossbar navidena es azul con degradado
- azul-blanco animado. En el menu /wt admin > Gestionar eventos > Hora navidena
+ no cuenta el tiempo del evento). La bossbar navidena es azul con texto en degradado
+ animado rojo-blanco-verde y un copo de nieve azul-blanco (events.bossbar.christmas:
+ barColor, colors y snowflakeColors, en #RRGGBB). En el menu /wt admin > Gestionar eventos > Hora navidena
  se puede iniciar, pausar/reanudar y finalizar manualmente. Si el servidor esta apagado cuando acaba, se restaura al
  arrancar. Estado en seasonal-state.json: NO lo borres durante un evento.
  Avisos: en el chat, al entrar al servidor y en Discord (discord.events.seasonal,

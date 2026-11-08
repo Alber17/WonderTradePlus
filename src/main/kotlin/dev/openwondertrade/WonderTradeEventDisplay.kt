@@ -109,7 +109,7 @@ object WonderTradeEventDisplay {
         syncSeasonBars(server, groups)
     }
 
-    /** Bossbar azul exclusiva de la hora navideña, con texto animado en degradado azul-blanco. */
+    /** Bossbar azul exclusiva de la hora navideña, con texto animado en rojo, blanco y verde y copo de nieve azul-blanco. */
     private fun syncSeasonBars(server: MinecraftServer, groups: Map<String, List<ServerPlayer>>) {
         val season = WonderTradeSeasons.current()?.takeIf { WonderTradeSeasons.isRunning() }
         val online = groups.values.flatten()
@@ -126,10 +126,13 @@ object WonderTradeEventDisplay {
             val bar = seasonBars.getOrPut(key) {
                 ServerBossEvent(Component.empty(), BossEvent.BossBarColor.BLUE, BossEvent.BossBarOverlay.PROGRESS)
             }
+            bar.color = runCatching {
+                BossEvent.BossBarColor.valueOf(ConfigManager.string("events.bossbar.christmas.barColor", "BLUE").uppercase())
+            }.getOrDefault(BossEvent.BossBarColor.BLUE)
             bar.progress = (remaining.toFloat() / total.toFloat()).coerceIn(0f, 1f)
             val time = WonderTradeEvents.formatDuration((remaining + 999L) / 1000L)
             bar.name = Lang.withPlayer(players.first()) {
-                movingGradient("❄ HORA NAVIDEÑA — $time", listOf(intArrayOf(35, 139, 255)), now)
+                christmasText("HORA NAVIDEÑA — $time", now)
             }
             players.forEach { if (!bar.players.contains(it)) bar.addPlayer(it) }
             bar.players.toList().forEach { if (!players.contains(it)) bar.removePlayer(it) }
@@ -172,6 +175,33 @@ object WonderTradeEventDisplay {
                 val left = pos.toInt()
                 mix(palette[left], palette[(left + 1) % palette.size], pos - left)
             }
+            result.append(Component.literal(char.toString()).setStyle(Style.EMPTY.withColor(TextColor.fromRgb(rgb))))
+        }
+        return result
+    }
+
+    private fun parseHex(text: String): IntArray? {
+        val clean = text.trim().removePrefix("#")
+        val value = clean.takeIf { it.length == 6 }?.toIntOrNull(16) ?: return null
+        return intArrayOf((value shr 16) and 255, (value shr 8) and 255, value and 255)
+    }
+
+    /** Copo de nieve que pulsa entre azul hielo y blanco, seguido del texto con degradado navideño en bucle. */
+    private fun christmasText(text: String, now: Long): Component {
+        val flakeColors = ConfigManager.strings("events.bossbar.christmas.snowflakeColors").mapNotNull { parseHex(it) }
+            .let { if (it.size >= 2) it else listOf(intArrayOf(80, 170, 255), intArrayOf(255, 255, 255)) }
+        val textColors = ConfigManager.strings("events.bossbar.christmas.colors").mapNotNull { parseHex(it) }
+            .let { if (it.size >= 2) it else listOf(intArrayOf(230, 40, 50), intArrayOf(255, 255, 255), intArrayOf(40, 170, 80), intArrayOf(255, 255, 255)) }
+        val result = Component.empty()
+        val flakePos = (now / 650.0) % flakeColors.size
+        val fl = flakePos.toInt()
+        val flake = mix(flakeColors[fl], flakeColors[(fl + 1) % flakeColors.size], flakePos - fl)
+        result.append(Component.literal("❄ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(flake))))
+        val phase = now / 420.0
+        text.forEachIndexed { index, char ->
+            val pos = (index * 0.16 + phase) % textColors.size
+            val left = pos.toInt()
+            val rgb = mix(textColors[left], textColors[(left + 1) % textColors.size], pos - left)
             result.append(Component.literal(char.toString()).setStyle(Style.EMPTY.withColor(TextColor.fromRgb(rgb))))
         }
         return result

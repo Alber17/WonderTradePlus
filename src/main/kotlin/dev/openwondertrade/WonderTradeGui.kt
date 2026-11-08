@@ -1558,7 +1558,7 @@ object WonderTradeGui {
         menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
-    /** Selector de cantidad con botones -1 -5 -10 / +10 +5 +1, igual que el tiempo personalizado pero con Pokémon. */
+    /** Selector de cantidad en espejo desde el centro (restan 1/5/10/15 a la izquierda, suman a la derecha), igual que el tiempo personalizado pero con Pokémon. */
     private fun renderAdminRandomAmount(menu: GuiMenu, categories: List<EventCategory>, requested: Int = 1) {
         val maximumPool = ConfigManager.int("pool.maximumEntries", 500).coerceAtLeast(1)
         val remaining = WonderTradeService.poolRemainingCapacity()
@@ -1573,7 +1573,7 @@ object WonderTradeGui {
             Lang.t("&7Huecos disponibles: &f{0}", remaining),
             Lang.t("&7Cantidad actual: &f{0}", current)
         ))
-        val steps = listOf(9 to -1, 10 to -5, 11 to -10, 15 to 10, 16 to 5, 17 to 1)
+        val steps = listOf(12 to -1, 11 to -5, 10 to -10, 9 to -15, 14 to 1, 15 to 5, 16 to 10, 17 to 15)
         for ((slot, delta) in steps) {
             val sign = if (delta < 0) "-" else "+"
             val icon = if (delta < 0) Items.RED_STAINED_GLASS_PANE else Items.LIME_STAINED_GLASS_PANE

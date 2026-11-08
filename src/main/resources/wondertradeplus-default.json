@@ -243,7 +243,12 @@
     "bossbar": {
       "enabled": true,
       "format": "★ {name} — {time}",
-      "overlay": "PROGRESS"
+      "overlay": "PROGRESS",
+      "christmas": {
+        "barColor": "BLUE",
+        "colors": ["#E62832", "#FFFFFF", "#28AA50", "#FFFFFF"],
+        "snowflakeColors": ["#50AAFF", "#FFFFFF"]
+      }
     },
     "joinNotice": {
       "enabled": true,
