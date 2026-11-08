@@ -1558,75 +1558,73 @@ object WonderTradeGui {
         menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 
-    /** Selector en abanico: reutiliza las cantidades configuradas para el relleno rápido, sin recortar la petición. */
-    private fun renderAdminRandomAmount(menu: GuiMenu, categories: List<EventCategory>) {
-        menu.wipe()
-        fill(menu, 27)
+    /** Selector de cantidad con botones -1 -5 -10 / +10 +5 +1, igual que el tiempo personalizado pero con Pokémon. */
+    private fun renderAdminRandomAmount(menu: GuiMenu, categories: List<EventCategory>, requested: Int = 1) {
         val maximumPool = ConfigManager.int("pool.maximumEntries", 500).coerceAtLeast(1)
         val remaining = WonderTradeService.poolRemainingCapacity()
-        val amounts = ConfigManager.ints("admin.fillMenu.amounts")
-            .filter { it > 0 && it <= maximumPool }
-            .distinct()
-            .sorted()
-            .take(7)
+        val current = requested.coerceIn(1, maximumPool)
+        menu.wipe()
+        fill(menu, 27)
         val selectedText = categories.joinToString("&7, ") { it.announceColor + it.label }
         menu.put(4, named(
             Items.CHEST_MINECART,
             Lang.tr("&dCantidad de Pokémon"),
             Lang.tr("&7Categorías: ") + selectedText,
             Lang.t("&7Huecos disponibles: &f{0}", remaining),
-            Lang.tr("&7Elige una cantidad para añadir.")
+            Lang.t("&7Cantidad actual: &f{0}", current)
         ))
-        val slots = listOf(9, 10, 11, 12, 14, 15, 16)
-        if (amounts.isEmpty()) {
-            menu.put(13, named(Items.BARRIER, Lang.tr("&cNo hay cantidades configuradas"), Lang.tr("&7Edita admin.fillMenu.amounts en config.json.")))
-        } else {
-            amounts.forEachIndexed { index, amount ->
-                val enoughSpace = amount <= remaining
-                val lore = if (enoughSpace) {
-                    listOf(Lang.t("&7Se intentarán generar &f{0} &7Pokémon.", amount), Lang.tr("&eClic para añadir"))
-                } else {
-                    listOf(Lang.t("&7Necesitas &f{0} &7huecos; solo quedan &f{1}&7.", amount, remaining), Lang.tr("&cNo hay espacio suficiente."), Lang.tr("&eClic para ver el aviso en el chat"))
-                }
-                menu.button(slots[index], named(
-                    if (enoughSpace) Items.CHEST_MINECART else Items.MINECART,
-                    Lang.t(if (enoughSpace) "&aAñadir {0} Pokémon" else "&cAñadir {0} Pokémon", amount),
-                    *lore.toTypedArray()
-                )) { p ->
-                    val availableNow = WonderTradeService.poolRemainingCapacity()
-                    if (amount > availableNow) {
-                        p.sendSystemMessage(WonderTradeService.info(Lang.t(
-                            "&cNo se puede añadir: necesitas {0} huecos, pero solo quedan {1} en la pool.",
-                            amount, availableNow
-                        )))
-                        renderAdminRandomAmount(menu, categories)
-                    } else {
-                        val minLevel = ConfigManager.int("fallback.minimumLevel", 1).coerceIn(1, 100)
-                        val maxLevel = ConfigManager.int("fallback.maximumLevel", 100).coerceIn(minLevel, 100)
-                        val result = WonderTradeService.adminAddRandomCategories(p, amount, categories, minLevel, maxLevel)
-                        if (result.insufficientSpace) {
-                            p.sendSystemMessage(WonderTradeService.info(Lang.t(
-                                "&cNo se puede añadir: necesitas {0} huecos, pero solo quedan {1} en la pool.",
-                                amount, result.availableSpace
-                            )))
-                        } else if (result.added > 0) {
-                            val breakdown = result.counts.entries.joinToString("&7, ") { (category, count) ->
-                                category.announceColor + category.label + "&7: &f$count"
-                            }
-                            p.sendSystemMessage(WonderTradeService.info(
-                                Lang.t("&aAñadidos &f{0} &aPokémon aleatorios.", result.added) +
-                                    (if (breakdown.isNotBlank()) Lang.t("&7 Categorías: ") + breakdown else "") +
-                                    (if (result.failed > 0) Lang.t("&7. No se pudieron generar: &f{0}", result.failed) else "")
-                            ))
-                        } else {
-                            p.sendSystemMessage(WonderTradeService.info(Lang.tr("&cNo se ha podido generar ningún Pokémon. Revisa las categorías y restricciones de configuración.")))
-                        }
-                        renderAdminRandomAmount(menu, categories)
-                    }
-                }
+        val steps = listOf(9 to -1, 10 to -5, 11 to -10, 15 to 10, 16 to 5, 17 to 1)
+        for ((slot, delta) in steps) {
+            val sign = if (delta < 0) "-" else "+"
+            val icon = if (delta < 0) Items.RED_STAINED_GLASS_PANE else Items.LIME_STAINED_GLASS_PANE
+            menu.button(slot, named(icon, (if (delta < 0) "&c" else "&a") + "$sign${kotlin.math.abs(delta)}", Lang.t("&7Actual: &f{0}", current))) {
+                renderAdminRandomAmount(menu, categories, (current + delta).coerceIn(1, maximumPool))
             }
         }
-        menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { renderAdminRandomCategory(menu, categories) }
+        val enoughSpace = current <= remaining
+        menu.put(13, named(
+            Items.CHEST_MINECART, Lang.t("&b{0} Pokémon", current),
+            if (enoughSpace) Lang.tr("&7Esta será la cantidad a añadir.") else Lang.t("&cSolo quedan {0} huecos en la pool.", remaining)
+        ))
+        menu.button(22, named(
+            if (enoughSpace) Items.LIME_CONCRETE else Items.RED_CONCRETE,
+            Lang.t(if (enoughSpace) "&aAñadir {0} Pokémon" else "&cAñadir {0} Pokémon", current),
+            Lang.tr("&7Categorías: ") + selectedText,
+            if (enoughSpace) Lang.tr("&eClic para añadir") else Lang.tr("&cNo hay espacio suficiente.")
+        )) { p ->
+            val amount = current
+            val availableNow = WonderTradeService.poolRemainingCapacity()
+            if (amount > availableNow) {
+                p.sendSystemMessage(WonderTradeService.info(Lang.t(
+                    "&cNo se puede añadir: necesitas {0} huecos, pero solo quedan {1} en la pool.",
+                    amount, availableNow
+                )))
+                renderAdminRandomAmount(menu, categories, amount)
+            } else {
+                val minLevel = ConfigManager.int("fallback.minimumLevel", 1).coerceIn(1, 100)
+                val maxLevel = ConfigManager.int("fallback.maximumLevel", 100).coerceIn(minLevel, 100)
+                val result = WonderTradeService.adminAddRandomCategories(p, amount, categories, minLevel, maxLevel)
+                if (result.insufficientSpace) {
+                    p.sendSystemMessage(WonderTradeService.info(Lang.t(
+                        "&cNo se puede añadir: necesitas {0} huecos, pero solo quedan {1} en la pool.",
+                        amount, result.availableSpace
+                    )))
+                } else if (result.added > 0) {
+                    val breakdown = result.counts.entries.joinToString("&7, ") { (category, count) ->
+                        category.announceColor + category.label + "&7: &f$count"
+                    }
+                    p.sendSystemMessage(WonderTradeService.info(
+                        Lang.t("&aAñadidos &f{0} &aPokémon aleatorios.", result.added) +
+                            (if (breakdown.isNotBlank()) Lang.t("&7 Categorías: ") + breakdown else "") +
+                            (if (result.failed > 0) Lang.t("&7. No se pudieron generar: &f{0}", result.failed) else "")
+                    ))
+                } else {
+                    p.sendSystemMessage(WonderTradeService.info(Lang.tr("&cNo se ha podido generar ningún Pokémon. Revisa las categorías y restricciones de configuración.")))
+                }
+                renderAdminRandomAmount(menu, categories, amount)
+            }
+        }
+        menu.button(18, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { renderAdminRandomCategory(menu, categories) }
         menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
     }
 

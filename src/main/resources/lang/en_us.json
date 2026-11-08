@@ -1065,5 +1065,9 @@
   "&aAñadir {0} Pokémon": "&aAdd {0} Pokémon",
   "&cAñadir {0} Pokémon": "&cAdd {0} Pokémon",
   "&eClic para añadir": "&eClick to add",
-  "&7 Categorías: ": "&7 Categories: "
+  "&7 Categorías: ": "&7 Categories: ",
+  "&7Cantidad actual: &f{0}": "&7Current amount: &f{0}",
+  "&b{0} Pokémon": "&b{0} Pokémon",
+  "&7Esta será la cantidad a añadir.": "&7This is the amount that will be added.",
+  "&cSolo quedan {0} huecos en la pool.": "&cOnly {0} slots left in the pool."
 }

@@ -218,6 +218,9 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.26.39
+- **Añadir Pokémon aleatorios**: la cantidad se elige con botones -1, -5, -10, +10, +5 y +1 (como el tiempo personalizado), con máximo `pool.maximumEntries`. `admin.fillMenu.amounts` ya no se usa en este menú.
+
 ## 0.26.38
 - El panel de administración incorpora **Añadir Pokémon aleatorios**: selector múltiple de categorías y un menú de cantidades en abanico.
 - La generación respeta las listas negras/blancas, las restricciones de shiny/especial/alfa, las formas y aspectos bloqueados y las reglas de temporada. Los especiales generados por el servidor mantienen el nivel mínimo global de 50.

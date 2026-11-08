@@ -226,5 +226,10 @@
   "&aAñadir {0} Pokémon": "&aAñadir {0} Pokémon",
   "&cAñadir {0} Pokémon": "&cAñadir {0} Pokémon",
   "&eClic para añadir": "&eClic para añadir",
-  "&7 Categorías: ": "&7 Categorías: "
+  "&7 Categorías: ": "&7 Categorías: ",
+  "&7Cantidad actual: &f{0}": "&7Cantidad actual: &f{0}",
+  "&b{0} Pokémon": "&b{0} Pokémon",
+  "&7Esta será la cantidad a añadir.": "&7Esta será la cantidad a añadir.",
+  "&cSolo quedan {0} huecos en la pool.": "&cSolo quedan {0} huecos en la pool.",
+  "&7Actual: &f{0}": "&7Actual: &f{0}"
 }
