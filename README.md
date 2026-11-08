@@ -218,7 +218,8 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
-## 0.26.39
+## 0.27.0
+- El botón **Añadir Pokémon aleatorios** del panel usa una Luxury Ball de Cobblemon como icono.
 - **Añadir Pokémon aleatorios**: la cantidad se elige con botones -1, -5, -10, +10, +5 y +1 (como el tiempo personalizado), con máximo `pool.maximumEntries`. `admin.fillMenu.amounts` ya no se usa en este menú.
 
 ## 0.26.38

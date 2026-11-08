@@ -769,7 +769,7 @@ object WonderTradeGui {
             btn(15, "deletePool", named(Items.STRUCTURE_VOID, Lang.tr("&cEliminar pool"), Lang.tr("&7Elige qué origen quieres eliminar."), Lang.tr("&eAbrir opciones"))) {
                 openAdminPoolDeleteOptions(it)
             }
-            btn(17, "randomAdd", named(Items.CHEST_MINECART, Lang.tr("&dAñadir Pokémon aleatorios"), Lang.tr("&7Genera Pokémon de categorías elegidas."), Lang.tr("&eAbrir selector"))) {
+            btn(17, "randomAdd", named(cobblemonItem("luxury_ball"), Lang.tr("&dAñadir Pokémon aleatorios"), Lang.tr("&7Genera Pokémon de categorías elegidas."), Lang.tr("&eAbrir selector"))) {
                 openAdminRandomCategory(it)
             }
 
