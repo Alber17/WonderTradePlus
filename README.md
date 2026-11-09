@@ -218,7 +218,12 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
-## 0.27.0
+## 0.28.0
+- **Recompensas del Top Donaciones por reclamar**: al cerrarse el evento, los ganadores (Top 3) reciben un aviso clicable `[Reclamar]` y, si no lo reclaman, se les recuerda cada `topDonations.claim.reminderMinutes` minutos (por defecto 10; `0` = sin recordatorios repetidos). Si estaban desconectados, el aviso les llega al entrar.
+- **Recompensa de participación**: quien haya hecho al menos `topDonations.participation.minDonations` donaciones (10 por defecto) en el mes y no haya quedado en el Top 3 recibe también una recompensa para reclamar (`participation.rewards`, `participation.description`, `participation.includeWinners`, `participation.enabled`).
+- Al reclamar se exige un mínimo de huecos libres en el inventario (`topDonations.claim.requiredFreeSlots`, 1 por defecto, 0 = sin comprobación); si no hay espacio no se ejecuta ningún comando, se avisa al jugador y la recompensa sigue pendiente. Opción de caducidad `topDonations.claim.expire` (`enabled: false` por defecto, `days: 30`).
+- Si no tienes recompensas pendientes, `/wt recompensas` no abre el menú y te avisa de que no tienes recompensas disponibles.
+- Nuevo comando `/wt recompensas` (alias `/wt rewards`): abre un menú con cada recompensa («Recompensa Noviembre 2026»); al pasar el ratón se ve el puesto, los puntos y lo que incluye (`topDonations.rewardDescriptions`); al hacer clic se reclama y se ejecutan los comandos de `topDonations.rewards`. Las recompensas ya no se entregan solas.
 - La bossbar de la hora navideña usa rojo, blanco y verde en el texto, barra azul y un copo de nieve animado azul-blanco (configurable en `events.bossbar.christmas`).
 - El botón **Añadir Pokémon aleatorios** del panel usa una Luxury Ball de Cobblemon como icono.
 - **Añadir Pokémon aleatorios**: la cantidad se elige con botones en espejo desde el centro: -1, -5, -10 y -15 a la izquierda y +1, +5, +10 y +15 a la derecha (como el tiempo personalizado), con máximo `pool.maximumEntries`. `admin.fillMenu.amounts` ya no se usa en este menú.

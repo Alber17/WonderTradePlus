@@ -5,7 +5,9 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.Style
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import java.nio.file.Files
@@ -19,7 +21,7 @@ import java.util.UUID
 
 /**
  * Top Donaciones: en los meses activos cada donación hecha con /wt donar suma puntos; el último día del mes se anuncia
- * el Top 3 y los ganadores reciben las recompensas configuradas (comandos de consola). Guarda su estado en
+ * el Top 3 y los ganadores reclaman las recompensas configuradas (comandos de consola) desde /wt recompensas. Guarda su estado en
  * top-donations.json. Todo se configura en la sección `topDonations`.
  */
 object WonderTradeTopDonations {
@@ -27,7 +29,8 @@ object WonderTradeTopDonations {
     private var file: Path? = null
 
     private class Entry(var name: String, var points: Int, var donations: Int, var reachedAt: Long)
-    private class Pending(val uuid: String, val name: String, val rank: Int, val period: String, val points: Int)
+    /** rank 0 = recompensa de participación (sin puesto en el Top 3). */
+    private class Pending(val uuid: String, val name: String, val rank: Int, val period: String, val points: Int, val donations: Int = 0, val createdAt: Long = System.currentTimeMillis())
 
     /** «2026-11» -> uuid -> puntos. */
     private val periods = LinkedHashMap<String, LinkedHashMap<String, Entry>>()
@@ -63,7 +66,8 @@ object WonderTradeTopDonations {
                 val data = node.asJsonObject
                 pending.add(Pending(
                     data.get("uuid").asString, data.get("name")?.asString ?: "?", data.get("rank").asInt,
-                    data.get("period").asString, data.get("points")?.asInt ?: 0
+                    data.get("period").asString, data.get("points")?.asInt ?: 0, data.get("donations")?.asInt ?: 0,
+                    data.get("createdAt")?.asLong ?: System.currentTimeMillis()
                 ))
             }
         } catch (exception: Exception) {
@@ -96,7 +100,7 @@ object WonderTradeTopDonations {
                 pending.forEach { p ->
                     array.add(JsonObject().apply {
                         addProperty("uuid", p.uuid); addProperty("name", p.name); addProperty("rank", p.rank)
-                        addProperty("period", p.period); addProperty("points", p.points)
+                        addProperty("period", p.period); addProperty("points", p.points); addProperty("donations", p.donations); addProperty("createdAt", p.createdAt)
                     })
                 }
             })
@@ -266,7 +270,7 @@ object WonderTradeTopDonations {
             val due = today.isAfter(lastDay) || (today == lastDay && hour >= announceHour)
             if (due) runCatching { finish(server, key, period) }.onFailure { WonderTradePlus.LOGGER.error("Falló el cierre del Top Donaciones.", it) }
         }
-        runCatching { deliverPending(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló la entrega de recompensas del Top Donaciones.", it) }
+        runCatching { remindPending(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el aviso de recompensas del Top Donaciones.", it) }
     }
 
     private fun finish(server: MinecraftServer, key: String, period: YearMonth) {
@@ -290,11 +294,22 @@ object WonderTradeTopDonations {
                         mapOf("rank" to item.rank, "player" to item.entry.name, "points" to item.entry.points, "donations" to item.entry.donations)
                     )
                 }
-                lines += ConfigManager.string("messages.topDonationsFooter", "&7¡Gracias a todos por donar! Los premios se entregan al ganador.")
+                lines += ConfigManager.string("messages.topDonationsFooter", "&7¡Gracias a todos por donar! Los ganadores reclaman su premio con /wt recompensas.")
             }
             return lines
         }
-        winners.forEach { item -> pending.add(Pending(item.uuid, item.entry.name, item.rank, key, item.entry.points)) }
+        winners.forEach { item -> pending.add(Pending(item.uuid, item.entry.name, item.rank, key, item.entry.points, item.entry.donations)) }
+        // Recompensa de participación: quien haya donado al menos `participation.minDonations` veces y no esté ya en el podio.
+        if (ConfigManager.bool("topDonations.participation.enabled", true)) {
+            val minimum = ConfigManager.int("topDonations.participation.minDonations", 10).coerceAtLeast(1)
+            val includeWinners = ConfigManager.bool("topDonations.participation.includeWinners", false)
+            val winnerIds = winners.map { it.uuid }.toSet()
+            (periods[key] ?: emptyMap()).forEach { (uuid, entry) ->
+                if (entry.donations >= minimum && (includeWinners || uuid !in winnerIds)) {
+                    pending.add(Pending(uuid, entry.name, 0, key, entry.points, entry.donations))
+                }
+            }
+        }
         save()
         WonderTradeEvents.broadcast(server) { buildLines().joinToString("\n") }
         runCatching {
@@ -304,28 +319,119 @@ object WonderTradeTopDonations {
     }
 
     private fun rewardCommands(rank: Int): List<String> =
-        ConfigManager.strings("topDonations.rewards." + when (rank) { 1 -> "first"; 2 -> "second"; else -> "third" })
+        if (rank == 0) ConfigManager.strings("topDonations.participation.rewards")
+        else ConfigManager.strings("topDonations.rewards." + when (rank) { 1 -> "first"; 2 -> "second"; else -> "third" })
 
-    /** Entrega los premios a los ganadores conectados (los que no lo estén lo recibirán al entrar). */
-    private fun deliverPending(server: MinecraftServer) {
-        if (pending.isEmpty()) return
-        var changed = false
-        for (item in pending.toList()) {
-            val player = runCatching { server.playerList.getPlayer(UUID.fromString(item.uuid)) }.getOrNull() ?: continue
-            val source = server.createCommandSourceStack().withSuppressedOutput()
-            for (template in rewardCommands(item.rank)) {
-                val command = WonderTradeService.format(
-                    template.trim().removePrefix("/"),
-                    mapOf("player" to player.gameProfile.name, "rank" to item.rank, "points" to item.points, "period" to item.period)
-                )
-                if (command.isBlank()) continue
-                runCatching { server.commands.performPrefixedCommand(source, command) }
-                    .onFailure { WonderTradePlus.LOGGER.error("Falló el comando de recompensa '{}'.", command, it) }
-            }
-            WonderTradeService.send(player, "topDonationsReward", mapOf("rank" to item.rank, "points" to item.points))
-            pending.remove(item)
-            changed = true
+    private fun rewardDescription(rank: Int): List<String> =
+        if (rank == 0) ConfigManager.strings("topDonations.participation.description")
+        else ConfigManager.strings("topDonations.rewardDescriptions." + when (rank) { 1 -> "first"; 2 -> "second"; else -> "third" })
+
+    // ------------------------------------------------------------ reclamación
+
+    /** Recompensa pendiente de un jugador, lista para mostrarse en el menú. */
+    class Claim(val period: String, val title: String, val rank: Int, val points: Int, val donations: Int, val description: List<String>)
+
+    /** Recuerdo de cuándo se avisó por última vez a cada ganador: «uuid|periodo» -> milisegundos. */
+    private val lastClaimNotice = HashMap<String, Long>()
+
+    private fun claimKey(item: Pending) = item.uuid + "|" + item.period
+
+    /** Recompensas sin reclamar de un jugador (más antiguas primero). Usa el idioma activo para el nombre del mes. */
+    fun claimsFor(player: ServerPlayer): List<Claim> =
+        pending.filter { it.uuid == player.uuid.toString() }.sortedBy { it.period }.map { item ->
+            val period = runCatching { YearMonth.parse(item.period) }.getOrNull()
+            val title = if (period != null) monthName(period) else item.period
+            val description = rewardDescription(item.rank).ifEmpty { listOf(if (item.rank == 0) Lang.tr("&7Recompensa por participar") else Lang.t("&7Recompensa del puesto &f#{0}", item.rank)) }
+            Claim(item.period, title, item.rank, item.points, item.donations, description)
         }
-        if (changed) save()
+
+    enum class ClaimResult { OK, GONE, NO_SPACE }
+
+    private fun freeSlots(player: ServerPlayer): Int = player.inventory.items.count { it.isEmpty }
+
+    /**
+     * Entrega la recompensa de un periodo al jugador, la marca como reclamada y le avisa. Si no tiene los huecos libres
+     * exigidos (`topDonations.claim.requiredFreeSlots`) no se ejecuta ningún comando y la recompensa sigue pendiente.
+     */
+    fun claim(server: MinecraftServer, player: ServerPlayer, period: String): ClaimResult {
+        val item = pending.firstOrNull { it.uuid == player.uuid.toString() && it.period == period } ?: return ClaimResult.GONE
+        val needed = ConfigManager.int("topDonations.claim.requiredFreeSlots", 1).coerceIn(0, 36)
+        if (needed > 0 && freeSlots(player) < needed) {
+            Lang.withPlayer(player) {
+                player.sendSystemMessage(WonderTradeService.info(Lang.t("&cNo tienes espacio en el inventario: libera al menos &f{0} &chueco(s) y vuelve a reclamar.", needed)))
+            }
+            return ClaimResult.NO_SPACE
+        }
+        pending.remove(item)
+        lastClaimNotice.remove(claimKey(item))
+        runCatching { save() }.onFailure { WonderTradePlus.LOGGER.error("No se pudo guardar top-donations.json.", it) }
+        val source = server.createCommandSourceStack().withSuppressedOutput()
+        for (template in rewardCommands(item.rank)) {
+            val command = WonderTradeService.format(
+                template.trim().removePrefix("/"),
+                mapOf("player" to player.gameProfile.name, "rank" to item.rank, "points" to item.points, "period" to item.period)
+            )
+            if (command.isBlank()) continue
+            runCatching { server.commands.performPrefixedCommand(source, command) }
+                .onFailure { WonderTradePlus.LOGGER.error("Falló el comando de recompensa '{}'.", command, it) }
+        }
+        if (item.rank == 0) {
+            Lang.withPlayer(player) {
+                player.sendSystemMessage(WonderTradeService.info(Lang.t("&d★ ¡Gracias por participar en el Top Donaciones con &f{0} &ddonaciones! Tu recompensa ya está en tu inventario.", item.donations)))
+            }
+        } else {
+            WonderTradeService.send(player, "topDonationsReward", mapOf("rank" to item.rank, "points" to item.points))
+        }
+        WonderTradePlus.LOGGER.info("{} ha reclamado la recompensa del Top Donaciones {} (puesto {}).", player.gameProfile.name, item.period, if (item.rank == 0) "participación" else item.rank.toString())
+        return ClaimResult.OK
+        return true
+    }
+
+    /** Aviso clicable que abre el menú de recompensas. */
+    private fun sendClaimNotice(player: ServerPlayer) {
+        Lang.withPlayer(player) {
+            val claims = claimsFor(player)
+            if (claims.isEmpty()) return@withPlayer
+            val text = if (claims.size == 1) Lang.t("&d★ Tienes una recompensa del Top Donaciones por reclamar: &f{0}&d. ", claims[0].title)
+            else Lang.t("&d★ Tienes &f{0} &drecompensas del Top Donaciones por reclamar. ", claims.size)
+            val button = Component.literal(Lang.tr("§e§n[Reclamar]"))
+                .setStyle(Style.EMPTY.withClickEvent(ClickEvent(ClickEvent.Action.RUN_COMMAND, "/wt recompensas")))
+            player.sendSystemMessage(WonderTradeService.colour(WonderTradeService.prefix() + text).copy().append(button))
+            WonderTradeGui.playSound(player, "cooldownReady")
+        }
+    }
+
+    /**
+     * Avisa a los ganadores conectados de que tienen recompensas por reclamar: nada más cerrarse el evento (o al entrar)
+     * y después cada `topDonations.claim.reminderMinutes` minutos (0 = sin recordatorios repetidos).
+     */
+    private fun remindPending(server: MinecraftServer) {
+        if (pending.isEmpty()) { lastClaimNotice.clear(); return }
+        val now = System.currentTimeMillis()
+        if (ConfigManager.bool("topDonations.claim.expire.enabled", false)) {
+            val limit = ConfigManager.int("topDonations.claim.expire.days", 30).coerceAtLeast(1) * 86_400_000L
+            val expired = pending.filter { now - it.createdAt > limit }
+            if (expired.isNotEmpty()) {
+                pending.removeAll(expired.toSet())
+                runCatching { save() }.onFailure { WonderTradePlus.LOGGER.error("No se pudo guardar top-donations.json.", it) }
+                expired.forEach { WonderTradePlus.LOGGER.info("Recompensa del Top Donaciones {} de {} caducada sin reclamar.", it.period, it.name) }
+                if (pending.isEmpty()) { lastClaimNotice.clear(); return }
+            }
+        }
+        val interval = ConfigManager.int("topDonations.claim.reminderMinutes", 10).coerceAtLeast(0) * 60_000L
+        val keys = pending.map { claimKey(it) }.toSet()
+        lastClaimNotice.keys.retainAll(keys)
+        val notified = HashSet<UUID>()
+        for (item in pending.toList()) {
+            val uuid = runCatching { UUID.fromString(item.uuid) }.getOrNull() ?: continue
+            val player = server.playerList.getPlayer(uuid) ?: continue
+            if (!notified.add(uuid)) continue
+            val mine = pending.filter { it.uuid == item.uuid }
+            val last = mine.mapNotNull { lastClaimNotice[claimKey(it)] }.maxOrNull()
+            val due = last == null || (interval > 0L && now - last >= interval)
+            if (!due) continue
+            sendClaimNotice(player)
+            mine.forEach { lastClaimNotice[claimKey(it)] = now }
+        }
     }
 }

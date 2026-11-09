@@ -358,6 +358,28 @@
       "third": [
         "give {player} cobblemon:rare_candy 3"
       ]
+    },
+    "rewardDescriptions": {
+      "first": ["&f10x &dCaramelo Raro"],
+      "second": ["&f5x &dCaramelo Raro"],
+      "third": ["&f3x &dCaramelo Raro"]
+    },
+    "claim": {
+      "reminderMinutes": 10,
+      "requiredFreeSlots": 1,
+      "expire": {
+        "enabled": false,
+        "days": 30
+      }
+    },
+    "participation": {
+      "enabled": true,
+      "minDonations": 10,
+      "includeWinners": false,
+      "rewards": [
+        "give {player} cobblemon:rare_candy 1"
+      ],
+      "description": ["&f1x &dCaramelo Raro"]
     }
   },
   "penalties": {

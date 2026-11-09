@@ -28,7 +28,7 @@ Eventos de temporada. Navidad está configurada del **25 de diciembre al 6 de en
 ## `topDonations`
 
 - Top Donaciones se celebra en los meses definidos por `everyMonth`, `firstYear`, `oddMonthsInFirstYear` y `alternateYears`.
-- Las aportaciones directas con `/wt donar` suman puntos según `points`; las recompensas del Top 3 se configuran en `rewards`.
+- Las aportaciones directas con `/wt donar` suman puntos según `points`; las recompensas del Top 3 se configuran en `rewards` y se reclaman con `/wt recompensas`: el jugador recibe un aviso clicable al cerrar el evento (y recordatorios cada `claim.reminderMinutes` minutos), y el menú muestra lo que incluye cada una según `rewardDescriptions`. Quien no entre en el Top 3 pero haya hecho `participation.minDonations` donaciones o más (10 por defecto) recibe una recompensa de participación (`participation.rewards`).
 - El evento termina el último día del mes a la hora `announceHour` (zona horaria de `events.schedule.timezone`). `/wt donaciones` solo muestra la clasificación final después del cierre.
 - El cierre se procesa aunque no haya habido donaciones, para que el evento también pueda finalizar con una clasificación vacía.
 

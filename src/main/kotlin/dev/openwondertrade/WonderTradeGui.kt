@@ -678,6 +678,49 @@ object WonderTradeGui {
             Triple("legendary", Lang.tr("&6Legendarios"), Items.GOLD_INGOT)
         )
 
+    /** Menú para reclamar las recompensas del Top Donaciones: pasa el ratón para ver qué incluye y haz clic para reclamarla. */
+    fun openRewards(player: ServerPlayer) {
+        if (WonderTradeTopDonations.claimsFor(player).isEmpty()) {
+            player.sendSystemMessage(WonderTradeService.info(Lang.tr("&cNo tienes recompensas disponibles.")))
+            return
+        }
+        open(player, Lang.tr("&5Wonder Trade &8- &6Recompensas"), 3) { menu -> renderRewards(menu, player) }
+    }
+
+    private fun renderRewards(menu: GuiMenu, player: ServerPlayer) {
+        menu.wipe()
+        fill(menu, 27)
+        val claims = WonderTradeTopDonations.claimsFor(player).take(9)
+        menu.put(4, named(
+            Items.ENDER_CHEST, Lang.tr("&6Recompensas pendientes"),
+            Lang.tr("&7Aquí aparecen las recompensas del Top Donaciones."),
+            Lang.tr("&7Pasa el ratón sobre una para ver qué incluye.")
+        ))
+        if (claims.isEmpty()) {
+            menu.put(13, named(Items.BARRIER, Lang.tr("&7No tienes recompensas pendientes.")))
+        } else {
+            claims.forEachIndexed { index, claim ->
+                val lore = mutableListOf(
+                    if (claim.rank == 0) Lang.tr("&7Tipo: &fParticipación") else Lang.t("&7Puesto: &f#{0}", claim.rank),
+                    Lang.t("&7Puntos: &e{0}", claim.points),
+                    Lang.t("&7Donaciones: &f{0}", claim.donations),
+                    "",
+                    Lang.tr("&7Contiene:")
+                )
+                lore += claim.description
+                lore += ""
+                lore += Lang.tr("&eClic para reclamar")
+                menu.button(9 + index, named(if (claim.rank == 0) Items.BARREL else Items.CHEST, Lang.t("&6Recompensa {0}", claim.title), *lore.toTypedArray())) { p ->
+                    if (WonderTradeTopDonations.claim(p.server, p, claim.period) == WonderTradeTopDonations.ClaimResult.GONE) {
+                        p.sendSystemMessage(WonderTradeService.info(Lang.tr("&cEsa recompensa ya no está disponible.")))
+                    }
+                    renderRewards(menu, p)
+                }
+            }
+        }
+        menu.button(22, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
+    }
+
     fun openSpecials(player: ServerPlayer) {
         if (!WonderTradeService.ensureEnabled(player)) return
         open(player, Lang.tr("&5Wonder Trade &8- &dEspeciales"), 3) { menu ->

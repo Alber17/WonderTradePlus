@@ -75,6 +75,15 @@ object Lang {
      * hayas editado) y carga es_es y el idioma por defecto del servidor (`general.language`).
      */
     private val legacyTexts: Map<String, List<String>> = mapOf(
+        "messages.topDonationsFooter" to listOf(
+            "&7¡Gracias a todos por donar! Los premios se entregan a los ganadores.",
+            "&7Thanks to everyone for donating! Prizes are delivered to the winners.",
+            "&7Merci à tous pour vos dons ! Les récompenses sont remises aux gagnants.",
+            "&7Grazie a tutti per aver donato! I premi vengono consegnati ai vincitori.",
+            "&7Danke an alle fürs Spenden! Die Preise gehen an die Gewinner.",
+            "&7Obrigado a todos por doarem! Os prémios são entregues aos vencedores.",
+            "&7¡Gracias a todos por donar! Los premios se entregan al ganador."
+        ),
         "discord.receivedMessage" to listOf(
             "🎉 **{player}** ha recibido **{pokemon}** (Nv. {level}, {category}) en un Wonder Trade.",
             "🎉 **{player}** received **{pokemon}** (Lv. {level}, {category}) in a Wonder Trade.",

@@ -27,6 +27,7 @@ Publicos (nivel 0):
   /wt stats <jugador>       Estadisticas de otro (gui.statsOthersPermissionLevel).
   /wt top                   Menu de rankings.
   /wt donaciones            Resultados finales del Top Donaciones (solo al terminar el evento).
+  /wt recompensas           Menu para reclamar tus recompensas del Top Donaciones.
   /wt especiales            Lista de legendarios, miticos, Ultraentes y Paradoja.
   /wt rango                 Tu rango y sus ventajas. Alias: /wt rank.
   /wt rangos                Menu con todos los rangos y sus ventajas.
@@ -325,7 +326,27 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
                               "give {player} cobblemon:rare_candy 10"
                               "pokegive {player} dratini lvl=10"
                               "lp user {player} permission set algo.premio true"
-                            Si el ganador esta desconectado, se entrega al entrar.
+                            Se ejecutan cuando el ganador RECLAMA el premio con
+                            /wt recompensas (no se entregan solos). Si estaba
+                            desconectado, el aviso le llega al entrar.
+ rewardDescriptions.first / second / third
+                            Texto que se ve al pasar el raton sobre la recompensa en el
+                            menu /wt recompensas (una linea por elemento, admite
+                            colores &). Solo informativo: no entrega nada.
+ participation.enabled      Premia tambien a quien haya participado sin llegar al Top 3.
+ participation.minDonations Donaciones minimas en el mes para ganar el premio de
+                            participacion (por defecto 10).
+ participation.includeWinners  true = los del Top 3 tambien reciben el de participacion.
+ participation.rewards      Comandos de consola del premio de participacion (mismas
+                            variables; {rank} vale 0).
+ participation.description  Texto del menu /wt recompensas para ese premio.
+ claim.requiredFreeSlots    Huecos libres del inventario necesarios para reclamar (por
+                            defecto 1; 0 = no comprobar). Si no los tiene, no se
+                            ejecuta ningun comando y se le avisa; sigue pendiente.
+ claim.expire.enabled       false por defecto. true = las recompensas sin reclamar
+                            caducan pasados claim.expire.days dias (30).
+ claim.reminderMinutes      Cada cuantos minutos se recuerda a quien no ha reclamado
+                            (por defecto 10; 0 = solo un aviso, sin repetir).
  (Solo cuentan las donaciones hechas con /wt donar en meses activos. El estado se
   guarda en top-donations.json. Avisos a Discord: discord.events.topDonations.)
 

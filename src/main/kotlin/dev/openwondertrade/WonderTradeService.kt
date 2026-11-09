@@ -202,6 +202,7 @@ object WonderTradeService {
             ConfigManager.string("messages.helpStatsCommand", "&e/wt stats [jugador] &7Consultar estadísticas"),
             ConfigManager.string("messages.helpTopCommand", "&e/wt top &7Abrir el menú de rankings"),
             ConfigManager.string("messages.helpTopDonationsCommand", "&e/wt donaciones &7Ver el Top Donaciones del mes"),
+            ConfigManager.string("messages.helpRewardsCommand", "&e/wt recompensas &7Reclamar tus recompensas del Top Donaciones"),
             ConfigManager.string("messages.helpEventsCommand", "&e/wt eventos &7Ver los eventos activos"),
             ConfigManager.string("messages.helpSpecialsCommand", "&e/wt especiales &7Ver qué Pokémon son míticos, legendarios, Ultraentes y Paradoja"),
             ConfigManager.string("messages.helpRankCommand", "&e/wt rango &7Ver tu rango y sus ventajas"),

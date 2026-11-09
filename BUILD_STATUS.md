@@ -1,6 +1,6 @@
 # Estado de compilación
 
-- Versión actual: **0.27.0**.
+- Versión actual: **0.28.0**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
@@ -8,7 +8,11 @@
 - Los anuncios de legendarios, Ultraentes y Paradoja pasado/futuro (v0.2.1) están pendientes de probar en juego.
 - No es una versión NeoForge/Arclight. El JAR es solo Fabric.
 
-## Cambios de la versión 0.27.0
+## Cambios de la versión 0.28.0
+
+- Top Donaciones: al reclamar se comprueba el espacio del inventario (`claim.requiredFreeSlots`) y existe caducidad opcional desactivada (`claim.expire`).
+- Top Donaciones: recompensa de participación configurable (`topDonations.participation`, 10 donaciones por defecto) para quien no llegue al podio.
+- Top Donaciones: las recompensas ya no se entregan automáticamente. Aviso clicable al cerrar el evento y al entrar, recordatorio periódico y nuevo menú `/wt recompensas` para reclamarlas, con el contenido visible al pasar el ratón.
 
 - Bossbar navideña: barra azul, texto en degradado rojo-blanco-verde y copo animado azul-blanco, configurable.
 - «Añadir Pokémon aleatorios»: la pantalla de cantidades en abanico se sustituye por un selector en espejo con botones -1/-5/-10/-15 a la izquierda y +1/+5/+10/+15 a la derecha (mismo sistema que el tiempo personalizado, pero con Pokémon).

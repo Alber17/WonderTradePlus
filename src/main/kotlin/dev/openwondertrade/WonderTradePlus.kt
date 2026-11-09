@@ -145,6 +145,9 @@ class WonderTradePlus : ModInitializer {
             .then(literal("especiales").executes { openSpecialsCommand(it) })
             // PERMISO: público; Top Donaciones del mes (puntos, ranking y próximo mes activo).
             .then(literal("donaciones").executes { showTopDonationsCommand(it) })
+            // PERMISO: público; menú para reclamar las recompensas del Top Donaciones. «rewards» es alias.
+            .then(literal("recompensas").executes { WonderTradeGui.openRewards(it.source.playerOrException); 1 })
+            .then(literal("rewards").executes { WonderTradeGui.openRewards(it.source.playerOrException); 1 })
             // PERMISO: público; muestra tu rango y sus ventajas. «rank» es alias de «rango».
             .then(literal("rango").executes { context -> showOwnRank(context) })
             .then(literal("rank").executes { context -> showOwnRank(context) })
@@ -782,7 +785,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.27.0"
+        const val MOD_VERSION = "0.28.0"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }
