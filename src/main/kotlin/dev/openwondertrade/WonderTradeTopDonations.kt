@@ -384,7 +384,6 @@ object WonderTradeTopDonations {
         }
         WonderTradePlus.LOGGER.info("{} ha reclamado la recompensa del Top Donaciones {} (puesto {}).", player.gameProfile.name, item.period, if (item.rank == 0) "participación" else item.rank.toString())
         return ClaimResult.OK
-        return true
     }
 
     /** Aviso clicable que abre el menú de recompensas. */
