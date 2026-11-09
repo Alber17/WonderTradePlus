@@ -29,6 +29,9 @@ class Season(
 ) {
     val name: String get() = Lang.tr(rawName)
 
+    /** Tema visual y de textos: «halloween» tiene los suyos; cualquier otra temporada usa los de Navidad. */
+    val theme: String get() = if (id == "halloween") "halloween" else "christmas"
+
     fun contains(date: LocalDate): Boolean {
         val day = MonthDay.from(date)
         return if (!start.isAfter(end)) !day.isBefore(start) && !day.isAfter(end) else !day.isBefore(start) || !day.isAfter(end)
@@ -122,7 +125,27 @@ object WonderTradeSeasons {
     private fun parseDay(text: String): MonthDay? =
         runCatching { MonthDay.parse("--" + text.trim().removePrefix("--").replace('/', '-')) }.getOrNull()
 
-    private fun allSeasons(): List<Season> = ConfigManager.objects("seasonal.events").mapNotNull { node ->
+    /** Eventos de la config más los que vienen de serie y aún no están en ella (así Halloween aparece en configs ya creadas). */
+    private val defaultNodes: List<JsonObject> by lazy {
+        runCatching {
+            WonderTradeSeasons::class.java.getResourceAsStream("/wondertradeplus-default.json")?.bufferedReader()?.use { reader ->
+                JsonParser.parseReader(reader).asJsonObject.getAsJsonObject("seasonal")?.getAsJsonArray("events")?.map { it.asJsonObject }
+            }
+        }.getOrNull() ?: emptyList()
+    }
+
+    private fun eventNodes(): List<JsonObject> {
+        val configured = ConfigManager.objects("seasonal.events")
+        val ids = configured.mapNotNull { it.get("id")?.asString?.trim()?.lowercase() }.toSet()
+        return configured + defaultNodes.filter { (it.get("id")?.asString?.trim()?.lowercase() ?: "") !in ids }
+    }
+
+    fun byId(id: String): Season? = allSeasons().firstOrNull { it.id == id }
+    fun isRunning(id: String): Boolean = isRunning() && activeId == id
+    fun isPaused(id: String): Boolean = isPaused() && activeId == id
+    fun statusText(id: String): String = if (activeId == id) statusText() else "INACTIVO"
+
+    private fun allSeasons(): List<Season> = eventNodes().mapNotNull { node ->
         val id = node.get("id")?.asString?.trim()?.lowercase()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
         val start = parseDay(node.get("startDate")?.asString ?: "") ?: return@mapNotNull null
         val end = parseDay(node.get("endDate")?.asString ?: "") ?: return@mapNotNull null
@@ -174,7 +197,8 @@ object WonderTradeSeasons {
     fun joinLine(): String? {
         val season = current() ?: return null
         return WonderTradeService.format(
-            ConfigManager.string("messages.seasonJoin", "&b❄ Hora navideña activa: quedan {duration}."),
+            if (season.theme == "halloween") ConfigManager.string("messages.halloweenJoin", "&6☠ Hora de Halloween activa: quedan {duration}.")
+            else ConfigManager.string("messages.seasonJoin", "&b❄ Hora navideña activa: quedan {duration}."),
             placeholders(season) + mapOf("duration" to WonderTradeEvents.formatDuration(((endAt - System.currentTimeMillis()).coerceAtLeast(0L) + 999L) / 1000L))
         )
     }
@@ -248,14 +272,16 @@ object WonderTradeSeasons {
     }
 
     /** Inicia una sesión inmediata desde el panel admin, incluso fuera del calendario navideño. */
-    fun manualStart(server: MinecraftServer): Boolean {
+    fun manualStart(server: MinecraftServer, id: String): Boolean {
         if (!ConfigManager.bool("seasonal.enabled", true)) return false
-        val season = allSeasons().firstOrNull { it.id == "navidad" } ?: allSeasons().firstOrNull() ?: return false
+        val season = allSeasons().firstOrNull { it.id == id } ?: return false
         if (phase == "paused" && activeId == season.id) {
             val now = System.currentTimeMillis()
             endAt += (now - pausedAt).coerceAtLeast(0L)
             phase = "active"; pausedAt = 0L; saveState()
-            WonderTradeEvents.broadcast(server) { Lang.tr("&b❄ La hora navideña se ha reanudado.") }
+            WonderTradeEvents.broadcast(server) {
+                if (season.theme == "halloween") Lang.tr("&6☠ La hora de Halloween se ha reanudado.") else Lang.tr("&b❄ La hora navideña se ha reanudado.")
+            }
             return true
         }
         if (activeId != null) return false
@@ -263,15 +289,18 @@ object WonderTradeSeasons {
         return begin(server, season, System.currentTimeMillis() + season.sessionDurationMinutes * 60_000L)
     }
 
-    fun manualPause(server: MinecraftServer): Boolean {
-        if (!isRunning()) return false
+    fun manualPause(server: MinecraftServer, id: String): Boolean {
+        if (!isRunning(id)) return false
+        val halloween = current()?.theme == "halloween"
         phase = "paused"; pausedAt = System.currentTimeMillis(); saveState()
-        WonderTradeEvents.broadcast(server) { Lang.tr("&b❄ La hora navideña se ha pausado.") }
+        WonderTradeEvents.broadcast(server) {
+            if (halloween) Lang.tr("&6☠ La hora de Halloween se ha pausado.") else Lang.tr("&b❄ La hora navideña se ha pausado.")
+        }
         return true
     }
 
-    fun manualFinish(server: MinecraftServer): Boolean {
-        if (activeId == null) return false
+    fun manualFinish(server: MinecraftServer, id: String): Boolean {
+        if (activeId != id) return false
         val today = LocalDate.now(WonderTradeSchedule.zone()).toString()
         finish(server, announceEnd = true)
         skipAutomaticDate = today
@@ -357,17 +386,20 @@ object WonderTradeSeasons {
     }
 
     private fun announce(server: MinecraftServer, season: Season, started: Boolean, count: Int) {
+        val halloween = season.theme == "halloween"
         if (started) {
             WonderTradeEvents.broadcast(server) {
                 WonderTradeService.format(
-                    ConfigManager.string("messages.seasonStart", "&b❄ ¡Ha aparecido la hora navideña! La pool temática estará disponible durante {duration}."),
+                    if (halloween) ConfigManager.string("messages.halloweenStart", "&6☠ ¡Ha aparecido la hora de Halloween! La pool de miedo estará disponible durante {duration}.")
+                    else ConfigManager.string("messages.seasonStart", "&b❄ ¡Ha aparecido la hora navideña! La pool temática estará disponible durante {duration}."),
                     placeholders(season) + mapOf("duration" to WonderTradeEvents.formatDuration(season.sessionDurationMinutes * 60L))
                 )
             }
         } else {
             WonderTradeEvents.broadcast(server) {
                 WonderTradeService.format(
-                    ConfigManager.string("messages.seasonEnd", "&b❄ La hora navideña ha terminado. La pool habitual vuelve a estar disponible."),
+                    if (halloween) ConfigManager.string("messages.halloweenEnd", "&6☠ La hora de Halloween ha terminado. La pool habitual vuelve a estar disponible.")
+                    else ConfigManager.string("messages.seasonEnd", "&b❄ La hora navideña ha terminado. La pool habitual vuelve a estar disponible."),
                     placeholders(season)
                 )
             }

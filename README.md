@@ -140,11 +140,11 @@ La URL del webhook es secreta; no la subas a GitHub.
 
 ## Hora navideña
 
-La temporada de Navidad está configurada del **25 de diciembre al 6 de enero**, ambos incluidos. No permanece activa todo el día: se sortean **cuatro horas distintas cada día**, y en cada una se abre una sesión de **60 minutos**. Los horarios se eligen al azar entre las 24 horas del día y se separan al menos tres horas y se guardan en `seasonal-state.json`, por lo que un reinicio no vuelve a sortear ni duplica las sesiones de ese día.
+La temporada de Navidad se repite **cada año** del **25 de diciembre al 6 de enero**, ambos incluidos (las fechas son `startDate` y `endDate` sin año). Si no la quieres, pon `seasonal.enabled` en `false`, o `enabled: false` solo en el evento `navidad`. No permanece activa todo el día: se sortean **cuatro horas distintas cada día**, y en cada una se abre una sesión de **60 minutos**. Los horarios se eligen al azar entre las 24 horas del día y se separan al menos tres horas y se guardan en `seasonal-state.json`, por lo que un reinicio no vuelve a sortear ni duplica las sesiones de ese día.
 
 Cada activación genera una pool navideña nueva. Al terminar la hora, la pool temporal se archiva con una marca temporal y se restaura la pool normal con su antigüedad congelada. Para que Cobblemon pueda generar la pool debe haber al menos un jugador conectado al inicio de la sesión.
 
-La bossbar de Navidad es azul y muestra un texto con degradado azul-blanco animado y el tiempo restante. En `/wt admin` → **Gestionar eventos** → **Hora navideña** puedes iniciar una sesión manualmente, pausarla/reanudarla o finalizarla para hacer pruebas. El inicio manual funciona también fuera de las fechas navideñas.
+La bossbar de Navidad es azul y muestra un texto con degradado animado rojo-blanco-verde, un copo de nieve azul-blanco y el tiempo restante. En `/wt admin` → **Gestionar eventos** → **Hora navideña** puedes iniciar una sesión manualmente, pausarla/reanudarla o finalizarla para hacer pruebas. El inicio manual funciona también fuera de las fechas navideñas.
 
 ## Estadísticas y ranking
 
@@ -217,6 +217,17 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
+
+## 0.28.3
+- Halloween empieza ahora la noche del 31 de octubre y dura hasta el 1 de noviembre (antes el 25 de octubre). Sigue siendo configurable con `startDate` y `endDate` del evento `halloween`.
+
+## 0.28.2
+- **Hora de Halloween**: nuevo evento de temporada que funciona exactamente igual que la hora navideña (sesiones aleatorias al día con pool nueva, solo se pueden ofrecer Pokémon del evento, bossbar animada, avisos en chat y Discord). Del 31 de octubre (noche de Halloween) al 1 de noviembre (`startDate`/`endDate` en `seasonal.events`), 4 sesiones diarias de 45 minutos con Pokémon de tipo Fantasma y Siniestro (más murciélagos y arañas), bossbar morada con texto naranja-morado-verde y una calavera ☠ que pulsa naranja-morada, y embed de Discord naranja. Todo configurable en `seasonal.events` (id `halloween`), `events.bossbar.halloween` y `discord.style.colors.halloweenStart/halloweenEnd`. Aparece solo aunque tu `config.json` ya exista; para apagarlo, copia su entrada en `seasonal.events` con `"enabled": false`.
+- Menú de admin «Eventos»: Hora navideña y Hora de Halloween quedan junto a Arriesgar y Recibir (4 botones centrados en la fila del medio). Los eventos en curso pasan a la fila superior.
+
+## 0.28.1
+- Menú de admin «Rellenar pool»: los botones de cantidad quedan centrados en la fila del medio.
+- La hora navideña se repite **cada año** del 25 de diciembre al 6 de enero. Para desactivarla: `seasonal.enabled: false` (todas las temporadas) o `enabled: false` en el evento `navidad`.
 
 ## 0.28.0
 - **Recompensas del Top Donaciones por reclamar**: al cerrarse el evento, los ganadores (Top 3) reciben un aviso clicable `[Reclamar]` y, si no lo reclaman, se les recuerda cada `topDonations.claim.reminderMinutes` minutos (por defecto 10; `0` = sin recordatorios repetidos). Si estaban desconectados, el aviso les llega al entrar.

@@ -109,7 +109,7 @@ object WonderTradeEventDisplay {
         syncSeasonBars(server, groups)
     }
 
-    /** Bossbar azul exclusiva de la hora navideña, con texto animado en rojo, blanco y verde y copo de nieve azul-blanco. */
+    /** Bossbar exclusiva de cada hora de temporada (Navidad: barra azul, texto rojo-blanco-verde y copo; Halloween: barra morada, texto naranja-morado-verde y calavera). */
     private fun syncSeasonBars(server: MinecraftServer, groups: Map<String, List<ServerPlayer>>) {
         val season = WonderTradeSeasons.current()?.takeIf { WonderTradeSeasons.isRunning() }
         val online = groups.values.flatten()
@@ -126,13 +126,15 @@ object WonderTradeEventDisplay {
             val bar = seasonBars.getOrPut(key) {
                 ServerBossEvent(Component.empty(), BossEvent.BossBarColor.BLUE, BossEvent.BossBarOverlay.PROGRESS)
             }
+            val halloween = season.theme == "halloween"
+            val defaultBar = if (halloween) BossEvent.BossBarColor.PURPLE else BossEvent.BossBarColor.BLUE
             bar.color = runCatching {
-                BossEvent.BossBarColor.valueOf(ConfigManager.string("events.bossbar.christmas.barColor", "BLUE").uppercase())
-            }.getOrDefault(BossEvent.BossBarColor.BLUE)
+                BossEvent.BossBarColor.valueOf(ConfigManager.string("events.bossbar.${if (halloween) "halloween" else "christmas"}.barColor", defaultBar.name).uppercase())
+            }.getOrDefault(defaultBar)
             bar.progress = (remaining.toFloat() / total.toFloat()).coerceIn(0f, 1f)
             val time = WonderTradeEvents.formatDuration((remaining + 999L) / 1000L)
             bar.name = Lang.withPlayer(players.first()) {
-                christmasText("HORA NAVIDEÑA — $time", now)
+                seasonText(season, (if (halloween) "HORA DE HALLOWEEN" else "HORA NAVIDEÑA") + " — $time", now)
             }
             players.forEach { if (!bar.players.contains(it)) bar.addPlayer(it) }
             bar.players.toList().forEach { if (!players.contains(it)) bar.removePlayer(it) }
@@ -186,17 +188,24 @@ object WonderTradeEventDisplay {
         return intArrayOf((value shr 16) and 255, (value shr 8) and 255, value and 255)
     }
 
-    /** Copo de nieve que pulsa entre azul hielo y blanco, seguido del texto con degradado navideño en bucle. */
-    private fun christmasText(text: String, now: Long): Component {
-        val flakeColors = ConfigManager.strings("events.bossbar.christmas.snowflakeColors").mapNotNull { parseHex(it) }
-            .let { if (it.size >= 2) it else listOf(intArrayOf(80, 170, 255), intArrayOf(255, 255, 255)) }
-        val textColors = ConfigManager.strings("events.bossbar.christmas.colors").mapNotNull { parseHex(it) }
-            .let { if (it.size >= 2) it else listOf(intArrayOf(230, 40, 50), intArrayOf(255, 255, 255), intArrayOf(40, 170, 80), intArrayOf(255, 255, 255)) }
+    /** Símbolo que pulsa entre dos colores (copo azul-blanco en Navidad, calavera naranja-morada en Halloween) y texto con degradado en bucle. */
+    private fun seasonText(season: Season, text: String, now: Long): Component {
+        val halloween = season.theme == "halloween"
+        val section = if (halloween) "halloween" else "christmas"
+        val symbolKey = if (halloween) "symbolColors" else "snowflakeColors"
+        val symbolDefault = if (halloween) listOf(intArrayOf(255, 117, 24), intArrayOf(139, 47, 201)) else listOf(intArrayOf(80, 170, 255), intArrayOf(255, 255, 255))
+        val textDefault = if (halloween)
+            listOf(intArrayOf(255, 117, 24), intArrayOf(139, 47, 201), intArrayOf(124, 200, 0), intArrayOf(139, 47, 201))
+        else listOf(intArrayOf(230, 40, 50), intArrayOf(255, 255, 255), intArrayOf(40, 170, 80), intArrayOf(255, 255, 255))
+        val symbolColors = ConfigManager.strings("events.bossbar.$section.$symbolKey").mapNotNull { parseHex(it) }
+            .let { if (it.size >= 2) it else symbolDefault }
+        val textColors = ConfigManager.strings("events.bossbar.$section.colors").mapNotNull { parseHex(it) }
+            .let { if (it.size >= 2) it else textDefault }
         val result = Component.empty()
-        val flakePos = (now / 650.0) % flakeColors.size
-        val fl = flakePos.toInt()
-        val flake = mix(flakeColors[fl], flakeColors[(fl + 1) % flakeColors.size], flakePos - fl)
-        result.append(Component.literal("❄ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(flake))))
+        val symbolPos = (now / 650.0) % symbolColors.size
+        val sp = symbolPos.toInt()
+        val symbolRgb = mix(symbolColors[sp], symbolColors[(sp + 1) % symbolColors.size], symbolPos - sp)
+        result.append(Component.literal(if (halloween) "☠ " else "❄ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(symbolRgb))))
         val phase = now / 420.0
         text.forEachIndexed { index, char ->
             val pos = (index * 0.16 + phase) % textColors.size

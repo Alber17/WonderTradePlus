@@ -249,5 +249,12 @@
   "&cEsa recompensa ya no está disponible.": "&cEsa recompensa ya no está disponible.",
   "messages.helpRewardsCommand": "&e/wt recompensas &7Reclamar tus recompensas del Top Donaciones",
   "&cNo tienes espacio en el inventario: libera al menos &f{0} &chueco(s) y vuelve a reclamar.": "&cNo tienes espacio en el inventario: libera al menos &f{0} &chueco(s) y vuelve a reclamar.",
-  "&cNo tienes recompensas disponibles.": "&cNo tienes recompensas disponibles."
+  "&cNo tienes recompensas disponibles.": "&cNo tienes recompensas disponibles.",
+  "messages.halloweenStart": "&6☠ ¡Ha aparecido la hora de Halloween! La pool de miedo estará disponible durante {duration}.",
+  "messages.halloweenEnd": "&6☠ La hora de Halloween ha terminado. La pool habitual vuelve a estar disponible.",
+  "messages.halloweenJoin": "&6☠ Hora de Halloween activa: quedan {duration}.",
+  "discord.halloweenStartMessage": "Ha aparecido la hora de Halloween. La pool de miedo estará disponible durante **{duration}**. ¡Aprovecha para conseguir Pokémon de tipo **{types}**.",
+  "discord.halloweenEndMessage": "La hora de Halloween ha terminado. La pool habitual vuelve a estar disponible.",
+  "discord.titles.halloweenStart": "🎃 ¡Ha aparecido la hora de Halloween!",
+  "discord.titles.halloweenEnd": "👻 La hora de Halloween ha terminado"
 }

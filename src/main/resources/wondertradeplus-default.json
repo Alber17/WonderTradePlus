@@ -114,7 +114,9 @@
         "resumed": "#3498DB",
         "top": "#E67E22",
         "seasonStart": "#168BFF",
-        "seasonEnd": "#B2BEC3"
+        "seasonEnd": "#B2BEC3",
+        "halloweenStart": "#FF7518",
+        "halloweenEnd": "#6A0DAD"
       }
     }
   },
@@ -248,6 +250,11 @@
         "barColor": "BLUE",
         "colors": ["#E62832", "#FFFFFF", "#28AA50", "#FFFFFF"],
         "snowflakeColors": ["#50AAFF", "#FFFFFF"]
+      },
+      "halloween": {
+        "barColor": "PURPLE",
+        "colors": ["#FF7518", "#8B2FC9", "#7CC800", "#8B2FC9"],
+        "symbolColors": ["#FF7518", "#8B2FC9"]
       }
     },
     "joinNotice": {
@@ -419,6 +426,25 @@
         "includeLegendary": true,
         "sessionsPerDay": 4,
         "sessionDurationMinutes": 60
+      },
+      {
+        "id": "halloween",
+        "enabled": true,
+        "name": "Halloween",
+        "startDate": "10-31",
+        "endDate": "11-01",
+        "types": [
+          "ghost",
+          "dark"
+        ],
+        "extraSpecies": ["zubat", "golbat", "crobat", "noibat", "noivern", "spinarak", "ariados"],
+        "excludeSpecies": [],
+        "restrictTrades": true,
+        "poolSize": 100,
+        "shinyChancePercent": 2.0,
+        "includeLegendary": true,
+        "sessionsPerDay": 4,
+        "sessionDurationMinutes": 45
       }
     ]
   }

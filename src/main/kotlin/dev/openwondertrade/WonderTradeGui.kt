@@ -913,7 +913,7 @@ object WonderTradeGui {
                 val now = System.currentTimeMillis()
                 WonderTradeEvents.running(now).take(3).forEachIndexed { index, event ->
                     val left = WonderTradeEvents.formatDuration((event.endAt - (if (event.paused) event.pausedAt else now) + 999L) / 1000L)
-                    menu.button(14 + index, named(
+                    menu.button(6 + index, named(
                         if (event.paused) Items.BARRIER else Items.CLOCK, eventButtonName(event) + if (event.paused) Lang.tr(" &6(pausado)") else "",
                         Lang.t("&7Tiempo restante: &f{0}", left),
                         Lang.t("&7WT hechos: &f{0} &7· jugadores: &f{1}", event.trades, event.playerIds.size),
@@ -922,12 +922,19 @@ object WonderTradeGui {
                 }
             }
             val scheduledCount = WonderTradeSchedule.all().size
-            menu.button(18, named(
+            // Fila central: Arriesgar (10), Recibir (12), Hora navideña (14) y Hora de Halloween (16).
+            menu.button(14, named(
                 Items.SNOWBALL, Lang.tr("&bHora navideña"),
-                Lang.t("&7Estado: &f{0}", WonderTradeSeasons.statusText()),
+                Lang.t("&7Estado: &f{0}", WonderTradeSeasons.statusText("navidad")),
                 Lang.tr("&7Inicia, pausa o finaliza la sesión navideña."),
                 Lang.tr("&eClic para gestionar")
-            )) { openChristmasAdmin(it) }
+            )) { openSeasonAdmin(it, "navidad") }
+            menu.button(16, named(
+                Items.JACK_O_LANTERN, Lang.tr("&6Hora de Halloween"),
+                Lang.t("&7Estado: &f{0}", WonderTradeSeasons.statusText("halloween")),
+                Lang.tr("&7Inicia, pausa o finaliza la sesión de Halloween."),
+                Lang.tr("&eClic para gestionar")
+            )) { openSeasonAdmin(it, "halloween") }
             menu.button(20, named(
                 Items.COMPASS, Lang.tr("&6Eventos programados"),
                 Lang.t("&7Programados: &f{0}", scheduledCount),
@@ -944,49 +951,62 @@ object WonderTradeGui {
         }
     }
 
-    /** Panel de pruebas del evento navideño. */
-    private fun openChristmasAdmin(player: ServerPlayer) {
+    /** Panel de control de una hora de temporada (Navidad o Halloween): iniciar, pausar y finalizar. */
+    private fun openSeasonAdmin(player: ServerPlayer, id: String) {
         if (!player.hasPermissions(WonderTradeService.adminLevel())) {
             WonderTradeService.send(player, "adminOnly")
             return
         }
-        open(player, Lang.tr("&5Administración &8- &bHora navideña"), 3) { menu ->
+        val halloween = id == "halloween"
+        open(player, if (halloween) Lang.tr("&5Administración &8- &6Hora de Halloween") else Lang.tr("&5Administración &8- &bHora navideña"), 3) { menu ->
             fill(menu, 27)
-            val status = WonderTradeSeasons.statusText()
-            val season = WonderTradeSeasons.current()
+            val season = WonderTradeSeasons.byId(id)
             val remaining = ((WonderTradeSeasons.sessionEndAt() - System.currentTimeMillis()).coerceAtLeast(0L) + 999L) / 1000L
             menu.put(4, named(
-                Items.SNOW_BLOCK, Lang.tr("&bHora navideña"),
-                Lang.t("&7Estado: &f{0}", status),
+                if (halloween) Items.JACK_O_LANTERN else Items.SNOW_BLOCK,
+                if (halloween) Lang.tr("&6Hora de Halloween") else Lang.tr("&bHora navideña"),
+                Lang.t("&7Estado: &f{0}", WonderTradeSeasons.statusText(id)),
                 Lang.t("&7Duración por sesión: &f{0}", season?.let { WonderTradeEvents.formatDuration(it.sessionDurationMinutes * 60L) } ?: "1 hora"),
-                if (WonderTradeSeasons.isRunning() || WonderTradeSeasons.isPaused())
+                if (WonderTradeSeasons.isRunning(id) || WonderTradeSeasons.isPaused(id))
                     Lang.t("&7Tiempo restante: &f{0}", WonderTradeEvents.formatDuration(remaining))
                 else Lang.tr("&7La sesión no está activa."),
                 Lang.tr("&8El inicio manual también sirve fuera de las fechas programadas.")
             ))
             menu.button(10, named(
-                Items.LIME_CONCRETE, if (WonderTradeSeasons.isPaused()) Lang.tr("&aReanudar / Iniciar") else Lang.tr("&aIniciar ahora"),
-                Lang.tr("&7Genera una pool navideña nueva y comienza una sesión.")
+                Items.LIME_CONCRETE, if (WonderTradeSeasons.isPaused(id)) Lang.tr("&aReanudar / Iniciar") else Lang.tr("&aIniciar ahora"),
+                if (halloween) Lang.tr("&7Genera una pool de Halloween nueva y comienza una sesión.") else Lang.tr("&7Genera una pool navideña nueva y comienza una sesión.")
             )) { p ->
-                val ok = WonderTradeSeasons.manualStart(p.server)
-                p.sendSystemMessage(WonderTradeService.info(if (ok) Lang.tr("&aLa hora navideña se ha iniciado o reanudado.") else Lang.tr("&cNo se ha podido iniciar: comprueba que haya un jugador conectado y que exista una temporada configurada.")))
-                openChristmasAdmin(p)
+                val ok = WonderTradeSeasons.manualStart(p.server, id)
+                p.sendSystemMessage(WonderTradeService.info(when {
+                    !ok -> Lang.tr("&cNo se ha podido iniciar: comprueba que haya un jugador conectado y que exista una temporada configurada.")
+                    halloween -> Lang.tr("&aLa hora de Halloween se ha iniciado o reanudado.")
+                    else -> Lang.tr("&aLa hora navideña se ha iniciado o reanudado.")
+                }))
+                openSeasonAdmin(p, id)
             }
             menu.button(13, named(
                 Items.YELLOW_CONCRETE, Lang.tr("&6Pausar"),
-                Lang.tr("&7Congela el tiempo restante y mantiene la pool navideña.")
+                if (halloween) Lang.tr("&7Congela el tiempo restante y mantiene la pool de Halloween.") else Lang.tr("&7Congela el tiempo restante y mantiene la pool navideña.")
             )) { p ->
-                val ok = WonderTradeSeasons.manualPause(p.server)
-                p.sendSystemMessage(WonderTradeService.info(if (ok) Lang.tr("&eLa hora navideña se ha pausado.") else Lang.tr("&cNo hay ninguna sesión activa que se pueda pausar.")))
-                openChristmasAdmin(p)
+                val ok = WonderTradeSeasons.manualPause(p.server, id)
+                p.sendSystemMessage(WonderTradeService.info(when {
+                    !ok -> Lang.tr("&cNo hay ninguna sesión activa que se pueda pausar.")
+                    halloween -> Lang.tr("&eLa hora de Halloween se ha pausado.")
+                    else -> Lang.tr("&eLa hora navideña se ha pausado.")
+                }))
+                openSeasonAdmin(p, id)
             }
             menu.button(16, named(
                 Items.RED_CONCRETE, Lang.tr("&cFinalizar"),
                 Lang.tr("&7Restaura la pool habitual y termina la sesión.")
             )) { p ->
-                val ok = WonderTradeSeasons.manualFinish(p.server)
-                p.sendSystemMessage(WonderTradeService.info(if (ok) Lang.tr("&aLa hora navideña ha finalizado.") else Lang.tr("&cNo hay ninguna sesión que finalizar.")))
-                openChristmasAdmin(p)
+                val ok = WonderTradeSeasons.manualFinish(p.server, id)
+                p.sendSystemMessage(WonderTradeService.info(when {
+                    !ok -> Lang.tr("&cNo hay ninguna sesión que finalizar.")
+                    halloween -> Lang.tr("&aLa hora de Halloween ha finalizado.")
+                    else -> Lang.tr("&aLa hora navideña ha finalizado.")
+                }))
+                openSeasonAdmin(p, id)
             }
             menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver a eventos"))) { openAdminEvents(it) }
             menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
@@ -1529,8 +1549,11 @@ object WonderTradeGui {
                 .filter { it > 0 && it <= maximumPool }
                 .distinct()
                 .sorted()
-                .take(7)
-            val slots = listOf(9, 10, 11, 12, 14, 15, 16)
+                .take(9)
+            // Botones centrados en la fila del medio (9-17): con cantidad impar quedan juntos alrededor del 13;
+            // con cantidad par se reparten a ambos lados dejando libre el hueco central.
+            val slots = if (amounts.size % 2 == 1) (13 - amounts.size / 2..13 + amounts.size / 2).toList()
+            else (13 - amounts.size / 2 until 13).toList() + (14..13 + amounts.size / 2).toList()
             if (amounts.isEmpty()) {
                 menu.put(13, named(Items.BARRIER, Lang.tr("&cNo hay cantidades configuradas"), Lang.tr("&7Edita admin.fillMenu.amounts en config.json.")))
             } else {

@@ -455,6 +455,13 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
    shinyChancePercent         % de que cada Pokemon generado sea shiny.
    includeLegendary           Incluir legendarios, miticos, Ultraentes y Paradoja
                               que encajen (una vez cada uno).
+ Halloween (id "halloween") funciona igual que Navidad: del 31 de octubre (noche de Halloween) al 1 de
+ noviembre, 4 sesiones de 45 min al dia, tipos ["ghost","dark"] mas murcielagos y
+ aranas (extraSpecies). Su bossbar es morada (events.bossbar.halloween: barColor,
+ colors y symbolColors). Textos: messages.halloweenStart/End/Join, discord.halloween*
+ y discord.titles.halloweenStart/End; colores style.colors.halloweenStart/End.
+ Los eventos de serie que falten en tu config.json se anaden solos; para apagar
+ Halloween copia su entrada en events con "enabled": false.
  Ejemplo para anadir otro evento (dentro de "seasonal" > "events"):
    { "id": "verano", "enabled": true, "name": "Verano", "startDate": "07-01",
      "endDate": "08-31", "types": ["water", "fire"], "extraSpecies": [],
