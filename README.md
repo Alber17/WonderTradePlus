@@ -218,6 +218,9 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.29.4
+- Aviso de fin del Evento de Halloween: en el juego «La Noche de Brujas ha terminado. La pool habitual vuelve a estar disponible.» y en Discord con título «Evento de Halloween» y esa misma frase.
+
 ## 0.29.3
 - Aviso de inicio de Halloween: en el juego «La Noche de Brujas ha comenzado. La pool de miedo estará disponible durante {tiempo}.» y en Discord, con título «Evento de Halloween», la misma frase. Si el servidor tenía guardados los textos anteriores en la carpeta de idiomas, se actualizan solos.
 

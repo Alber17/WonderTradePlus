@@ -81,7 +81,10 @@ object Lang {
     private val legacyMarkers: Map<String, List<String>> = mapOf(
         "messages.halloweenStart" to listOf("Halloween", "Brujas", "Witches", "Sorcières", "Streghe", "Hexennacht", "Bruxas"),
         "discord.halloweenStartMessage" to listOf("Halloween", "Brujas", "Witches", "Sorcières", "Streghe", "Hexennacht", "Bruxas"),
-        "discord.titles.halloweenStart" to listOf("Halloween", "Brujas", "Witches", "Sorcières", "Streghe", "Hexennacht", "Bruxas")
+        "discord.titles.halloweenStart" to listOf("Halloween", "Brujas", "Witches", "Sorcières", "Streghe", "Hexennacht", "Bruxas"),
+        "messages.halloweenEnd" to listOf("Halloween", "Brujas", "Witches", "Sorcières", "Streghe", "Hexennacht", "Bruxas"),
+        "discord.halloweenEndMessage" to listOf("Halloween", "Brujas", "Witches", "Sorcières", "Streghe", "Hexennacht", "Bruxas"),
+        "discord.titles.halloweenEnd" to listOf("Halloween", "Brujas", "Witches", "Sorcières", "Streghe", "Hexennacht", "Bruxas")
     )
 
     private val legacyTexts: Map<String, List<String>> = mapOf(
