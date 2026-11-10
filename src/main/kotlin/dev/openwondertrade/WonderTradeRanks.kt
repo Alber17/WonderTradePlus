@@ -17,7 +17,9 @@ data class WtRank(
     val baseBonus: Double,
     val gainMultiplier: Double,
     /** % extra fijo que se suma a la probabilidad de especial en cada intercambio (no se consume). */
-    val improvementPercent: Double = 0.0
+    val improvementPercent: Double = 0.0,
+    /** Enlace de compra de este rango en la tienda del servidor (vacío = usa ranks.shopUrl, y si tampoco hay, sin clic). */
+    val shopUrl: String = ""
 )
 
 /** Detecta el rango de un jugador por permiso (LuckPerms / Fabric Permissions API) o por etiqueta (/tag). */
@@ -36,7 +38,8 @@ object WonderTradeRanks {
             tag = json.get("tag")?.let { runCatching { it.asString }.getOrNull() } ?: "",
             baseBonus = json.get("baseBonus")?.let { runCatching { it.asDouble }.getOrNull() }?.coerceIn(0.0, 100.0) ?: 0.0,
             gainMultiplier = json.get("gainMultiplier")?.let { runCatching { it.asDouble }.getOrNull() }?.coerceAtLeast(0.0) ?: 1.0,
-            improvementPercent = json.get("improvementPercent")?.let { runCatching { it.asDouble }.getOrNull() }?.coerceIn(0.0, 100.0) ?: 0.0
+            improvementPercent = json.get("improvementPercent")?.let { runCatching { it.asDouble }.getOrNull() }?.coerceIn(0.0, 100.0) ?: 0.0,
+            shopUrl = json.get("shopUrl")?.let { runCatching { it.asString }.getOrNull() }?.trim() ?: ""
         )
     }
 

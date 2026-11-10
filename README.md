@@ -218,6 +218,16 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.29.1
+- **Bloqueo del MegaHunt**: `/wt megahunt <especie>` (admins y consola) bloquea para ofrecer y donar la línea evolutiva completa de la especie ganadora (Pichu, Pikachu y Raichu si gana Pikachu) hasta las 00:00; `/wt megahunt quitar` lo desactiva y `/wt megahunt` muestra el estado. Opción `megaHunt.enabled`. Si el sistema de votación puede lanzar comandos de consola, puede ejecutarlo para que sea automático.
+
+## 0.29.0
+- En `/wt rangos`, los rangos con enlace de compra muestran «Puedes comprar el rango dando clic.» debajo de su descripción (no en tu propio rango).
+
+## 0.28.9
+- `/wt rangos` muestra ahora los rangos de más barato a más caro (Dominguero, Experto, Élite, Maestro, Leyenda).
+- Cada rango tiene su propio enlace de compra, `shopUrl` dentro de `ranks.list`: al hacer clic en un rango que no es el tuyo se cierra el menú y aparece en el chat un enlace clicable a esa página. Si un rango no lo tiene, usa `ranks.shopUrl` (enlace general) y, si tampoco hay, el clic no hace nada. Vacíos por defecto. Como tu `config.json` ya tiene su lista de rangos, añade `"shopUrl"` a cada rango a mano.
+
 ## 0.28.7
 - Si falla el aviso de Discord de una temporada (Navidad o Halloween), ahora queda el error en la consola del servidor en vez de ignorarse.
 

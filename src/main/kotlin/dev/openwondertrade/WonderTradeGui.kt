@@ -384,7 +384,7 @@ object WonderTradeGui {
     fun openRanks(player: ServerPlayer) {
         val ranks = WonderTradeRanks.all()
         val rows = if (ranks.size <= 7) 3 else 6
-        // De izquierda a derecha, del rango más alto al más bajo. Gloria Ball es la Cherish Ball de Cobblemon.
+        // De izquierda a derecha, del rango más barato al más caro (la config va del más alto al más bajo). Gloria Ball es la Cherish Ball de Cobblemon.
         val icons = listOf("cherish_ball", "master_ball", "ultra_ball", "great_ball", "poke_ball").map { cobblemonItem(it) }
         open(player, Lang.tr("&5Wonder Trade &8- &eRangos"), rows) { menu ->
             fill(menu, rows * 9)
@@ -395,20 +395,32 @@ object WonderTradeGui {
                 // Filas de hasta 7 rangos, cada una centrada. Con 3 filas el menú usa la del medio; con 6, las cuatro centrales.
                 val perRow = 7
                 val firstRow = if (rows == 3) 1 else 1
-                ranks.take(perRow * (rows - 2)).chunked(perRow).forEachIndexed { rowIndex, group ->
+                val defaultShop = ConfigManager.string("ranks.shopUrl", "").trim()
+                ranks.take(perRow * (rows - 2)).reversed().chunked(perRow).forEachIndexed { rowIndex, group ->
                     val start = (firstRow + rowIndex) * 9 + (9 - group.size) / 2
                     group.forEachIndexed { column, rank ->
-                        val index = rowIndex * perRow + column
+                        val index = ranks.indexOf(rank)
                         val own = mine != null && mine.id == rank.id
+                        val shopUrl = rank.shopUrl.ifBlank { defaultShop }.trim().takeIf { it.startsWith("http://") || it.startsWith("https://") }
                         val lore = mutableListOf(
                             Lang.t("&7Probabilidad mínima de especial: &d{0}%", WonderTradeService.percentText(rank.baseBonus)),
                             Lang.t("&7Mejora fija en cada intercambio: &a+{0}%", WonderTradeService.percentText(rank.improvementPercent)),
                             Lang.t("&7Ganancia por Pokémon ofrecido: &ax{0}", WonderTradeService.percentText(rank.gainMultiplier))
                         )
                         if (own) lore += Lang.tr("&a✔ Es tu rango")
+                        else if (shopUrl != null) lore += Lang.tr("&ePuedes comprar el rango dando clic.")
                         val stack = named(icons[index % icons.size], "&f" + rank.name, *lore.toTypedArray())
                         if (own) stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true)
-                        menu.put(start + column, stack)
+                        if (shopUrl != null && !own) {
+                            menu.button(start + column, stack) { p ->
+                                p.closeContainer()
+                                val link = Component.literal(Lang.tr("§e§n[Abrir tienda]"))
+                                    .setStyle(Style.EMPTY.withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, shopUrl)))
+                                p.sendSystemMessage(WonderTradeService.colour(WonderTradeService.prefix() + Lang.t("&6Consigue el rango {0} &6en la tienda: ", rank.name)).copy().append(link))
+                            }
+                        } else {
+                            menu.put(start + column, stack)
+                        }
                     }
                 }
             }

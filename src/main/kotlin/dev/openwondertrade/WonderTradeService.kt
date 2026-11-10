@@ -39,6 +39,7 @@ object WonderTradeService {
         WonderTradeTopDonations.load(directory)
         WonderTradePenalties.load(directory)
         WonderTradeSeasons.load(directory)
+        WonderTradeMegaHunt.load(directory)
         pool.load()
         raiseGeneratedSpecialLevels()
         trimAndSave()
@@ -2097,7 +2098,7 @@ object WonderTradeService {
         Lang.withPlayer(player) {
             val fallback = defaultMessage(key)
             val template = ConfigManager.string("messages.$key", fallback)
-            val extra = if (key.startsWith("season")) WonderTradeSeasons.placeholders() else emptyMap()
+            val extra = if (key.startsWith("season")) WonderTradeSeasons.placeholders() else if (key == "megaHuntBlocked") WonderTradeMegaHunt.placeholders() else emptyMap()
             player.sendSystemMessage(colour(WonderTradeService.prefix() + format(template, extra + values)))
         }
     }
@@ -2121,6 +2122,7 @@ object WonderTradeService {
 
     private fun defaultMessage(key: String): String = when (key) {
         "tradeDisabled" -> Lang.tr("&cWonder Trade está desactivado temporalmente.")
+        "megaHuntBlocked" -> Lang.tr("&cDurante el MegaHunt no se pueden intercambiar ni donar Pokémon de la línea de {species}.")
         "seasonTypeBlocked" -> Lang.tr("&cDurante el evento de {event} solo se pueden intercambiar Pokémon de tipo {types}.")
         "cooldownFinished" -> Lang.tr("&a¡Ya puedes hacer Wonder Trade otra vez! Usa &e/wt&a.")
         "emptySlot" -> Lang.tr("&cNo tienes ningún Pokémon en ese slot.")

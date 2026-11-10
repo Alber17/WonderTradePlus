@@ -172,6 +172,7 @@ object WonderTradeRules {
         if (!isSpeciesAllowed(pokemon.species.resourceIdentifier.toString())) return "speciesBlocked"
         if (!isVariantAllowed(pokemon)) return "speciesBlocked"
         if (!WonderTradeSeasons.allows(pokemon)) return "seasonTypeBlocked"
+        if (WonderTradeMegaHunt.blocks(pokemon)) return "megaHuntBlocked"
         return null
     }
 }

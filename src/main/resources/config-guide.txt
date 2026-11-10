@@ -207,6 +207,10 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
  ranks - Rangos del servidor
 --------------------------------------------------------------------------------
  enabled                    Activa los rangos.
+ shopUrl                    Enlace general de la tienda (https://...), solo se usa en
+                            los rangos que no tienen el suyo propio. Vacio = nada.
+                            El menu muestra los rangos del mas barato al mas caro
+                            (la lista "list" sigue yendo del mas alto al mas bajo).
  list                       Del mas alto al mas bajo; gana el primero que coincida.
    id / name                Identificador y nombre mostrado.
    permission               Permiso (LuckPerms/Fabric Permissions), p. ej.
@@ -215,8 +219,27 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
    baseBonus                Minimo del bonus (%): vuelve a este valor al recibir
                             un especial en vez de a 0.
    gainMultiplier           Multiplica lo que suma cada Pokemon ofrecido.
+   shopUrl                  Enlace de compra de ESTE rango (https://...). Al hacer
+                            clic en el rango en /wt rangos (si no es el tuyo) se
+                            cierra el menu y sale en el chat un enlace clicable
+                            a esa pagina. Vacio = usa ranks.shopUrl o no hace nada.
+                            Ojo: tu config.json ya tiene su lista de rangos; anade
+                            "shopUrl" a cada uno a mano.
    improvementPercent       % FIJO de mejora que se suma a la probabilidad de
                             recibir un especial en cada intercambio (no se consume).
+
+--------------------------------------------------------------------------------
+ megaHunt - Bloqueo de la linea evolutiva del MegaHunt
+--------------------------------------------------------------------------------
+ enabled                    Activa la regla. Con true, el comando de abajo bloquea.
+ Uso (admins y consola):    /wt megahunt <especie>   p. ej. /wt megahunt pikachu
+                            bloquea esa linea evolutiva completa (pichu, pikachu y
+                            raichu) para ofrecerla y donarla hasta las 00:00 de manana.
+                            /wt megahunt quitar      quita el bloqueo antes de tiempo.
+                            /wt megahunt             muestra el estado.
+ Si el sistema de votacion puede ejecutar comandos de consola al elegir ganador,
+ puede lanzar /wt megahunt <especie> y el bloqueo sera automatico. Se guarda en
+ megahunt.json (no lo borres durante el bloqueo). Lo que ya esta en la pool no se toca.
 
 --------------------------------------------------------------------------------
  cooldownNotice - Aviso de cooldown listo

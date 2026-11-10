@@ -191,6 +191,37 @@ class WonderTradePlus : ModInitializer {
                 1
             })
             .then(adminCommands())
+            // PERMISO: admin.permissionLevel (también sirve desde consola). Bloquea la línea evolutiva ganadora del MegaHunt
+            // hasta las 00:00. «/wt megahunt <especie>» activa, «/wt megahunt quitar» desactiva, «/wt megahunt» muestra el estado.
+            .then(literal("megahunt").requires { it.hasPermission(WonderTradeService.adminLevel()) }
+                .executes { context ->
+                    val message = if (WonderTradeMegaHunt.isActive())
+                        Lang.t("&7MegaHunt: bloqueada la línea de &f{0} &7({1}) hasta el final del día.", WonderTradeMegaHunt.rootName(), WonderTradeMegaHunt.lineNames())
+                    else Lang.tr("&7MegaHunt: no hay ningún bloqueo activo.")
+                    context.source.sendSuccess({ WonderTradeService.info(message) }, false)
+                    1
+                }
+                .then(literal("quitar").executes { context ->
+                    WonderTradeMegaHunt.clear()
+                    context.source.sendSuccess({ WonderTradeService.info(Lang.tr("&aMegaHunt desactivado: ya se pueden intercambiar esos Pokémon.")) }, true)
+                    1
+                })
+                .then(argument("especie", StringArgumentType.word())
+                    .suggests { _, builder -> SharedSuggestionProvider.suggest(WonderTradeMegaHunt.speciesNames(), builder) }
+                    .executes { context ->
+                        val name = StringArgumentType.getString(context, "especie")
+                        if (!WonderTradeMegaHunt.set(name)) {
+                            context.source.sendFailure(WonderTradeService.info(Lang.t("&cNo existe la especie &f{0}&c.", name)))
+                        } else {
+                            context.source.sendSuccess({
+                                WonderTradeService.info(Lang.t("&aMegaHunt: bloqueados los Pokémon de la línea de &f{0} &a({1}) hasta que termine el día.", WonderTradeMegaHunt.rootName(), WonderTradeMegaHunt.lineNames()))
+                            }, true)
+                            if (!WonderTradeMegaHunt.enabled()) {
+                                context.source.sendFailure(WonderTradeService.info(Lang.tr("&cLa regla del MegaHunt está desactivada en la config (megaHunt.enabled).")))
+                            }
+                        }
+                        1
+                    }))
             // PERMISO: admin.permissionLevel (configurable; por defecto OP nivel 2).
             // Alias antiguo de «/wt admin clear».
             .then(literal("clearpool").requires { it.hasPermission(WonderTradeService.adminLevel()) }.executes { clearPoolCommand(it) })
@@ -785,7 +816,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.28.7"
+        const val MOD_VERSION = "0.29.1"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

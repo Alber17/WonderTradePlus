@@ -170,6 +170,7 @@
   },
   "ranks": {
     "enabled": true,
+    "shopUrl": "",
     "list": [
       {
         "id": "leyenda",
@@ -178,7 +179,8 @@
         "tag": "wt_leyenda",
         "baseBonus": 1.0,
         "gainMultiplier": 1.0,
-        "improvementPercent": 1.0
+        "improvementPercent": 1.0,
+        "shopUrl": ""
       },
       {
         "id": "maestro",
@@ -187,7 +189,8 @@
         "tag": "wt_maestro",
         "baseBonus": 0.0,
         "gainMultiplier": 1.0,
-        "improvementPercent": 0.75
+        "improvementPercent": 0.75,
+        "shopUrl": ""
       },
       {
         "id": "elite",
@@ -196,7 +199,8 @@
         "tag": "wt_elite",
         "baseBonus": 0.0,
         "gainMultiplier": 1.0,
-        "improvementPercent": 0.5
+        "improvementPercent": 0.5,
+        "shopUrl": ""
       },
       {
         "id": "experto",
@@ -205,7 +209,8 @@
         "tag": "wt_experto",
         "baseBonus": 0.0,
         "gainMultiplier": 1.0,
-        "improvementPercent": 0.25
+        "improvementPercent": 0.25,
+        "shopUrl": ""
       },
       {
         "id": "dominguero",
@@ -214,9 +219,13 @@
         "tag": "wt_dominguero",
         "baseBonus": 0.0,
         "gainMultiplier": 1.0,
-        "improvementPercent": 0.1
+        "improvementPercent": 0.1,
+        "shopUrl": ""
       }
     ]
+  },
+  "megaHunt": {
+    "enabled": true
   },
   "cooldownNotice": {
     "enabled": true,

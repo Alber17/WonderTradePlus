@@ -1139,5 +1139,15 @@
   "&eLa Noche de Brujas se ha pausado.": "&eLa Nuit des Sorcières a été mise en pause.",
   "&aLa Noche de Brujas ha finalizado.": "&aLa Nuit des Sorcières est terminée.",
   "&6☠ La Noche de Brujas se ha reanudado.": "&6☠ La Nuit des Sorcières a repris.",
-  "&6☠ La Noche de Brujas se ha pausado.": "&6☠ La Nuit des Sorcières a été mise en pause."
+  "&6☠ La Noche de Brujas se ha pausado.": "&6☠ La Nuit des Sorcières a été mise en pause.",
+  "§e§n[Abrir tienda]": "§e§n[Ouvrir la boutique]",
+  "&6Consigue el rango {0} &6en la tienda: ": "&6Obtiens le rang {0} &6dans la boutique : ",
+  "&ePuedes comprar el rango dando clic.": "&eTu peux acheter ce rang en cliquant.",
+  "&cDurante el MegaHunt no se pueden intercambiar ni donar Pokémon de la línea de {species}.": "&cPendant le MegaHunt, les Pokémon de la lignée de {species} ne peuvent pas être échangés ni donnés.",
+  "&aMegaHunt: bloqueados los Pokémon de la línea de &f{0} &a({1}) hasta que termine el día.": "&aMegaHunt : les Pokémon de la lignée de &f{0} &a({1}) sont bloqués jusqu'à la fin de la journée.",
+  "&7MegaHunt: bloqueada la línea de &f{0} &7({1}) hasta el final del día.": "&7MegaHunt : la lignée de &f{0} &7({1}) est bloquée jusqu'à la fin de la journée.",
+  "&7MegaHunt: no hay ningún bloqueo activo.": "&7MegaHunt : aucun blocage actif.",
+  "&aMegaHunt desactivado: ya se pueden intercambiar esos Pokémon.": "&aBlocage MegaHunt retiré : ces Pokémon peuvent à nouveau être échangés.",
+  "&cNo existe la especie &f{0}&c.": "&cL'espèce &f{0}&c n'existe pas.",
+  "&cLa regla del MegaHunt está desactivada en la config (megaHunt.enabled).": "&cLa règle MegaHunt est désactivée dans la config (megaHunt.enabled)."
 }

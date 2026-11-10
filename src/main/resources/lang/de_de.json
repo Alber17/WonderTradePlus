@@ -1139,5 +1139,15 @@
   "&eLa Noche de Brujas se ha pausado.": "&eDie Hexennacht wurde pausiert.",
   "&aLa Noche de Brujas ha finalizado.": "&aDie Hexennacht ist beendet.",
   "&6☠ La Noche de Brujas se ha reanudado.": "&6☠ Die Hexennacht wurde fortgesetzt.",
-  "&6☠ La Noche de Brujas se ha pausado.": "&6☠ Die Hexennacht wurde pausiert."
+  "&6☠ La Noche de Brujas se ha pausado.": "&6☠ Die Hexennacht wurde pausiert.",
+  "§e§n[Abrir tienda]": "§e§n[Shop öffnen]",
+  "&6Consigue el rango {0} &6en la tienda: ": "&6Hol dir den Rang {0} &6im Shop: ",
+  "&ePuedes comprar el rango dando clic.": "&eDu kannst den Rang per Klick kaufen.",
+  "&cDurante el MegaHunt no se pueden intercambiar ni donar Pokémon de la línea de {species}.": "&cWährend des MegaHunts können Pokémon der {species}-Entwicklungslinie weder getauscht noch gespendet werden.",
+  "&aMegaHunt: bloqueados los Pokémon de la línea de &f{0} &a({1}) hasta que termine el día.": "&aMegaHunt: Pokémon der &f{0}&a-Linie ({1}) sind bis Tagesende gesperrt.",
+  "&7MegaHunt: bloqueada la línea de &f{0} &7({1}) hasta el final del día.": "&7MegaHunt: die &f{0}&7-Linie ({1}) ist bis Tagesende gesperrt.",
+  "&7MegaHunt: no hay ningún bloqueo activo.": "&7MegaHunt: keine Sperre aktiv.",
+  "&aMegaHunt desactivado: ya se pueden intercambiar esos Pokémon.": "&aMegaHunt-Sperre aufgehoben: Diese Pokémon können wieder getauscht werden.",
+  "&cNo existe la especie &f{0}&c.": "&cDie Art &f{0}&c existiert nicht.",
+  "&cLa regla del MegaHunt está desactivada en la config (megaHunt.enabled).": "&cDie MegaHunt-Regel ist in der Config deaktiviert (megaHunt.enabled)."
 }
