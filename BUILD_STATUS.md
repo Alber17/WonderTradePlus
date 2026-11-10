@@ -1,12 +1,20 @@
 # Estado de compilación
 
-- Versión actual: **0.28.5**.
+- Versión actual: **0.28.7**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
 - Los comandos `/wt admin ...`, el historial, el cooldown de 12 h y el autocompletado (v0.3.0) están pendientes de probar en juego.
 - Los anuncios de legendarios, Ultraentes y Paradoja pasado/futuro (v0.2.1) están pendientes de probar en juego.
 - No es una versión NeoForge/Arclight. El JAR es solo Fabric.
+
+## Cambios de la versión 0.28.7
+
+- Los fallos al enviar el aviso de Discord de una temporada se registran en la consola.
+
+## Cambios de la versión 0.28.6
+
+- En el juego el Evento de Halloween se muestra como «Noche de Brujas» (chat, bossbar, menú de admin y traducciones); Discord mantiene «Evento de Halloween».
 
 ## Cambios de la versión 0.28.5
 

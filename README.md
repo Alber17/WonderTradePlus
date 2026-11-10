@@ -218,6 +218,12 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.28.7
+- Si falla el aviso de Discord de una temporada (Navidad o Halloween), ahora queda el error en la consola del servidor en vez de ignorarse.
+
+## 0.28.6
+- Dentro de Minecraft (chat, bossbar, menú de admin) el Evento de Halloween se llama ahora **Noche de Brujas**, como «hora navideña» en Navidad. En Discord el título sigue siendo «¡Evento de Halloween!». Textos en `messages.halloweenStart/End/Join`.
+
 ## 0.28.5
 - Título del aviso de Discord al empezar el Evento de Halloween: «🎃 ¡Evento de Halloween!» (`discord.titles.halloweenStart`).
 

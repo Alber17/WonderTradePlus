@@ -922,7 +922,7 @@ object WonderTradeGui {
                 }
             }
             val scheduledCount = WonderTradeSchedule.all().size
-            // Fila central: Arriesgar (10), Recibir (12), Hora navideña (14) y Evento de Halloween (16).
+            // Fila central: Arriesgar (10), Recibir (12), Hora navideña (14) y Noche de Brujas (16).
             menu.button(14, named(
                 Items.SNOWBALL, Lang.tr("&bHora navideña"),
                 Lang.t("&7Estado: &f{0}", WonderTradeSeasons.statusText("navidad")),
@@ -930,7 +930,7 @@ object WonderTradeGui {
                 Lang.tr("&eClic para gestionar")
             )) { openSeasonAdmin(it, "navidad") }
             menu.button(16, named(
-                Items.JACK_O_LANTERN, Lang.tr("&6Evento de Halloween"),
+                Items.JACK_O_LANTERN, Lang.tr("&6Noche de Brujas"),
                 Lang.t("&7Estado: &f{0}", WonderTradeSeasons.statusText("halloween")),
                 Lang.tr("&7Inicia, pausa o finaliza la sesión de Halloween."),
                 Lang.tr("&eClic para gestionar")
@@ -958,13 +958,13 @@ object WonderTradeGui {
             return
         }
         val halloween = id == "halloween"
-        open(player, if (halloween) Lang.tr("&5Administración &8- &6Evento de Halloween") else Lang.tr("&5Administración &8- &bHora navideña"), 3) { menu ->
+        open(player, if (halloween) Lang.tr("&5Administración &8- &6Noche de Brujas") else Lang.tr("&5Administración &8- &bHora navideña"), 3) { menu ->
             fill(menu, 27)
             val season = WonderTradeSeasons.byId(id)
             val remaining = ((WonderTradeSeasons.sessionEndAt() - System.currentTimeMillis()).coerceAtLeast(0L) + 999L) / 1000L
             menu.put(4, named(
                 if (halloween) Items.JACK_O_LANTERN else Items.SNOW_BLOCK,
-                if (halloween) Lang.tr("&6Evento de Halloween") else Lang.tr("&bHora navideña"),
+                if (halloween) Lang.tr("&6Noche de Brujas") else Lang.tr("&bHora navideña"),
                 Lang.t("&7Estado: &f{0}", WonderTradeSeasons.statusText(id)),
                 Lang.t("&7Duración por sesión: &f{0}", season?.let { WonderTradeEvents.formatDuration(it.sessionDurationMinutes * 60L) } ?: "1 hora"),
                 if (WonderTradeSeasons.isRunning(id) || WonderTradeSeasons.isPaused(id))
@@ -979,7 +979,7 @@ object WonderTradeGui {
                 val ok = WonderTradeSeasons.manualStart(p.server, id)
                 p.sendSystemMessage(WonderTradeService.info(when {
                     !ok -> Lang.tr("&cNo se ha podido iniciar: comprueba que haya un jugador conectado y que exista una temporada configurada.")
-                    halloween -> Lang.tr("&aEl Evento de Halloween se ha iniciado o reanudado.")
+                    halloween -> Lang.tr("&aLa Noche de Brujas se ha iniciado o reanudado.")
                     else -> Lang.tr("&aLa hora navideña se ha iniciado o reanudado.")
                 }))
                 openSeasonAdmin(p, id)
@@ -991,7 +991,7 @@ object WonderTradeGui {
                 val ok = WonderTradeSeasons.manualPause(p.server, id)
                 p.sendSystemMessage(WonderTradeService.info(when {
                     !ok -> Lang.tr("&cNo hay ninguna sesión activa que se pueda pausar.")
-                    halloween -> Lang.tr("&eEl Evento de Halloween se ha pausado.")
+                    halloween -> Lang.tr("&eLa Noche de Brujas se ha pausado.")
                     else -> Lang.tr("&eLa hora navideña se ha pausado.")
                 }))
                 openSeasonAdmin(p, id)
@@ -1003,7 +1003,7 @@ object WonderTradeGui {
                 val ok = WonderTradeSeasons.manualFinish(p.server, id)
                 p.sendSystemMessage(WonderTradeService.info(when {
                     !ok -> Lang.tr("&cNo hay ninguna sesión que finalizar.")
-                    halloween -> Lang.tr("&aEl Evento de Halloween ha finalizado.")
+                    halloween -> Lang.tr("&aLa Noche de Brujas ha finalizado.")
                     else -> Lang.tr("&aLa hora navideña ha finalizado.")
                 }))
                 openSeasonAdmin(p, id)
