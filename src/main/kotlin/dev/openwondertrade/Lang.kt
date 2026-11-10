@@ -74,6 +74,16 @@ object Lang {
      * Prepara la carpeta lang (copia los idiomas incluidos si faltan y les añade las claves nuevas sin tocar lo que
      * hayas editado) y carga es_es y el idioma por defecto del servidor (`general.language`).
      */
+    /**
+     * Claves del aviso de inicio de Halloween: si el texto guardado en la carpeta de idiomas menciona Halloween o la
+     * Noche de Brujas y no es el de esta versión, viene de una versión anterior del evento y se actualiza.
+     */
+    private val legacyMarkers: Map<String, List<String>> = mapOf(
+        "messages.halloweenStart" to listOf("Halloween", "Brujas", "Witches", "Sorcières", "Streghe", "Hexennacht", "Bruxas"),
+        "discord.halloweenStartMessage" to listOf("Halloween", "Brujas", "Witches", "Sorcières", "Streghe", "Hexennacht", "Bruxas"),
+        "discord.titles.halloweenStart" to listOf("Halloween", "Brujas", "Witches", "Sorcières", "Streghe", "Hexennacht", "Bruxas")
+    )
+
     private val legacyTexts: Map<String, List<String>> = mapOf(
         "messages.topDonationsFooter" to listOf(
             "&7¡Gracias a todos por donar! Los premios se entregan a los ganadores.",
@@ -298,7 +308,9 @@ object Lang {
                     var changed = false
                     for ((key, value) in shipped.entrySet()) {
                         if (!existing.has(key)) { existing.add(key, value); changed = true }
-                        else if (legacyTexts[key]?.contains(runCatching { existing.get(key).asString }.getOrNull()) == true && existing.get(key) != value) {
+                        else if ((legacyTexts[key]?.contains(runCatching { existing.get(key).asString }.getOrNull()) == true ||
+                                legacyMarkers[key]?.let { markers -> val stored = runCatching { existing.get(key).asString }.getOrNull(); stored != null && markers.any { stored.contains(it, ignoreCase = true) } } == true) &&
+                            existing.get(key) != value) {
                             // Texto de una versión anterior sin personalizar (avisos de Discord de antes de 0.23): se actualiza.
                             existing.add(key, value); changed = true
                         }

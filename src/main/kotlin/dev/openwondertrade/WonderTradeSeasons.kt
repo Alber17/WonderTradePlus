@@ -390,7 +390,7 @@ object WonderTradeSeasons {
         if (started) {
             WonderTradeEvents.broadcast(server) {
                 WonderTradeService.format(
-                    if (halloween) ConfigManager.string("messages.halloweenStart", "&6☠ ¡Ha aparecido la Noche de Brujas! La pool de miedo estará disponible durante {duration}.")
+                    if (halloween) ConfigManager.string("messages.halloweenStart", "&6☠ La Noche de Brujas ha comenzado. La pool de miedo estará disponible durante {duration}.")
                     else ConfigManager.string("messages.seasonStart", "&b❄ ¡Ha aparecido la hora navideña! La pool temática estará disponible durante {duration}."),
                     placeholders(season) + mapOf("duration" to WonderTradeEvents.formatDuration(season.sessionDurationMinutes * 60L))
                 )

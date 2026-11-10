@@ -218,6 +218,9 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.29.3
+- Aviso de inicio de Halloween: en el juego «La Noche de Brujas ha comenzado. La pool de miedo estará disponible durante {tiempo}.» y en Discord, con título «Evento de Halloween», la misma frase. Si el servidor tenía guardados los textos anteriores en la carpeta de idiomas, se actualizan solos.
+
 ## 0.29.2
 - El bloqueo del MegaHunt incluye también las evoluciones que solo existen en formas regionales (por ejemplo Meowth → Perrserker, Corsola de Galar → Cursola, Qwilfish de Hisui → Overqwil). Las formas de la misma especie (Vulpix de Alola, Ninetales de Alola...) ya se bloqueaban.
 
