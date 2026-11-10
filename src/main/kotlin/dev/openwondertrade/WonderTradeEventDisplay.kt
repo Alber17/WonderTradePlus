@@ -134,7 +134,7 @@ object WonderTradeEventDisplay {
             bar.progress = (remaining.toFloat() / total.toFloat()).coerceIn(0f, 1f)
             val time = WonderTradeEvents.formatDuration((remaining + 999L) / 1000L)
             bar.name = Lang.withPlayer(players.first()) {
-                seasonText(season, (if (halloween) "HORA DE HALLOWEEN" else "HORA NAVIDEÑA") + " — $time", now)
+                seasonText(season, (if (halloween) "EVENTO DE HALLOWEEN" else "HORA NAVIDEÑA") + " — $time", now)
             }
             players.forEach { if (!bar.players.contains(it)) bar.addPlayer(it) }
             bar.players.toList().forEach { if (!players.contains(it)) bar.removePlayer(it) }

@@ -785,7 +785,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.28.3"
+        const val MOD_VERSION = "0.28.5"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

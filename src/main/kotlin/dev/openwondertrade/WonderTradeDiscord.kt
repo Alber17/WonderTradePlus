@@ -217,9 +217,9 @@ object WonderTradeDiscord {
             val description = WonderTradeService.format(
                 if (halloween) {
                     if (started)
-                        ConfigManager.string("discord.halloweenStartMessage", "Ha aparecido la hora de Halloween. La pool de miedo estará disponible durante **{duration}**. ¡Aprovecha para conseguir Pokémon de tipo **{types}**.")
+                        ConfigManager.string("discord.halloweenStartMessage", "Ha aparecido el Evento de Halloween. La pool de miedo estará disponible durante **{duration}**. ¡Aprovecha para conseguir Pokémon de tipo **{types}**.")
                     else
-                        ConfigManager.string("discord.halloweenEndMessage", "La hora de Halloween ha terminado. La pool habitual vuelve a estar disponible.")
+                        ConfigManager.string("discord.halloweenEndMessage", "El Evento de Halloween ha terminado. La pool habitual vuelve a estar disponible.")
                 } else if (started)
                     ConfigManager.string("discord.seasonStartMessage", "Ha aparecido la hora navideña. La pool temática estará disponible durante **{duration}**. ¡Aprovecha para conseguir Pokémon de tipo **{types}**.")
                 else
@@ -227,8 +227,8 @@ object WonderTradeDiscord {
                 values
             )
             val title = if (halloween) {
-                if (started) ConfigManager.string("discord.titles.halloweenStart", "🎃 ¡Ha aparecido la hora de Halloween!")
-                else ConfigManager.string("discord.titles.halloweenEnd", "👻 La hora de Halloween ha terminado")
+                if (started) ConfigManager.string("discord.titles.halloweenStart", "🎃 ¡Evento de Halloween!")
+                else ConfigManager.string("discord.titles.halloweenEnd", "👻 El Evento de Halloween ha terminado")
             } else if (started)
                 ConfigManager.string("discord.titles.seasonStart", "🎄 ¡Ha aparecido la hora navideña!")
             else

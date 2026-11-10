@@ -197,7 +197,7 @@ object WonderTradeSeasons {
     fun joinLine(): String? {
         val season = current() ?: return null
         return WonderTradeService.format(
-            if (season.theme == "halloween") ConfigManager.string("messages.halloweenJoin", "&6☠ Hora de Halloween activa: quedan {duration}.")
+            if (season.theme == "halloween") ConfigManager.string("messages.halloweenJoin", "&6☠ Evento de Halloween activo: quedan {duration}.")
             else ConfigManager.string("messages.seasonJoin", "&b❄ Hora navideña activa: quedan {duration}."),
             placeholders(season) + mapOf("duration" to WonderTradeEvents.formatDuration(((endAt - System.currentTimeMillis()).coerceAtLeast(0L) + 999L) / 1000L))
         )
@@ -280,7 +280,7 @@ object WonderTradeSeasons {
             endAt += (now - pausedAt).coerceAtLeast(0L)
             phase = "active"; pausedAt = 0L; saveState()
             WonderTradeEvents.broadcast(server) {
-                if (season.theme == "halloween") Lang.tr("&6☠ La hora de Halloween se ha reanudado.") else Lang.tr("&b❄ La hora navideña se ha reanudado.")
+                if (season.theme == "halloween") Lang.tr("&6☠ El Evento de Halloween se ha reanudado.") else Lang.tr("&b❄ La hora navideña se ha reanudado.")
             }
             return true
         }
@@ -294,7 +294,7 @@ object WonderTradeSeasons {
         val halloween = current()?.theme == "halloween"
         phase = "paused"; pausedAt = System.currentTimeMillis(); saveState()
         WonderTradeEvents.broadcast(server) {
-            if (halloween) Lang.tr("&6☠ La hora de Halloween se ha pausado.") else Lang.tr("&b❄ La hora navideña se ha pausado.")
+            if (halloween) Lang.tr("&6☠ El Evento de Halloween se ha pausado.") else Lang.tr("&b❄ La hora navideña se ha pausado.")
         }
         return true
     }
@@ -390,7 +390,7 @@ object WonderTradeSeasons {
         if (started) {
             WonderTradeEvents.broadcast(server) {
                 WonderTradeService.format(
-                    if (halloween) ConfigManager.string("messages.halloweenStart", "&6☠ ¡Ha aparecido la hora de Halloween! La pool de miedo estará disponible durante {duration}.")
+                    if (halloween) ConfigManager.string("messages.halloweenStart", "&6☠ ¡Ha aparecido el Evento de Halloween! La pool de miedo estará disponible durante {duration}.")
                     else ConfigManager.string("messages.seasonStart", "&b❄ ¡Ha aparecido la hora navideña! La pool temática estará disponible durante {duration}."),
                     placeholders(season) + mapOf("duration" to WonderTradeEvents.formatDuration(season.sessionDurationMinutes * 60L))
                 )
@@ -398,7 +398,7 @@ object WonderTradeSeasons {
         } else {
             WonderTradeEvents.broadcast(server) {
                 WonderTradeService.format(
-                    if (halloween) ConfigManager.string("messages.halloweenEnd", "&6☠ La hora de Halloween ha terminado. La pool habitual vuelve a estar disponible.")
+                    if (halloween) ConfigManager.string("messages.halloweenEnd", "&6☠ El Evento de Halloween ha terminado. La pool habitual vuelve a estar disponible.")
                     else ConfigManager.string("messages.seasonEnd", "&b❄ La hora navideña ha terminado. La pool habitual vuelve a estar disponible."),
                     placeholders(season)
                 )

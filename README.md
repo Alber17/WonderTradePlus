@@ -218,6 +218,12 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.28.5
+- Título del aviso de Discord al empezar el Evento de Halloween: «🎃 ¡Evento de Halloween!» (`discord.titles.halloweenStart`).
+
+## 0.28.4
+- El evento de Halloween se llama ahora **Evento de Halloween** (antes «Hora de Halloween») en el chat, la bossbar, el menú de admin y los mensajes de Discord. La hora navideña no cambia. Textos en `messages.halloween*`, `discord.halloween*` y `discord.titles.halloween*`.
+
 ## 0.28.3
 - Halloween empieza ahora la noche del 31 de octubre y dura hasta el 1 de noviembre (antes el 25 de octubre). Sigue siendo configurable con `startDate` y `endDate` del evento `halloween`.
 
