@@ -68,7 +68,10 @@ object WonderTradeMegaHunt {
         var base = start
         var guard = 0
         while (guard++ < 10) {
-            val previous = base.preEvolution?.species ?: break
+            // La pre-evolución puede estar en la especie o solo en una forma regional (Perrserker viene de Meowth de Galar).
+            val previous = base.preEvolution?.species
+                ?: base.forms.firstNotNullOfOrNull { it.preEvolution?.species }
+                ?: break
             base = previous
         }
         val result = linkedSetOf<String>()
@@ -77,7 +80,9 @@ object WonderTradeMegaHunt {
         while (queue.isNotEmpty() && result.size < 40) {
             val current = queue.removeFirst()
             if (!result.add(current.resourceIdentifier.path.lowercase())) continue
-            for (evolution in current.evolutions) {
+            // Evoluciones de la especie y de sus formas regionales (Meowth de Galar → Perrserker, Slowpoke de Galar → Slowbro...).
+            val evolutions = current.evolutions + current.forms.flatMap { it.evolutions }
+            for (evolution in evolutions) {
                 val target = evolution.result.species?.substringAfter(':')?.lowercase() ?: continue
                 PokemonSpecies.getByName(target)?.let { queue.add(it) }
             }

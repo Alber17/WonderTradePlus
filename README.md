@@ -218,6 +218,9 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.29.2
+- El bloqueo del MegaHunt incluye también las evoluciones que solo existen en formas regionales (por ejemplo Meowth → Perrserker, Corsola de Galar → Cursola, Qwilfish de Hisui → Overqwil). Las formas de la misma especie (Vulpix de Alola, Ninetales de Alola...) ya se bloqueaban.
+
 ## 0.29.1
 - **Bloqueo del MegaHunt**: `/wt megahunt <especie>` (admins y consola) bloquea para ofrecer y donar la línea evolutiva completa de la especie ganadora (Pichu, Pikachu y Raichu si gana Pikachu) hasta las 00:00; `/wt megahunt quitar` lo desactiva y `/wt megahunt` muestra el estado. Opción `megaHunt.enabled`. Si el sistema de votación puede lanzar comandos de consola, puede ejecutarlo para que sea automático.
 
