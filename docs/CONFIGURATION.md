@@ -120,9 +120,13 @@ Mantenimiento automático del pool, cada `intervalMinutes` minutos. Solo elimina
 
 El mantenimiento manual con `/wt admin maintenance` solo elimina entradas caducadas. Los Pokémon generados con `/wt admin fill` salen con el donante `Servidor`.
 
+## `configCheck`
+
+- `enabled`: revisa la configuración al arrancar y con `/wt reload` y avisa de errores (fechas, especies, colores, enlaces, webhook, roles). Solo avisa; no modifica nada. Por defecto `true`.
+
 ## `backup`
 
-Copias automáticas de `pool.json`, `player-data.json` y `history.json` en `config/wondertradeplus/backups/<fecha>/`.
+Copias automáticas de todos los archivos de datos (pool, jugadores, historial, donaciones, penalizaciones, eventos, temporadas y MegaHunt) en `config/wondertradeplus/backups/<fecha>/`.
 
 - `intervalHours`: cada cuántas horas. `0` desactiva las automáticas. Por defecto `6`.
 - `keep`: cuántas copias se conservan; las más antiguas se borran. Por defecto `10`.

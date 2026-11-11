@@ -196,7 +196,7 @@ El modo shiny es una regla importante: revísalo antes de abrir el servidor. Ver
 - `pool.json`: Pokémon almacenados y sus índices de búsqueda.
 - `player-data.json`: último intercambio, contador diario, bonus y marcas de tiempo de las donaciones semanales de cada jugador.
 - `history.json`: historial de intercambios.
-- `backups/`: copias automáticas de los archivos anteriores.
+- `backups/`: copias automáticas de todos los archivos de datos.
 - `config.json`: reglas del servidor.
 
 Prueba los cambios de configuración en una copia del servidor antes de producción. Si el guardado falla durante un intercambio, se revierte, pero una caída brusca del proceso entre escrituras independientes de Cobblemon y de WonderTrade Plus no puede garantizar atomicidad absoluta.
@@ -217,6 +217,21 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
+
+## 0.29.7
+
+- Panel de administración: nuevo botón «Gestionar Top Donaciones» (cerrar el Top del mes ya, con confirmación, y ver las recompensas pendientes; un clic entrega la recompensa si su dueño está conectado y tiene espacio).
+- Panel de administración: nuevo botón «MegaHunt» (ver el bloqueo activo y quitarlo). La especie se sigue poniendo con `/wt megahunt <especie>`.
+- Nuevos niveles `admin.buttonLevels.topAdmin` y `admin.buttonLevels.megaHunt`.
+
+## 0.29.6
+
+- La copia de seguridad automática que ya existía (`backup.intervalHours`, `backup.keep`, `/wt admin backup`) ahora incluye también `top-donations.json`, `donation-history.json`, `penalties.json`, `seasonal-state.json`, `megahunt.json`, `event.json`, `event-schedule.json`, `maintenance-state.json` y la carpeta `seasonal/`.
+- Nueva revisión de la configuración al arrancar y con `/wt reload` (o el botón de recargar del menú admin): avisa de JSON roto, fechas, tipos y especies inexistentes, colores, enlaces, webhook y roles de Discord, y rangos mal definidos. Solo avisa, no cambia nada. Se desactiva con `configCheck.enabled`.
+
+## 0.29.5
+- Los avisos de Discord de Navidad y Halloween pueden mencionar un rol propio al **empezar** cada sesión: `discord.events.mentionRoleIdChristmas` y `discord.events.mentionRoleIdHalloween` (ID numérico del rol; si están vacíos se usa `discord.events.mentionRoleId`). Al terminar la sesión ya no se menciona a nadie.
+- El título de Discord de Halloween vuelve a llevar los signos: «🎃 ¡Evento de Halloween!».
 
 ## 0.29.4
 - Aviso de fin del Evento de Halloween: en el juego «La Noche de Brujas ha terminado. La pool habitual vuelve a estar disponible.» y en Discord con título «Evento de Halloween» y esa misma frase.

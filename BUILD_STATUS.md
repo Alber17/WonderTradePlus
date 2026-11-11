@@ -1,12 +1,28 @@
 # Estado de compilación
 
-- Versión actual: **0.29.4**.
+- Versión actual: **0.29.7**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
 - Los comandos `/wt admin ...`, el historial, el cooldown de 12 h y el autocompletado (v0.3.0) están pendientes de probar en juego.
 - Los anuncios de legendarios, Ultraentes y Paradoja pasado/futuro (v0.2.1) están pendientes de probar en juego.
 - No es una versión NeoForge/Arclight. El JAR es solo Fabric.
+
+## Cambios de la versión 0.29.7
+
+- Panel de administración: nuevo botón «Gestionar Top Donaciones» (cerrar el Top del mes ya, con confirmación, y ver las recompensas pendientes; un clic entrega la recompensa si su dueño está conectado y tiene espacio).
+- Panel de administración: nuevo botón «MegaHunt» (ver el bloqueo activo y quitarlo). La especie se sigue poniendo con `/wt megahunt <especie>`.
+- Nuevos niveles `admin.buttonLevels.topAdmin` y `admin.buttonLevels.megaHunt`.
+
+## Cambios de la versión 0.29.6
+
+- La copia de seguridad automática que ya existía (`backup.intervalHours`, `backup.keep`, `/wt admin backup`) ahora incluye también `top-donations.json`, `donation-history.json`, `penalties.json`, `seasonal-state.json`, `megahunt.json`, `event.json`, `event-schedule.json`, `maintenance-state.json` y la carpeta `seasonal/`.
+- Nueva revisión de la configuración al arrancar y con `/wt reload` (o el botón de recargar del menú admin): avisa de JSON roto, fechas, tipos y especies inexistentes, colores, enlaces, webhook y roles de Discord, y rangos mal definidos. Solo avisa, no cambia nada. Se desactiva con `configCheck.enabled`.
+
+## Cambios de la versión 0.29.5
+
+- Menciones de rol propias para Navidad y Halloween al empezar la sesión (`mentionRoleIdChristmas` / `mentionRoleIdHalloween`), sin mención al terminar.
+- Título de Discord de Halloween: «¡Evento de Halloween!».
 
 ## Cambios de la versión 0.29.4
 

@@ -105,10 +105,14 @@ object WonderTradeDiscord {
         ConfigManager.string("discord.events.mentionRoleId", "").trim().takeIf { it.isNotEmpty() && it.all(Char::isDigit) }
 
     /** Envía el aviso de un evento; si hay rol configurado (discord.events.mentionRoleId) lo menciona fuera del embed. */
-    private fun postEvent(embed: Embed) {
-        val role = role()
+    private fun postEvent(embed: Embed, role: String? = role()) {
         discordPost(if (role != null) "<@&$role>" else "", roleId = role, embed = embed)
     }
+
+    /** Rol a mencionar al empezar Navidad u Halloween: el suyo propio y, si no hay, el general de los eventos. */
+    private fun seasonRole(halloween: Boolean): String? =
+        ConfigManager.string("discord.events.mentionRoleId" + if (halloween) "Halloween" else "Christmas", "").trim()
+            .takeIf { it.isNotEmpty() && it.all(Char::isDigit) } ?: role()
 
     private fun epoch(millis: Long): Long = millis / 1000L
 
@@ -227,8 +231,8 @@ object WonderTradeDiscord {
                 values
             )
             val title = if (halloween) {
-                if (started) ConfigManager.string("discord.titles.halloweenStart", "🎃 Evento de Halloween")
-                else ConfigManager.string("discord.titles.halloweenEnd", "🎃 Evento de Halloween")
+                if (started) ConfigManager.string("discord.titles.halloweenStart", "🎃 ¡Evento de Halloween!")
+                else ConfigManager.string("discord.titles.halloweenEnd", "🎃 ¡Evento de Halloween!")
             } else if (started)
                 ConfigManager.string("discord.titles.seasonStart", "🎄 ¡Ha aparecido la hora navideña!")
             else
@@ -243,7 +247,8 @@ object WonderTradeDiscord {
             } else {
                 embed.field(Lang.tr("🎴 Pokémon en la pool habitual"), count.toString())
             }
-            postEvent(embed)
+            // Solo se menciona el rol cuando empieza la sesión, no al terminar.
+            postEvent(embed, if (started) seasonRole(halloween) else null)
         }
     }
 
