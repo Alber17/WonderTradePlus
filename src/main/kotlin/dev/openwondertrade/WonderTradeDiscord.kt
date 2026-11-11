@@ -210,7 +210,7 @@ object WonderTradeDiscord {
     }
 
     /** Aviso de apertura (00:00 del primer día) o cierre (23:59 del último día) de la temporada navideña. */
-    fun seasonWindow(season: Season, opening: Boolean, test: Boolean = false) {
+    fun seasonWindow(season: Season, opening: Boolean) {
         Lang.withPlayer(null) {
             if (!eventsEnabled("seasonal")) return
             val values = WonderTradeSeasons.placeholders(season)
@@ -230,17 +230,17 @@ object WonderTradeDiscord {
             else ConfigManager.string("discord.titles.seasonWindowClose", "🎁 Termina la Navidad en Wonder Trade")
             val colorKey = (if (halloween) "halloweenWindow" else "seasonWindow") + (if (opening) "Open" else "Close")
             val colorDefault = if (halloween) (if (opening) "#FF7518" else "#6A0DAD") else (if (opening) "#28AA50" else "#E62832")
-            val embed = Embed((if (test) "[PRUEBA] " else "") + title, description, colorOf(colorKey, colorDefault))
+            val embed = Embed(title, description, colorOf(colorKey, colorDefault))
             if (opening) {
                 embed.field(Lang.tr("📅 Fechas"), "${values["start"]} – ${values["end"]}")
                 embed.field(if (halloween) Lang.tr("🎃 Temática") else Lang.tr("🧊 Temática"), season.types.joinToString(", ") { WonderTradeRules.typeName(it) })
             }
-            postEvent(embed, if (opening && !test) seasonRole(halloween) else null)
+            postEvent(embed, if (opening) seasonRole(halloween) else null)
         }
     }
 
     /** Avisos de cada sesión de temporada (por ejemplo, la hora navideña). */
-    fun season(season: Season, started: Boolean, count: Int, durationSeconds: Long = season.sessionDurationMinutes * 60L, test: Boolean = false) {
+    fun season(season: Season, started: Boolean, count: Int, durationSeconds: Long = season.sessionDurationMinutes * 60L) {
         Lang.withPlayer(null) {
             if (!eventsEnabled("seasonal")) return
             val values = WonderTradeSeasons.placeholders(season) + mapOf(
@@ -269,7 +269,7 @@ object WonderTradeDiscord {
                 ConfigManager.string("discord.titles.seasonEnd", "🎁 La hora navideña ha terminado")
             val colorKey = (if (halloween) "halloween" else "season") + (if (started) "Start" else "End")
             val colorDefault = if (halloween) (if (started) "#FF7518" else "#6A0DAD") else (if (started) "#168BFF" else "#B2BEC3")
-            val embed = Embed((if (test) "[PRUEBA] " else "") + WonderTradeService.format(title, values), description, colorOf(colorKey, colorDefault))
+            val embed = Embed(WonderTradeService.format(title, values), description, colorOf(colorKey, colorDefault))
             if (started) {
                 embed.field(Lang.tr("⏱️ Tiempo disponible"), WonderTradeEvents.formatDuration(durationSeconds))
                 embed.field(Lang.tr("🏁 Termina"), "<t:${values["endEpoch"]}:R>")
@@ -278,7 +278,7 @@ object WonderTradeDiscord {
                 embed.field(Lang.tr("🎴 Pokémon en la pool habitual"), count.toString())
             }
             // Solo se menciona el rol cuando empieza la sesión, no al terminar.
-            postEvent(embed, if (started && !test) seasonRole(halloween) else null)
+            postEvent(embed, if (started) seasonRole(halloween) else null)
         }
     }
 

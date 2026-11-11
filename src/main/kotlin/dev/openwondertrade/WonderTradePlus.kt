@@ -370,25 +370,6 @@ class WonderTradePlus : ModInitializer {
     }
 
     // PERMISO: /wt admin y cada subcomando hijo requieren admin.permissionLevel (OP 2 por defecto).
-    private fun previewSeasonCommand(context: com.mojang.brigadier.context.CommandContext<net.minecraft.commands.CommandSourceStack>, discord: Boolean): Int {
-        val id = StringArgumentType.getString(context, "evento").lowercase()
-        val kind = StringArgumentType.getString(context, "aviso").lowercase()
-        val player = context.source.player
-        val text = WonderTradeSeasons.previewText(id, kind)
-        if (text == null) {
-            context.source.sendFailure(WonderTradeService.info(Lang.tr("&cEvento o aviso no válido (o el evento está desactivado). Usa navidad/halloween y apertura/cierre/inicio/fin.")))
-            return 0
-        }
-        Lang.withPlayer(player) {
-            context.source.sendSuccess({ WonderTradeService.info(Lang.t("&8[Prueba: {0} · {1}]", id, kind) + "\n" + text) }, false)
-        }
-        if (discord) {
-            val ok = runCatching { WonderTradeSeasons.previewDiscord(id, kind) }.getOrDefault(false)
-            context.source.sendSuccess({ WonderTradeService.info(if (ok) Lang.tr("&7Aviso de prueba enviado a Discord (sin mención de rol).") else Lang.tr("&cNo se pudo enviar a Discord.")) }, false)
-        }
-        return 1
-    }
-
     private fun adminCommands() = literal("admin")
         .requires { it.hasPermission(WonderTradeService.adminLevel()) }
         .executes { context ->
@@ -521,14 +502,6 @@ class WonderTradePlus : ModInitializer {
                 }
                 1
             }))
-        // PRUEBA (v0.30.1): muestra cómo se ven los avisos de Navidad y Halloween. Solo lo ve quien ejecuta el comando;
-        // con «discord» al final también se envía un aviso de prueba al webhook (sin mención de rol).
-        .then(literal("probaravisos").then(argument("evento", StringArgumentType.word())
-            .suggests { _, builder -> SharedSuggestionProvider.suggest(listOf("navidad", "halloween"), builder) }
-            .then(argument("aviso", StringArgumentType.word())
-                .suggests { _, builder -> SharedSuggestionProvider.suggest(listOf("apertura", "cierre", "inicio", "fin"), builder) }
-                .executes { context -> previewSeasonCommand(context, false) }
-                .then(literal("discord").executes { context -> previewSeasonCommand(context, true) }))))
         // PERMISO: admin.permissionLevel.
         .then(literal("backup").executes { context ->
             val name = WonderTradeService.backupNow()
@@ -848,7 +821,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.30.1"
+        const val MOD_VERSION = "0.30.0"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

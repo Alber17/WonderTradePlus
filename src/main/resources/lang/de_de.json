@@ -1228,9 +1228,5 @@
   "discord.halloweenWindowOpenMessage": "Ab jetzt bis zum **{end}** können Sitzungen der **Hexennacht** auftauchen.\n{sessionsInfo}\nWährend jeder Sitzung füllt sich der Pool mit Pokémon vom Typ **{types}**. {rules}\nDanach kehrt der normale Pool genau so zurück, wie er war.",
   "discord.halloweenWindowCloseMessage": "Die Hexennacht endet jetzt: gruselige Sitzungen erscheinen erst am **{start}** nächsten Jahres wieder.\nDanke fürs Mitmachen!",
   "discord.titles.halloweenWindowOpen": "🎃 Halloween-Event!",
-  "discord.titles.halloweenWindowClose": "🎃 Das Halloween-Event ist vorbei",
-  "&cEvento o aviso no válido (o el evento está desactivado). Usa navidad/halloween y apertura/cierre/inicio/fin.": "&cUngültiges Event oder ungültige Meldung (oder das Event ist deaktiviert). Nutze navidad/halloween und apertura/cierre/inicio/fin.",
-  "&8[Prueba: {0} · {1}]": "&8[Test: {0} · {1}]",
-  "&7Aviso de prueba enviado a Discord (sin mención de rol).": "&7Testmeldung an Discord gesendet (ohne Rollenerwähnung).",
-  "&cNo se pudo enviar a Discord.": "&cKonnte nicht an Discord gesendet werden."
+  "discord.titles.halloweenWindowClose": "🎃 Das Halloween-Event ist vorbei"
 }

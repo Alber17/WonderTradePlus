@@ -1228,9 +1228,5 @@
   "discord.halloweenWindowOpenMessage": "À partir de maintenant et jusqu'au **{end}**, des sessions de la **Nuit des Sorcières** peuvent apparaître.\n{sessionsInfo}\nPendant chacune, le pool se remplit de Pokémon de type **{types}**. {rules}\nÀ la fin, le pool habituel revient tel qu'il était.",
   "discord.halloweenWindowCloseMessage": "La Nuit des Sorcières se termine maintenant : les sessions effrayantes ne reviendront pas avant le **{start}** de l'an prochain.\nMerci d'avoir participé !",
   "discord.titles.halloweenWindowOpen": "🎃 Événement d'Halloween !",
-  "discord.titles.halloweenWindowClose": "🎃 L'événement d'Halloween se termine",
-  "&cEvento o aviso no válido (o el evento está desactivado). Usa navidad/halloween y apertura/cierre/inicio/fin.": "&cÉvénement ou avis invalide (ou l'événement est désactivé). Utilise navidad/halloween et apertura/cierre/inicio/fin.",
-  "&8[Prueba: {0} · {1}]": "&8[Test : {0} · {1}]",
-  "&7Aviso de prueba enviado a Discord (sin mención de rol).": "&7Avis de test envoyé à Discord (sans mention de rôle).",
-  "&cNo se pudo enviar a Discord.": "&cImpossible d'envoyer à Discord."
+  "discord.titles.halloweenWindowClose": "🎃 L'événement d'Halloween se termine"
 }

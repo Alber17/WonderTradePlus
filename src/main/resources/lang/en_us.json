@@ -1228,9 +1228,5 @@
   "discord.halloweenWindowOpenMessage": "From now until **{end}** **Witches' Night** sessions may appear.\n{sessionsInfo}\nDuring each one the pool fills with **{types}**-type Pokémon. {rules}\nWhen it ends, the regular pool comes back exactly as it was.",
   "discord.halloweenWindowCloseMessage": "Witches' Night ends now: spooky sessions will not appear again until **{start}** next year.\nThanks for taking part!",
   "discord.titles.halloweenWindowOpen": "🎃 Halloween Event!",
-  "discord.titles.halloweenWindowClose": "🎃 The Halloween Event is over",
-  "&cEvento o aviso no válido (o el evento está desactivado). Usa navidad/halloween y apertura/cierre/inicio/fin.": "&cInvalid event or notice (or the event is disabled). Use navidad/halloween and apertura/cierre/inicio/fin.",
-  "&8[Prueba: {0} · {1}]": "&8[Test: {0} · {1}]",
-  "&7Aviso de prueba enviado a Discord (sin mención de rol).": "&7Test notice sent to Discord (no role mention).",
-  "&cNo se pudo enviar a Discord.": "&cCould not send to Discord."
+  "discord.titles.halloweenWindowClose": "🎃 The Halloween Event is over"
 }
