@@ -1222,5 +1222,15 @@
   "Cada día habrá {0} sesiones de {1} en horas aleatorias; cada una se avisa en el chat.": "Jeden Tag gibt es {0} Sitzungen zu je {1} zu zufälligen Zeiten; jede wird im Chat angekündigt.",
   "La pool temática estará activa durante todo el periodo.": "Der Themen-Pool ist während des gesamten Zeitraums aktiv.",
   "Mientras dure, solo se podrán ofrecer Pokémon de esa temática.": "Solange sie läuft, können nur Pokémon dieses Themas angeboten werden.",
-  "📅 Fechas": "📅 Daten"
+  "📅 Fechas": "📅 Daten",
+  "messages.halloweenWindowOpen": "&6&l☠ Es ist Hexennacht in Wonder Trade!\n&7Ab jetzt bis zum &f{end} &7können Sitzungen der &6Hexennacht &7auftauchen.\n&7{sessionsInfo}\n&7Während jeder Sitzung füllt sich der Pool mit Pokémon vom Typ &f{types}&7. {rules}\n&7Danach kehrt der normale Pool genau so zurück, wie er war.",
+  "messages.halloweenWindowClose": "&6&l☠ Die Hexennacht in Wonder Trade ist vorbei\n&7Die Hexennacht endet jetzt: gruselige Sitzungen erscheinen erst am &f{start} &7nächsten Jahres wieder.\n&7Danke fürs Mitmachen!",
+  "discord.halloweenWindowOpenMessage": "Ab jetzt bis zum **{end}** können Sitzungen der **Hexennacht** auftauchen.\n{sessionsInfo}\nWährend jeder Sitzung füllt sich der Pool mit Pokémon vom Typ **{types}**. {rules}\nDanach kehrt der normale Pool genau so zurück, wie er war.",
+  "discord.halloweenWindowCloseMessage": "Die Hexennacht endet jetzt: gruselige Sitzungen erscheinen erst am **{start}** nächsten Jahres wieder.\nDanke fürs Mitmachen!",
+  "discord.titles.halloweenWindowOpen": "🎃 Halloween-Event!",
+  "discord.titles.halloweenWindowClose": "🎃 Das Halloween-Event ist vorbei",
+  "&cEvento o aviso no válido (o el evento está desactivado). Usa navidad/halloween y apertura/cierre/inicio/fin.": "&cUngültiges Event oder ungültige Meldung (oder das Event ist deaktiviert). Nutze navidad/halloween und apertura/cierre/inicio/fin.",
+  "&8[Prueba: {0} · {1}]": "&8[Test: {0} · {1}]",
+  "&7Aviso de prueba enviado a Discord (sin mención de rol).": "&7Testmeldung an Discord gesendet (ohne Rollenerwähnung).",
+  "&cNo se pudo enviar a Discord.": "&cKonnte nicht an Discord gesendet werden."
 }

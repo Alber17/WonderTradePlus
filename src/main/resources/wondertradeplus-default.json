@@ -162,7 +162,6 @@
       "deletePool": 0,
       "events": 0,
       "topDonations": 0,
-      "topAdmin": 0,
       "toggle": 0,
       "penalties": 0,
       "history": 0,
@@ -446,6 +445,7 @@
       {
         "id": "halloween",
         "enabled": true,
+        "windowAnnouncements": true,
         "name": "Halloween",
         "startDate": "10-31",
         "endDate": "11-01",

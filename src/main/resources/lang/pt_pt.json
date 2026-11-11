@@ -1222,5 +1222,15 @@
   "Cada día habrá {0} sesiones de {1} en horas aleatorias; cada una se avisa en el chat.": "Todos os dias haverá {0} sessões de {1} a horas aleatórias; cada uma é anunciada no chat.",
   "La pool temática estará activa durante todo el periodo.": "A pool temática estará ativa durante todo o período.",
   "Mientras dure, solo se podrán ofrecer Pokémon de esa temática.": "Enquanto durar, só se podem oferecer Pokémon dessa temática.",
-  "📅 Fechas": "📅 Datas"
+  "📅 Fechas": "📅 Datas",
+  "messages.halloweenWindowOpen": "&6&l☠ É a Noite das Bruxas no Wonder Trade!\n&7A partir de agora e até &f{end} &7podem aparecer sessões da &6Noite das Bruxas&7.\n&7{sessionsInfo}\n&7Durante cada uma, a pool enche-se de Pokémon do tipo &f{types}&7. {rules}\n&7Quando termina, a pool habitual volta exatamente como estava.",
+  "messages.halloweenWindowClose": "&6&l☠ A Noite das Bruxas no Wonder Trade terminou\n&7A Noite das Bruxas acaba agora: as sessões assustadoras só voltam a aparecer a &f{start} &7do próximo ano.\n&7Obrigado por participares!",
+  "discord.halloweenWindowOpenMessage": "A partir de agora e até **{end}** podem aparecer sessões da **Noite das Bruxas**.\n{sessionsInfo}\nDurante cada uma, a pool enche-se de Pokémon do tipo **{types}**. {rules}\nQuando termina, a pool habitual volta exatamente como estava.",
+  "discord.halloweenWindowCloseMessage": "A Noite das Bruxas acaba agora: as sessões assustadoras só voltam a aparecer a **{start}** do próximo ano.\nObrigado por participares!",
+  "discord.titles.halloweenWindowOpen": "🎃 Evento de Halloween!",
+  "discord.titles.halloweenWindowClose": "🎃 O Evento de Halloween terminou",
+  "&cEvento o aviso no válido (o el evento está desactivado). Usa navidad/halloween y apertura/cierre/inicio/fin.": "&cEvento ou aviso inválido (ou o evento está desativado). Usa navidad/halloween e apertura/cierre/inicio/fin.",
+  "&8[Prueba: {0} · {1}]": "&8[Teste: {0} · {1}]",
+  "&7Aviso de prueba enviado a Discord (sin mención de rol).": "&7Aviso de teste enviado para o Discord (sem menção de cargo).",
+  "&cNo se pudo enviar a Discord.": "&cNão foi possível enviar para o Discord."
 }

@@ -1222,5 +1222,15 @@
   "Cada día habrá {0} sesiones de {1} en horas aleatorias; cada una se avisa en el chat.": "Chaque jour, il y aura {0} sessions de {1} à des heures aléatoires ; chacune est annoncée dans le chat.",
   "La pool temática estará activa durante todo el periodo.": "Le pool thématique sera actif pendant toute la période.",
   "Mientras dure, solo se podrán ofrecer Pokémon de esa temática.": "Pendant ce temps, seuls les Pokémon de ce thème peuvent être proposés.",
-  "📅 Fechas": "📅 Dates"
+  "📅 Fechas": "📅 Dates",
+  "messages.halloweenWindowOpen": "&6&l☠ C'est la Nuit des Sorcières dans Wonder Trade !\n&7À partir de maintenant et jusqu'au &f{end}&7, des sessions de la &6Nuit des Sorcières &7peuvent apparaître.\n&7{sessionsInfo}\n&7Pendant chacune, le pool se remplit de Pokémon de type &f{types}&7. {rules}\n&7À la fin, le pool habituel revient tel qu'il était.",
+  "messages.halloweenWindowClose": "&6&l☠ La Nuit des Sorcières se termine dans Wonder Trade\n&7La Nuit des Sorcières se termine maintenant : les sessions effrayantes ne reviendront pas avant le &f{start} &7de l'an prochain.\n&7Merci d'avoir participé !",
+  "discord.halloweenWindowOpenMessage": "À partir de maintenant et jusqu'au **{end}**, des sessions de la **Nuit des Sorcières** peuvent apparaître.\n{sessionsInfo}\nPendant chacune, le pool se remplit de Pokémon de type **{types}**. {rules}\nÀ la fin, le pool habituel revient tel qu'il était.",
+  "discord.halloweenWindowCloseMessage": "La Nuit des Sorcières se termine maintenant : les sessions effrayantes ne reviendront pas avant le **{start}** de l'an prochain.\nMerci d'avoir participé !",
+  "discord.titles.halloweenWindowOpen": "🎃 Événement d'Halloween !",
+  "discord.titles.halloweenWindowClose": "🎃 L'événement d'Halloween se termine",
+  "&cEvento o aviso no válido (o el evento está desactivado). Usa navidad/halloween y apertura/cierre/inicio/fin.": "&cÉvénement ou avis invalide (ou l'événement est désactivé). Utilise navidad/halloween et apertura/cierre/inicio/fin.",
+  "&8[Prueba: {0} · {1}]": "&8[Test : {0} · {1}]",
+  "&7Aviso de prueba enviado a Discord (sin mención de rol).": "&7Avis de test envoyé à Discord (sans mention de rôle).",
+  "&cNo se pudo enviar a Discord.": "&cImpossible d'envoyer à Discord."
 }

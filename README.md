@@ -86,6 +86,7 @@ Todos requieren `admin.permissionLevel` (nivel OP 2 por defecto, configurable en
 | `/wt admin removeplayer <jugador>` | `admin.permissionLevel` | Elimina de la pool todos los Pokémon aportados por ese jugador. |
 | `/wt admin removegenerated` | `admin.permissionLevel` | Elimina solo Pokémon generados por el servidor y conserva las aportaciones de jugadores. Funciona desde consola. |
 | `/wt admin removeplayers` | `admin.permissionLevel` | Elimina solo Pokémon aportados por jugadores y conserva los generados por el servidor. Funciona desde consola. |
+| `/wt admin probaravisos <evento> <aviso> [discord]` | `admin.permissionLevel` | Muestra cómo se ven los avisos de Navidad/Halloween (prueba). |
 | `/wt admin backup` | `admin.permissionLevel` | Crea una copia de seguridad manual. |
 | `/wt admin maintenance` | `admin.permissionLevel` | Ejecuta el mantenimiento y elimina entradas caducadas; no genera Pokémon. |
 | `/wt admin discord test` | `admin.permissionLevel` | Envía un mensaje de prueba al webhook de Discord. |
@@ -217,6 +218,20 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
+
+## 0.30.1
+
+- Nuevo comando de admin `/wt admin probaravisos <navidad|halloween> <apertura|cierre|inicio|fin> [discord]`: muestra solo a quien lo ejecuta cómo se ve cada aviso (apertura de temporada, cierre de temporada, inicio y fin de una sesión). Con `discord` al final también envía un aviso de prueba al webhook, con la etiqueta «[PRUEBA]» y sin mencionar ningún rol. No cambia el estado de los eventos ni la pool.
+
+## 0.30.0
+
+- Halloween ahora funciona como Navidad: aviso de apertura el 31 de octubre a las 00:00 (explica las sesiones, la duración, la temática y que la pool vuelve como estaba) y aviso de cierre el 1 de noviembre a las 23:59, en el chat y en Discord. El de apertura menciona el rol de Halloween.
+- Textos de chat con «Noche de Brujas»; títulos de Discord «¡Evento de Halloween!» (apertura) y «Termina el Evento de Halloween» (cierre).
+- Se desactivan con `windowAnnouncements: false` en el evento `halloween`. Claves: `messages.halloweenWindowOpen/Close`, `discord.halloweenWindowOpenMessage/CloseMessage`, `discord.titles.halloweenWindowOpen/Close`.
+
+## 0.29.9
+
+- Se quita del panel de administración el botón «Gestionar Top Donaciones» (cerrar el Top y ver pendientes). El interruptor de activar/desactivar el Top sigue en su sitio.
 
 ## 0.29.8
 

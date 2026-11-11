@@ -26,7 +26,7 @@ class Season(
     val excluded: Set<String> = emptySet(),
     val sessionsPerDay: Int = 0,
     val sessionDurationMinutes: Int = 60,
-    /** Avisos de apertura (00:00 del primer día) y cierre (23:59 del último día) de la temporada. Solo Navidad. */
+    /** Avisos de apertura (00:00 del primer día) y cierre (23:59 del último día) de la temporada. Navidad y Halloween. */
     val announceWindow: Boolean = false
 ) {
     val name: String get() = Lang.tr(rawName)
@@ -166,7 +166,7 @@ object WonderTradeSeasons {
             excluded = list("excludeSpecies").map { it.substringAfter(':') }.toSet(),
             sessionsPerDay = (node.get("sessionsPerDay")?.asInt ?: 0).coerceIn(0, 12),
             sessionDurationMinutes = (node.get("sessionDurationMinutes")?.asInt ?: 60).coerceIn(1, 1440),
-            announceWindow = id != "halloween" && (node.get("windowAnnouncements")?.let { runCatching { it.asBoolean }.getOrNull() } ?: true)
+            announceWindow = node.get("windowAnnouncements")?.let { runCatching { it.asBoolean }.getOrNull() } ?: true
         )
     }
 
@@ -302,16 +302,48 @@ object WonderTradeSeasons {
         action()
     }
 
-    private fun announceWindow(server: MinecraftServer, season: Season, opening: Boolean) {
-        WonderTradeEvents.broadcast(server) {
-            WonderTradeService.format(
-                if (opening) ConfigManager.string("messages.seasonWindowOpen", "&b&l❄ ¡Ya es Navidad en Wonder Trade!\n&7Desde ahora y hasta el &f{end} &7pueden aparecer &bhoras navideñas&7.\n&7{sessionsInfo}\n&7Durante cada una la pool se llena de Pokémon de tipo &f{types}&7. {rules}\n&7Al terminar, la pool habitual vuelve tal como estaba.")
+    private fun windowText(season: Season, opening: Boolean): String {
+        val halloween = season.theme == "halloween"
+        return WonderTradeService.format(
+                if (halloween) {
+                    if (opening) ConfigManager.string("messages.halloweenWindowOpen", "&6&l☠ ¡Ya es la Noche de Brujas en Wonder Trade!\n&7Desde ahora y hasta el &f{end} &7pueden aparecer sesiones de &6Noche de Brujas&7.\n&7{sessionsInfo}\n&7Durante cada una la pool se llena de Pokémon de tipo &f{types}&7. {rules}\n&7Al terminar, la pool habitual vuelve tal como estaba.")
+                    else ConfigManager.string("messages.halloweenWindowClose", "&6&l☠ Termina la Noche de Brujas en Wonder Trade\n&7La Noche de Brujas acaba ahora: no volverán a aparecer sesiones de miedo hasta el &f{start} &7del año que viene.\n&7¡Gracias por participar!")
+                }
+                else if (opening) ConfigManager.string("messages.seasonWindowOpen", "&b&l❄ ¡Ya es Navidad en Wonder Trade!\n&7Desde ahora y hasta el &f{end} &7pueden aparecer &bhoras navideñas&7.\n&7{sessionsInfo}\n&7Durante cada una la pool se llena de Pokémon de tipo &f{types}&7. {rules}\n&7Al terminar, la pool habitual vuelve tal como estaba.")
                 else ConfigManager.string("messages.seasonWindowClose", "&b&l❄ Termina la Navidad en Wonder Trade\n&7La temporada navideña acaba ahora: no volverán a aparecer horas navideñas hasta el &f{start} &7del año que viene.\n&7¡Gracias por participar y feliz año nuevo!"),
-                placeholders(season)
-            )
-        }
+            placeholders(season)
+        )
+    }
+
+    private fun announceWindow(server: MinecraftServer, season: Season, opening: Boolean) {
+        WonderTradeEvents.broadcast(server) { windowText(season, opening) }
         runCatching { WonderTradeDiscord.seasonWindow(season, opening) }
             .onFailure { WonderTradePlus.LOGGER.error("No se pudo enviar el aviso de Discord de la temporada «{}».", season.id, it) }
+    }
+
+    /** Texto de chat de un aviso de temporada (apertura, cierre, inicio, fin) para las pruebas de admin. */
+    fun previewText(id: String, kind: String): String? {
+        val season = byId(id) ?: return null
+        return when (kind) {
+            "apertura" -> windowText(season, true)
+            "cierre" -> windowText(season, false)
+            "inicio" -> sessionText(season, true)
+            "fin" -> sessionText(season, false)
+            else -> null
+        }
+    }
+
+    /** Envía a Discord el aviso de prueba (sin mención de rol y con la etiqueta [PRUEBA]). */
+    fun previewDiscord(id: String, kind: String): Boolean {
+        val season = byId(id) ?: return false
+        when (kind) {
+            "apertura" -> WonderTradeDiscord.seasonWindow(season, true, test = true)
+            "cierre" -> WonderTradeDiscord.seasonWindow(season, false, test = true)
+            "inicio" -> WonderTradeDiscord.season(season, true, WonderTradeService.poolSnapshot().size, test = true)
+            "fin" -> WonderTradeDiscord.season(season, false, WonderTradeService.poolSnapshot().size, test = true)
+            else -> return false
+        }
+        return true
     }
 
     /** Inicia una sesión inmediata desde el panel admin, incluso fuera del calendario navideño. */
@@ -428,25 +460,21 @@ object WonderTradeSeasons {
         if (announceEnd && season != null) announce(server, season, started = false, count = restored.size)
     }
 
-    private fun announce(server: MinecraftServer, season: Season, started: Boolean, count: Int) {
+    private fun sessionText(season: Season, started: Boolean): String {
         val halloween = season.theme == "halloween"
-        if (started) {
-            WonderTradeEvents.broadcast(server) {
-                WonderTradeService.format(
-                    if (halloween) ConfigManager.string("messages.halloweenStart", "&6☠ La Noche de Brujas ha comenzado. La pool de miedo estará disponible durante {duration}.")
-                    else ConfigManager.string("messages.seasonStart", "&b❄ ¡Ha aparecido la hora navideña! La pool temática estará disponible durante {duration}."),
-                    placeholders(season) + mapOf("duration" to WonderTradeEvents.formatDuration(season.sessionDurationMinutes * 60L))
-                )
-            }
-        } else {
-            WonderTradeEvents.broadcast(server) {
-                WonderTradeService.format(
-                    if (halloween) ConfigManager.string("messages.halloweenEnd", "&6☠ La Noche de Brujas ha terminado. La pool habitual vuelve a estar disponible.")
-                    else ConfigManager.string("messages.seasonEnd", "&b❄ La hora navideña ha terminado. La pool habitual vuelve a estar disponible."),
-                    placeholders(season)
-                )
-            }
-        }
+        return if (started) WonderTradeService.format(
+            if (halloween) ConfigManager.string("messages.halloweenStart", "&6☠ La Noche de Brujas ha comenzado. La pool de miedo estará disponible durante {duration}.")
+            else ConfigManager.string("messages.seasonStart", "&b❄ ¡Ha aparecido la hora navideña! La pool temática estará disponible durante {duration}."),
+            placeholders(season) + mapOf("duration" to WonderTradeEvents.formatDuration(season.sessionDurationMinutes * 60L))
+        ) else WonderTradeService.format(
+            if (halloween) ConfigManager.string("messages.halloweenEnd", "&6☠ La Noche de Brujas ha terminado. La pool habitual vuelve a estar disponible.")
+            else ConfigManager.string("messages.seasonEnd", "&b❄ La hora navideña ha terminado. La pool habitual vuelve a estar disponible."),
+            placeholders(season)
+        )
+    }
+
+    private fun announce(server: MinecraftServer, season: Season, started: Boolean, count: Int) {
+        WonderTradeEvents.broadcast(server) { sessionText(season, started) }
         runCatching { WonderTradeDiscord.season(season, started, count, season.sessionDurationMinutes * 60L) }
             .onFailure { WonderTradePlus.LOGGER.error("No se pudo enviar el aviso de Discord del evento de temporada «{}».", season.id, it) }
     }

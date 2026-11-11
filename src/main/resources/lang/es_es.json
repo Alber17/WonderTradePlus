@@ -272,5 +272,11 @@
   "discord.seasonWindowOpenMessage": "Desde ahora y hasta el **{end}** pueden aparecer **horas navideñas**.\n{sessionsInfo}\nDurante cada una la pool se llena de Pokémon de tipo **{types}**. {rules}\nAl terminar, la pool habitual vuelve tal como estaba.",
   "discord.seasonWindowCloseMessage": "La temporada navideña acaba ahora: no volverán a aparecer horas navideñas hasta el **{start}** del año que viene.\n¡Gracias por participar y feliz año nuevo!",
   "discord.titles.seasonWindowOpen": "🎄 ¡Ya es Navidad en Wonder Trade!",
-  "discord.titles.seasonWindowClose": "🎁 Termina la Navidad en Wonder Trade"
+  "discord.titles.seasonWindowClose": "🎁 Termina la Navidad en Wonder Trade",
+  "messages.halloweenWindowOpen": "&6&l☠ ¡Ya es la Noche de Brujas en Wonder Trade!\n&7Desde ahora y hasta el &f{end} &7pueden aparecer sesiones de &6Noche de Brujas&7.\n&7{sessionsInfo}\n&7Durante cada una la pool se llena de Pokémon de tipo &f{types}&7. {rules}\n&7Al terminar, la pool habitual vuelve tal como estaba.",
+  "messages.halloweenWindowClose": "&6&l☠ Termina la Noche de Brujas en Wonder Trade\n&7La Noche de Brujas acaba ahora: no volverán a aparecer sesiones de miedo hasta el &f{start} &7del año que viene.\n&7¡Gracias por participar!",
+  "discord.halloweenWindowOpenMessage": "Desde ahora y hasta el **{end}** pueden aparecer sesiones de **Noche de Brujas**.\n{sessionsInfo}\nDurante cada una la pool se llena de Pokémon de tipo **{types}**. {rules}\nAl terminar, la pool habitual vuelve tal como estaba.",
+  "discord.halloweenWindowCloseMessage": "La Noche de Brujas acaba ahora: no volverán a aparecer sesiones de miedo hasta el **{start}** del año que viene.\n¡Gracias por participar!",
+  "discord.titles.halloweenWindowOpen": "🎃 ¡Evento de Halloween!",
+  "discord.titles.halloweenWindowClose": "🎃 Termina el Evento de Halloween"
 }

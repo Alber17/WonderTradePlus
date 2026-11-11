@@ -1222,5 +1222,15 @@
   "Cada día habrá {0} sesiones de {1} en horas aleatorias; cada una se avisa en el chat.": "Ogni giorno ci saranno {0} sessioni da {1} a orari casuali; ognuna viene annunciata in chat.",
   "La pool temática estará activa durante todo el periodo.": "La pool a tema sarà attiva per tutto il periodo.",
   "Mientras dure, solo se podrán ofrecer Pokémon de esa temática.": "Finché dura, si potranno offrire solo Pokémon di quel tema.",
-  "📅 Fechas": "📅 Date"
+  "📅 Fechas": "📅 Date",
+  "messages.halloweenWindowOpen": "&6&l☠ È la Notte delle Streghe su Wonder Trade!\n&7Da adesso fino al &f{end} &7possono comparire sessioni della &6Notte delle Streghe&7.\n&7{sessionsInfo}\n&7Durante ognuna la pool si riempie di Pokémon di tipo &f{types}&7. {rules}\n&7Al termine, la pool abituale torna esattamente com'era.",
+  "messages.halloweenWindowClose": "&6&l☠ La Notte delle Streghe su Wonder Trade è finita\n&7La Notte delle Streghe finisce adesso: le sessioni da brivido non torneranno fino al &f{start} &7dell'anno prossimo.\n&7Grazie per aver partecipato!",
+  "discord.halloweenWindowOpenMessage": "Da adesso fino al **{end}** possono comparire sessioni della **Notte delle Streghe**.\n{sessionsInfo}\nDurante ognuna la pool si riempie di Pokémon di tipo **{types}**. {rules}\nAl termine, la pool abituale torna esattamente com'era.",
+  "discord.halloweenWindowCloseMessage": "La Notte delle Streghe finisce adesso: le sessioni da brivido non torneranno fino al **{start}** dell'anno prossimo.\nGrazie per aver partecipato!",
+  "discord.titles.halloweenWindowOpen": "🎃 Evento di Halloween!",
+  "discord.titles.halloweenWindowClose": "🎃 L'evento di Halloween è finito",
+  "&cEvento o aviso no válido (o el evento está desactivado). Usa navidad/halloween y apertura/cierre/inicio/fin.": "&cEvento o avviso non valido (o l'evento è disattivato). Usa navidad/halloween e apertura/cierre/inicio/fin.",
+  "&8[Prueba: {0} · {1}]": "&8[Prova: {0} · {1}]",
+  "&7Aviso de prueba enviado a Discord (sin mención de rol).": "&7Avviso di prova inviato a Discord (senza menzione del ruolo).",
+  "&cNo se pudo enviar a Discord.": "&cImpossibile inviare a Discord."
 }

@@ -1,12 +1,26 @@
 # Estado de compilación
 
-- Versión actual: **0.29.8**.
+- Versión actual: **0.30.1**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
 - Los comandos `/wt admin ...`, el historial, el cooldown de 12 h y el autocompletado (v0.3.0) están pendientes de probar en juego.
 - Los anuncios de legendarios, Ultraentes y Paradoja pasado/futuro (v0.2.1) están pendientes de probar en juego.
 - No es una versión NeoForge/Arclight. El JAR es solo Fabric.
+
+## Cambios de la versión 0.30.1 (versión de prueba)
+
+- Nuevo comando de admin `/wt admin probaravisos <navidad|halloween> <apertura|cierre|inicio|fin> [discord]`: muestra solo a quien lo ejecuta cómo se ve cada aviso (apertura de temporada, cierre de temporada, inicio y fin de una sesión). Con `discord` al final también envía un aviso de prueba al webhook, con la etiqueta «[PRUEBA]» y sin mencionar ningún rol. No cambia el estado de los eventos ni la pool.
+
+## Cambios de la versión 0.30.0
+
+- Halloween ahora funciona como Navidad: aviso de apertura el 31 de octubre a las 00:00 (explica las sesiones, la duración, la temática y que la pool vuelve como estaba) y aviso de cierre el 1 de noviembre a las 23:59, en el chat y en Discord. El de apertura menciona el rol de Halloween.
+- Textos de chat con «Noche de Brujas»; títulos de Discord «¡Evento de Halloween!» (apertura) y «Termina el Evento de Halloween» (cierre).
+- Se desactivan con `windowAnnouncements: false` en el evento `halloween`. Claves: `messages.halloweenWindowOpen/Close`, `discord.halloweenWindowOpenMessage/CloseMessage`, `discord.titles.halloweenWindowOpen/Close`.
+
+## Cambios de la versión 0.29.9
+
+- Se quita del panel de administración el botón «Gestionar Top Donaciones» (cerrar el Top y ver pendientes). El interruptor de activar/desactivar el Top sigue en su sitio.
 
 ## Cambios de la versión 0.29.8
 
