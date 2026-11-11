@@ -1714,17 +1714,75 @@ object WonderTradeGui {
             val generated = WonderTradeService.poolEntries().count { it.donorName.equals("Servidor", ignoreCase = true) }
             val playerEntries = WonderTradeService.poolEntries().count { !it.donorName.equals("Servidor", ignoreCase = true) }
             menu.put(4, named(Items.BARRIER, Lang.tr("&cEliminar por origen"), Lang.tr("&7Elige qué Pokémon retirar de la pool."), Lang.t("&7Generados por servidor: &f{0}", generated), Lang.t("&7Aportados por jugadores: &f{0}", playerEntries)))
-            menu.button(11, named(Items.COMMAND_BLOCK, Lang.tr("&cSolo generados por el servidor"), Lang.tr("&7Elimina únicamente los Pokémon"), Lang.tr("&7generados automáticamente por el servidor."), Lang.tr("&cPide confirmación."))) { p ->
+            menu.button(10, named(Items.COMMAND_BLOCK, Lang.tr("&cSolo generados por el servidor"), Lang.tr("&7Elimina únicamente los Pokémon"), Lang.tr("&7generados automáticamente por el servidor."), Lang.tr("&cPide confirmación."))) { p ->
                 openRemoveGeneratedPoolConfirm(p)
             }
             val playersHead = configHead(
                 "gui.heads.players", Lang.tr("&cSolo generados por jugadores"), Lang.tr("&7Abre la lista de jugadores que han aportado."), Lang.tr("&7Selecciona uno para eliminar sus Pokémon.")
             ) ?: playerHead(player.gameProfile.name, player.uuid, WonderTradeService.profileSkin(player), Lang.tr("&cSolo generados por jugadores"), Lang.tr("&7Abre la lista de jugadores que han aportado."), Lang.tr("&7Selecciona uno para eliminar sus Pokémon."))
-            menu.button(13, playersHead) { p ->
+            menu.button(12, playersHead) { p ->
                 openAdminDonors(p)
             }
-            menu.button(15, named(Items.TNT, Lang.tr("&4Eliminar toda la pool"), Lang.tr("&7Elimina todas las entradas, sin importar su origen."), Lang.tr("&cPide confirmación."))) { openClearPoolConfirm(it) }
+            menu.button(14, named(
+                Items.SHEARS, Lang.tr("&cEliminar por Pokémon"),
+                Lang.tr("&7Elimina de la pool todos los Pokémon iguales."),
+                Lang.tr("&7Elige la especie en la lista."),
+                Lang.tr("&eClic para ver la lista")
+            )) { openAdminPoolSpecies(it) }
+            menu.button(16, named(Items.TNT, Lang.tr("&4Eliminar toda la pool"), Lang.tr("&7Elimina todas las entradas, sin importar su origen."), Lang.tr("&cPide confirmación."))) { openClearPoolConfirm(it) }
             menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdmin(it) }
+        }
+    }
+
+    /** Lista de especies presentes en la pool; al elegir una se eliminan todos los Pokémon iguales (con confirmación). */
+    private fun openAdminPoolSpecies(player: ServerPlayer, page: Int = 0) {
+        if (!player.hasPermissions(WonderTradeService.adminLevel())) {
+            WonderTradeService.send(player, "adminOnly")
+            return
+        }
+        val groups = WonderTradeService.poolEntries()
+            .groupBy { it.species.substringAfter(':').lowercase() }
+            .map { (species, list) -> Triple(species, list.size, list.first()) }
+            .sortedWith(compareBy({ -it.second }, { it.first }))
+        val pages = maxOf(1, (groups.size + 44) / 45)
+        val current = page.coerceIn(0, pages - 1)
+        val registryAccess = player.server.registryAccess()
+        open(player, Lang.tr("&5Administración &8- &cEliminar por Pokémon"), 6) { menu ->
+            fill(menu, 54)
+            if (groups.isEmpty()) menu.put(22, named(Items.PAPER, Lang.tr("&7La pool está vacía.")))
+            groups.drop(current * 45).take(45).forEachIndexed { index, (species, count, sample) ->
+                val pokemon = runCatching { Pokemon.loadFromJSON(registryAccess, sample.pokemonJson.deepCopy()) }.getOrNull()
+                val display = pokemon?.species?.name ?: species
+                val lore = listOf(Lang.t("&7En la pool: &f{0}", count), Lang.tr("&cClic para eliminarlos todos"))
+                val stack = if (pokemon != null) pokemonStack(pokemon, false, lore) else named(Items.BARRIER, Lang.t("&f{0}", species), *lore.toTypedArray())
+                menu.button(index, stack) { p -> openRemoveSpeciesConfirm(p, species, display, count, current) }
+            }
+            if (current > 0) menu.button(45, named(Items.ARROW, Lang.tr("&ePágina anterior"))) { openAdminPoolSpecies(it, current - 1) }
+            menu.button(49, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver a eliminar pool"))) { openAdminPoolDeleteOptions(it) }
+            if (current < pages - 1) menu.button(53, named(Items.ARROW, Lang.tr("&ePágina siguiente"))) { openAdminPoolSpecies(it, current + 1) }
+        }
+    }
+
+    private fun openRemoveSpeciesConfirm(player: ServerPlayer, species: String, display: String, count: Int, page: Int) {
+        if (!player.hasPermissions(WonderTradeService.adminLevel())) {
+            WonderTradeService.send(player, "adminOnly")
+            return
+        }
+        open(player, Lang.tr("&5Administración &8- &cConfirmar"), 3) { menu ->
+            fill(menu, 27)
+            menu.put(4, named(
+                Items.BARRIER, Lang.t("&cEliminar todos los {0}", display),
+                Lang.t("&7Se eliminarán &f{0} &7Pokémon de la pool.", count),
+                Lang.tr("&cEsta acción no se puede deshacer.")
+            ))
+            menu.button(11, named(Items.TNT, Lang.tr("&cSí, eliminar"), Lang.t("&7Quitar de la pool todos los {0}.", display))) { p ->
+                if (p.hasPermissions(WonderTradeService.adminLevel())) {
+                    val removed = WonderTradeService.removeSpeciesEntries(species)
+                    p.sendSystemMessage(WonderTradeService.info(Lang.t("&aEliminados &f{0} &aPokémon de la especie &f{1}&a.", removed, display)))
+                }
+                openAdminPoolSpecies(p, page)
+            }
+            menu.button(15, named(cobblemonItem("eject_button"), Lang.tr("&aCancelar"), Lang.tr("&7Volver a la lista."))) { openAdminPoolSpecies(it, page) }
         }
     }
 

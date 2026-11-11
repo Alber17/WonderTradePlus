@@ -160,6 +160,8 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
 --------------------------------------------------------------------------------
  backup.intervalHours / keep   Copia automatica cada X horas y cuantas se guardan (incluye todos los datos).
  seasonal...windowAnnouncements  (navidad) Avisos del 25-dic 00:00 y 6-ene 23:59 (true/false).
+ seasonal...announceSessions     (por evento) Avisar cada hora de temporada en chat/Discord (por defecto false).
+ alerts.*                      Avisos solo a consola y admins: pool baja y posibles abusos (solo avisan).
  configCheck.enabled           Avisa de errores de config al arrancar y con /wt reload (solo avisa).
  history.enabled               Guarda el historial de intercambios.
  history.autoDeleteAfterDays   Borra entradas mas viejas de X dias (0 = nunca).

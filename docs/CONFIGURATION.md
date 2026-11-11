@@ -120,6 +120,23 @@ Mantenimiento automático del pool, cada `intervalMinutes` minutos. Solo elimina
 
 El mantenimiento manual con `/wt admin maintenance` solo elimina entradas caducadas. Los Pokémon generados con `/wt admin fill` salen con el donante `Servidor`.
 
+## `seasonal.events[].announceSessions` y `windowAnnouncements`
+
+- `windowAnnouncements`: avisos de apertura (00:00 del primer día) y cierre (23:59 del último día) de la temporada, con el Top 3 de intercambios en el cierre. Por defecto `true`.
+- `announceSessions`: si es `true`, cada hora de temporada se avisa en el chat y en Discord al empezar y terminar. Por defecto `false` (la gente la descubre por sorpresa).
+
+## `alerts`
+
+Avisos solo para administradores (consola y chat de admins conectados; nunca Discord).
+
+- `enabled`: activa o desactiva todos los avisos. Por defecto `true`.
+- `cooldownMinutes`: minutos antes de repetir el mismo aviso. Por defecto `60`.
+- `poolLow.enabled` / `poolLow.threshold`: avisa si la pool tiene menos Pokémon que el umbral. Por defecto `true` / `10`.
+- `abuse.enabled`: detección de posibles abusos (solo avisa). Por defecto `true`.
+- `abuse.maxTradesPer24h`: intercambios de una persona en 24 h a partir de los cuales se avisa (`0` = no avisar). Por defecto `50`.
+- `abuse.pairCount`: veces que alguien recibe Pokémon aportados por la misma persona en 24 h (`0` = no avisar). Por defecto `3`.
+- `abuse.reciprocalCount`: veces que dos jugadores se reciben mutuamente Pokémon del otro en 24 h (`0` = no avisar). Por defecto `2`.
+
 ## `configCheck`
 
 - `enabled`: revisa la configuración al arrancar y con `/wt reload` y avisa de errores (fechas, especies, colores, enlaces, webhook, roles). Solo avisa; no modifica nada. Por defecto `true`.

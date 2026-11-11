@@ -970,6 +970,13 @@ object WonderTradeService {
         return removed
     }
 
+    /** Elimina de la pool todas las entradas de una especie (por ejemplo «bulbasaur»). */
+    fun removeSpeciesEntries(species: String): Int {
+        val removed = pool.removeWhere { it.species.substringAfter(':').equals(species, ignoreCase = true) }
+        if (removed > 0) pool.save()
+        return removed
+    }
+
     fun removeDonorEntries(donor: String): Int {
         val removed = pool.removeWhere { it.donorName.equals(donor, ignoreCase = true) }
         if (removed > 0) pool.save()
@@ -1125,6 +1132,8 @@ object WonderTradeService {
             pool.save()
             val incomingRare = WonderTradeRules.isRare(incoming)
             playerData.recordTrade(player.uuid, now, offeredRare, incomingRare, affectCooldown = eventUse == null)
+            runCatching { WonderTradeSeasons.recordTrade(player) }
+            runCatching { WonderTradeAlerts.trade(player, selectedEntry.donorUuid, selectedEntry.donorName, now) }
             if (eventUse != null) WonderTradeEvents.markUsed(player, eventUse)
             rememberPlayer(player)
             playerData.setLastOfferedSpecies(player.uuid, offered.species.resourceIdentifier.path.lowercase())
@@ -1529,6 +1538,7 @@ object WonderTradeService {
         runCatching { WonderTradeEvents.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el control de eventos.", it) }
         runCatching { WonderTradePenalties.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el control de penalizaciones.", it) }
         runCatching { WonderTradeSeasons.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el evento de temporada.", it) }
+        runCatching { WonderTradeAlerts.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el sistema de avisos de admin.", it) }
         runCatching { WonderTradeTopDonations.tick(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el Top Donaciones.", it) }
         server.playerList.players.forEach { player -> Lang.withPlayer(player) { WonderTradeGui.refreshCooldown(player) } }
         runCatching { checkCooldownNotices(server) }.onFailure { WonderTradePlus.LOGGER.error("Falló el aviso de disponibilidad.", it) }

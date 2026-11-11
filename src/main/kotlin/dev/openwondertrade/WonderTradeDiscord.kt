@@ -49,6 +49,33 @@ object WonderTradeDiscord {
         return text.toIntOrNull(16) ?: fallback.removePrefix("#").toInt(16)
     }
 
+    /** Envía el webhook y reintenta (hasta 3 veces) si Discord limita las peticiones, falla o no hay conexión. */
+    private fun sendWithRetry(request: java.net.http.HttpRequest, attempt: Int, force: Boolean, onResult: ((Boolean, String) -> Unit)?) {
+        httpClient.sendAsync(request, java.net.http.HttpResponse.BodyHandlers.discarding()).whenComplete { response, error ->
+            val code = response?.statusCode() ?: -1
+            val retryable = error != null || code == 429 || code >= 500
+            if (retryable && attempt < 3) {
+                val headerWait = response?.headers()?.firstValue("retry-after")?.orElse(null)?.toDoubleOrNull()?.times(1000.0)?.toLong()
+                val wait = (headerWait ?: ((attempt + 1) * 5_000L)).coerceIn(1_000L, 60_000L)
+                WonderTradePlus.LOGGER.warn("Discord no respondió bien (intento {}); se reintenta en {} s.", attempt + 1, wait / 1000L)
+                java.util.concurrent.CompletableFuture.delayedExecutor(wait, java.util.concurrent.TimeUnit.MILLISECONDS)
+                    .execute { sendWithRetry(request, attempt + 1, force, onResult) }
+                return@whenComplete
+            }
+            if (error != null) {
+                WonderTradePlus.LOGGER.warn("No se pudo enviar el aviso a Discord: {}", error.message)
+                onResult?.invoke(false, "No se pudo conectar con Discord: ${error.message}")
+            } else if (code >= 300) {
+                WonderTradePlus.LOGGER.warn("Discord respondió con el código {}.", code)
+                onResult?.invoke(false, "Discord respondió con el código $code. Revisa la URL del webhook.")
+            } else {
+                onResult?.invoke(true, "Mensaje enviado a Discord.")
+                return@whenComplete
+            }
+            if (!force) WonderTradeAlerts.alert("discord") { Lang.tr("&c⚠ No se pudo enviar un aviso a Discord tras varios intentos. Revisa el webhook.") }
+        }
+    }
+
     /** Envía un mensaje al webhook de Discord sin bloquear el servidor. `onResult` se llama desde otro hilo. */
     private fun discordPost(content: String, force: Boolean = false, onResult: ((Boolean, String) -> Unit)? = null, roleId: String? = null, embed: Embed? = null) {
         if (!force && !ConfigManager.bool("discord.enabled", false)) return
@@ -78,17 +105,7 @@ object WonderTradeDiscord {
                 .header("Content-Type", "application/json; charset=utf-8")
                 .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body.toString()))
                 .build()
-            httpClient.sendAsync(request, java.net.http.HttpResponse.BodyHandlers.discarding()).whenComplete { response, error ->
-                if (error != null) {
-                    WonderTradePlus.LOGGER.warn("No se pudo enviar el aviso a Discord: {}", error.message)
-                    onResult?.invoke(false, "No se pudo conectar con Discord: ${error.message}")
-                } else if (response.statusCode() >= 300) {
-                    WonderTradePlus.LOGGER.warn("Discord respondió con el código {}.", response.statusCode())
-                    onResult?.invoke(false, "Discord respondió con el código ${response.statusCode()}. Revisa la URL del webhook.")
-                } else {
-                    onResult?.invoke(true, "Mensaje enviado a Discord.")
-                }
-            }
+            sendWithRetry(request, 0, force, onResult)
         } catch (exception: Exception) {
             WonderTradePlus.LOGGER.warn("Webhook de Discord inválido: {}", exception.message)
             onResult?.invoke(false, "La URL del webhook no es válida.")
@@ -210,7 +227,7 @@ object WonderTradeDiscord {
     }
 
     /** Aviso de apertura (00:00 del primer día) o cierre (23:59 del último día) de la temporada navideña. */
-    fun seasonWindow(season: Season, opening: Boolean) {
+    fun seasonWindow(season: Season, opening: Boolean, top: List<Pair<String, Int>> = emptyList()) {
         Lang.withPlayer(null) {
             if (!eventsEnabled("seasonal")) return
             val values = WonderTradeSeasons.placeholders(season)
@@ -231,6 +248,10 @@ object WonderTradeDiscord {
             val colorKey = (if (halloween) "halloweenWindow" else "seasonWindow") + (if (opening) "Open" else "Close")
             val colorDefault = if (halloween) (if (opening) "#FF7518" else "#6A0DAD") else (if (opening) "#28AA50" else "#E62832")
             val embed = Embed(title, description, colorOf(colorKey, colorDefault))
+            if (!opening && top.isNotEmpty()) {
+                val medals = listOf("🥇", "🥈", "🥉")
+                embed.field(Lang.tr("🏆 Top 3 intercambios"), top.mapIndexed { index, (name, count) -> "${medals[index]} **$name** — $count" }.joinToString("\n"))
+            }
             if (opening) {
                 embed.field(Lang.tr("📅 Fechas"), "${values["start"]} – ${values["end"]}")
                 embed.field(if (halloween) Lang.tr("🎃 Temática") else Lang.tr("🧊 Temática"), season.types.joinToString(", ") { WonderTradeRules.typeName(it) })

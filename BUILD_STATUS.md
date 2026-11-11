@@ -1,12 +1,27 @@
 # Estado de compilación
 
-- Versión actual: **0.30.0**.
+- Versión actual: **0.31.0**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
 - Los comandos `/wt admin ...`, el historial, el cooldown de 12 h y el autocompletado (v0.3.0) están pendientes de probar en juego.
 - Los anuncios de legendarios, Ultraentes y Paradoja pasado/futuro (v0.2.1) están pendientes de probar en juego.
 - No es una versión NeoForge/Arclight. El JAR es solo Fabric.
+
+## Cambios de la versión 0.31.0
+
+- **Top 3 de la temporada:** el aviso de cierre de Navidad y Halloween (chat y Discord) incluye ahora a las 3 personas que más intercambios hicieron durante toda la temporada. Se guarda en `seasonal-state.json`.
+- **Cierre que no se pierde:** si el servidor estaba apagado a las 23:59 del último día, el aviso de cierre sale al arrancar (hasta 3 días después), siempre que el de apertura se hubiera enviado.
+- **Horas de temporada por sorpresa:** el inicio y el fin de cada hora navideña (y de Halloween) ya no se avisan en el chat ni en Discord; los jugadores la encuentran al entrar o al abrir Wonder Trade (aviso de entrada y barra de evento). Se puede volver a activar con `announceSessions: true` en cada evento de `seasonal.events`. Si un admin inicia o termina la sesión a mano, sí se avisa.
+- **Discord con reintentos:** si Discord limita las peticiones o falla, el aviso se reintenta hasta 3 veces. Si sigue fallando se avisa a los admins (consola y chat, no a Discord).
+- **Avisos para admins (`alerts`)**, solo a la consola y al chat de admins conectados: pool con pocos Pokémon (`alerts.poolLow.threshold`), posible abuso (demasiados intercambios en 24 h, o alguien que recibe muchos Pokémon aportados por la misma persona, o dos jugadores que se los intercambian entre sí) y fallo al restaurar la pool de un evento. Solo avisan, no sancionan. Cada aviso no se repite antes de `alerts.cooldownMinutes`.
+- **Menú de eliminar pool:** nuevo botón «Eliminar por Pokémon»: lista las especies de la pool con su cantidad; al elegir una y confirmar se eliminan todos los Pokémon iguales.
+
+## Cambios de la versión 0.30.2
+
+- Los mensajes de chat de Navidad (aviso de apertura y cierre de la temporada, inicio y fin de cada hora navideña, aviso al entrar, pausa y reanudación) pasan del azul a colores navideños: rojo, verde y blanco. Las tarjetas de Discord y la barra de evento no cambian.
+- Los textos antiguos sin personalizar se actualizan solos al arrancar (en los 6 idiomas). Si habías editado alguno a mano, se respeta.
+- Base: la 0.30.0 (sin el comando de prueba de la 0.30.1).
 
 ## Cambios de la versión 0.30.0
 

@@ -88,6 +88,46 @@ object Lang {
     )
 
     private val legacyTexts: Map<String, List<String>> = mapOf(
+        "messages.seasonStart" to listOf(
+            "&b❄ ¡Ha aparecido la hora navideña! La pool temática estará disponible durante {duration}.",
+            "&b❄ The Christmas hour has appeared! The themed pool will be available for {duration}.",
+            "&b❄ L'heure de Noël a commencé ! La pool thématique sera disponible pendant {duration}.",
+            "&b❄ È iniziata l'ora di Natale! La pool a tema sarà disponibile per {duration}.",
+            "&b❄ Die Weihnachtsstunde ist da! Der Themenpool ist für {duration} verfügbar.",
+            "&b❄ A hora de Natal chegou! A pool temática fica disponível durante {duration}."
+        ),
+        "messages.seasonEnd" to listOf(
+            "&b❄ La hora navideña ha terminado. La pool habitual vuelve a estar disponible.",
+            "&b❄ The Christmas hour has ended. The regular pool is back.",
+            "&b❄ L'heure de Noël est terminée. La pool habituelle est de retour.",
+            "&b❄ L'ora di Natale è terminata. La pool normale è di nuovo disponibile.",
+            "&b❄ Die Weihnachtsstunde ist vorbei. Der normale Pool ist zurück.",
+            "&b❄ A hora de Natal terminou. A pool normal voltou."
+        ),
+        "messages.seasonJoin" to listOf(
+            "&b❄ Hora navideña activa: quedan {duration}.",
+            "&b❄ Christmas hour active: {duration} remaining.",
+            "&b❄ Heure de Noël active : {duration} restantes.",
+            "&b❄ Ora di Natale attiva: restano {duration}.",
+            "&b❄ Weihnachtsstunde aktiv: noch {duration}.",
+            "&b❄ Hora de Natal ativa: faltam {duration}."
+        ),
+        "messages.seasonWindowOpen" to listOf(
+            "&b&l❄ ¡Ya es Navidad en Wonder Trade!\n&7Desde ahora y hasta el &f{end} &7pueden aparecer &bhoras navideñas&7.\n&7{sessionsInfo}\n&7Durante cada una la pool se llena de Pokémon de tipo &f{types}&7. {rules}\n&7Al terminar, la pool habitual vuelve tal como estaba.",
+            "&b&l❄ It's Christmas in Wonder Trade!\n&7From now until &f{end} &bChristmas hours &7may appear.\n&7{sessionsInfo}\n&7During each one the pool fills with &f{types}&7-type Pokémon. {rules}\n&7When it ends, the regular pool comes back exactly as it was.",
+            "&b&l❄ C'est Noël dans Wonder Trade !\n&7À partir de maintenant et jusqu'au &f{end}&7, des &bheures de Noël &7peuvent apparaître.\n&7{sessionsInfo}\n&7Pendant chacune, le pool se remplit de Pokémon de type &f{types}&7. {rules}\n&7À la fin, le pool habituel revient tel qu'il était.",
+            "&b&l❄ È Natale su Wonder Trade!\n&7Da adesso fino al &f{end} &7possono comparire &bore natalizie&7.\n&7{sessionsInfo}\n&7Durante ognuna la pool si riempie di Pokémon di tipo &f{types}&7. {rules}\n&7Al termine, la pool abituale torna esattamente com'era.",
+            "&b&l❄ Es ist Weihnachten in Wonder Trade!\n&7Ab jetzt bis zum &f{end} &7können &bWeihnachtsstunden &7auftauchen.\n&7{sessionsInfo}\n&7Während jeder Stunde füllt sich der Pool mit Pokémon vom Typ &f{types}&7. {rules}\n&7Danach kehrt der normale Pool genau so zurück, wie er war.",
+            "&b&l❄ É Natal no Wonder Trade!\n&7A partir de agora e até &f{end} &7podem aparecer &bhoras natalícias&7.\n&7{sessionsInfo}\n&7Durante cada uma, a pool enche-se de Pokémon do tipo &f{types}&7. {rules}\n&7Quando termina, a pool habitual volta exatamente como estava."
+        ),
+        "messages.seasonWindowClose" to listOf(
+            "&b&l❄ Termina la Navidad en Wonder Trade\n&7La temporada navideña acaba ahora: no volverán a aparecer horas navideñas hasta el &f{start} &7del año que viene.\n&7¡Gracias por participar y feliz año nuevo!",
+            "&b&l❄ Christmas in Wonder Trade is over\n&7The Christmas season ends now: Christmas hours will not appear again until &f{start} &7next year.\n&7Thanks for taking part and happy new year!",
+            "&b&l❄ Noël se termine dans Wonder Trade\n&7La saison de Noël se termine maintenant : les heures de Noël ne reviendront pas avant le &f{start} &7de l'an prochain.\n&7Merci d'avoir participé et bonne année !",
+            "&b&l❄ Il Natale su Wonder Trade è finito\n&7La stagione natalizia finisce adesso: le ore natalizie non torneranno fino al &f{start} &7dell'anno prossimo.\n&7Grazie per aver partecipato e buon anno!",
+            "&b&l❄ Weihnachten in Wonder Trade ist vorbei\n&7Die Weihnachtssaison endet jetzt: Weihnachtsstunden erscheinen erst am &f{start} &7nächsten Jahres wieder.\n&7Danke fürs Mitmachen und ein frohes neues Jahr!",
+            "&b&l❄ O Natal no Wonder Trade terminou\n&7A temporada natalícia acaba agora: as horas natalícias só voltam a aparecer a &f{start} &7do próximo ano.\n&7Obrigado por participares e feliz ano novo!"
+        ),
         "messages.topDonationsFooter" to listOf(
             "&7¡Gracias a todos por donar! Los premios se entregan a los ganadores.",
             "&7Thanks to everyone for donating! Prizes are delivered to the winners.",
