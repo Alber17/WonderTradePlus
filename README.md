@@ -218,6 +218,11 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.31.1
+
+- Los Pokémon especiales de especie (legendarios, míticos, Ultraentes y Paradoja) que genera el servidor ya nunca son shiny, y un shiny generado nunca es de una de esas especies. Aplica a «Añadir Pokémon aleatorios» (cualquier mezcla de categorías, por ejemplo Ultraente + Shiny), «Rellenar pool», los eventos con pool asegurada y las pools de Navidad y Halloween. Antes podía salir un especial shiny por la tirada natural de Cobblemon o por combinarlo con la categoría shiny.
+- No cambia: lo que aportan los jugadores, ni el comando manual `/wt admin addspecies ... shiny`, donde el admin elige explícitamente. Los especiales shiny que ya estuvieran en la pool no se tocan.
+
 ## 0.31.0
 
 - **Top 3 de la temporada:** el aviso de cierre de Navidad y Halloween (chat y Discord) incluye ahora a las 3 personas que más intercambios hicieron durante toda la temporada. Se guarda en `seasonal-state.json`.

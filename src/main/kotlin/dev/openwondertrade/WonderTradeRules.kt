@@ -50,6 +50,14 @@ object WonderTradeRules {
     /** Legendario, mítico, Ultraente o Paradoja (sin contar shiny). */
     fun isSpecialSpecies(pokemon: Pokemon): Boolean = categoryLabel(pokemon) != null || isSpecial(pokemon)
 
+    /**
+     * Un especial de especie (legendario, mítico, Ultraente o Paradoja) generado por el servidor nunca es shiny:
+     * ni por la tirada natural de Cobblemon ni por la categoría «shiny». Los que aportan los jugadores no se tocan.
+     */
+    fun enforceNoShinySpecial(pokemon: Pokemon) {
+        if (pokemon.shiny && isSpecialSpecies(pokemon)) pokemon.shiny = false
+    }
+
     /** Nivel mínimo de un legendario, mítico, Ultraente o Paradoja creado por el servidor. */
     const val SPECIAL_MINIMUM_LEVEL = 50
 

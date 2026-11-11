@@ -636,7 +636,7 @@ object WonderTradeService {
                 this.species = speciesName
                 this.level = Random.nextInt(low, high + 1)
                 this.shiny = shiny
-            }.create(player)
+            }.create(player).also { WonderTradeRules.enforceNoShinySpecial(it) }
         } catch (exception: Exception) {
             null
         }
@@ -874,12 +874,14 @@ object WonderTradeService {
                 // Los especiales de especie son poco frecuentes entre las especies aleatorias, así que se
                 // buscan con muchos más intentos; antes se rendía y dejaba un Pokémon normal.
                 val specialAttempts = if (shinyOne) attempts else attempts * SPECIAL_ATTEMPT_FACTOR
-                pokemon = generateRandom(player, low, high, specialAttempts, if (shinyOne) true else null) { candidate ->
-                    allowed(candidate) && (shinyOne || WonderTradeRules.isSpecialSpecies(candidate))
+                // Un shiny nunca es de una especie especial, y un especial de especie nunca es shiny.
+                pokemon = generateRandom(player, low, high, specialAttempts, shinyOne) { candidate ->
+                    allowed(candidate) && (if (shinyOne) !WonderTradeRules.isSpecialSpecies(candidate)
+                        else WonderTradeRules.isSpecialSpecies(candidate) && !candidate.shiny)
                 }
                 // Si aun así no apareció, se genera un shiny (siempre posible) para respetar la probabilidad.
                 if (pokemon == null && allowShiny) {
-                    pokemon = generateRandom(player, low, high, attempts, true) { allowed(it) }
+                    pokemon = generateRandom(player, low, high, attempts, true) { allowed(it) && !WonderTradeRules.isSpecialSpecies(it) }
                 }
                 isSpecialOne = pokemon != null
             }
@@ -889,6 +891,7 @@ object WonderTradeService {
                 pokemon = generateRandom(player, low, high, attempts, false) { allowed(it) && !WonderTradeRules.isRare(it) }
             }
             if (pokemon != null) {
+                WonderTradeRules.enforceNoShinySpecial(pokemon)
                 addAdminEntry(pokemon, registryAccess)
                 added++
                 if (isSpecialOne) special++
@@ -940,6 +943,7 @@ object WonderTradeService {
             } else {
                 // Los especiales generados por el servidor siempre respetan el nivel mínimo global.
                 WonderTradeRules.enforceGeneratedSpecialLevel(pokemon)
+                WonderTradeRules.enforceNoShinySpecial(pokemon)
                 addAdminEntry(pokemon, player.server.registryAccess())
                 counts[category] = (counts[category] ?: 0) + 1
             }
@@ -1263,7 +1267,8 @@ object WonderTradeService {
                 PokemonProperties().apply {
                     this.species = template.speciesId
                     this.level = Random.nextInt(low, high + 1)
-                    if (category == EventCategory.SHINY) this.shiny = true
+                    // Shiny solo en la categoría shiny; el resto nunca sale shiny por azar.
+                    this.shiny = category == EventCategory.SHINY
                 }.create(player).also { created ->
                     val form = template.form
                     if (form != null && created.form.name != form.name) {
@@ -1274,6 +1279,8 @@ object WonderTradeService {
             }.getOrNull() ?: continue
             if (!fillAllowed(candidate)) continue
             if (category != EventCategory.SHINY && !category.matches(candidate)) continue
+            // Nunca un especial de especie (legendario, mítico, Ultraente, Paradoja) que además sea shiny.
+            if (candidate.shiny && WonderTradeRules.isSpecialSpecies(candidate)) continue
             return candidate
         }
         return null
