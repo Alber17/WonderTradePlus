@@ -25,7 +25,9 @@ class Season(
     val includeSpecial: Boolean,
     val excluded: Set<String> = emptySet(),
     val sessionsPerDay: Int = 0,
-    val sessionDurationMinutes: Int = 60
+    val sessionDurationMinutes: Int = 60,
+    /** Avisos de apertura (00:00 del primer día) y cierre (23:59 del último día) de la temporada. Solo Navidad. */
+    val announceWindow: Boolean = false
 ) {
     val name: String get() = Lang.tr(rawName)
 
@@ -74,6 +76,7 @@ object WonderTradeSeasons {
     private var lastCheck = 0L
     private var gaveUpRestoring = false
     private var warnedNoPokemon = false
+    private val announced = linkedSetOf<String>()
 
     private fun stateFile(): Path? = directory?.resolve("seasonal-state.json")
     private fun originalFile(id: String): Path = directory!!.resolve("seasonal").resolve("pool-original-$id.json")
@@ -82,7 +85,7 @@ object WonderTradeSeasons {
         directory = configDirectory
         activeId = null; startedAt = 0L; endAt = 0L; pausedAt = 0L
         phase = ""; originalCount = 0; skipAutomaticDate = ""
-        dailySlots.clear(); gaveUpRestoring = false; warnedNoPokemon = false
+        dailySlots.clear(); announced.clear(); gaveUpRestoring = false; warnedNoPokemon = false
         val file = stateFile() ?: return
         if (!Files.exists(file)) return
         runCatching {
@@ -94,6 +97,7 @@ object WonderTradeSeasons {
             phase = node.get("phase")?.asString ?: ""
             originalCount = node.get("originalCount")?.asInt ?: 0
             skipAutomaticDate = node.get("skipAutomaticDate")?.asString ?: ""
+            node.getAsJsonArray("announced")?.forEach { runCatching { announced.add(it.asString) } }
             node.getAsJsonObject("dailySlots")?.entrySet()?.forEach { (date, arr) ->
                 dailySlots[date] = arr.asJsonArray.mapNotNull { runCatching { it.asLong }.getOrNull() }
             }
@@ -112,6 +116,7 @@ object WonderTradeSeasons {
                 addProperty("phase", phase)
                 addProperty("originalCount", originalCount)
                 addProperty("skipAutomaticDate", skipAutomaticDate)
+                add("announced", com.google.gson.JsonArray().also { arr -> announced.forEach { arr.add(it) } })
                 add("dailySlots", JsonObject().also { obj ->
                     dailySlots.forEach { (date, slots) ->
                         obj.add(date, com.google.gson.JsonArray().also { arr -> slots.forEach { arr.add(it) } })
@@ -160,7 +165,8 @@ object WonderTradeSeasons {
             includeSpecial = node.get("includeLegendary")?.asBoolean ?: true,
             excluded = list("excludeSpecies").map { it.substringAfter(':') }.toSet(),
             sessionsPerDay = (node.get("sessionsPerDay")?.asInt ?: 0).coerceIn(0, 12),
-            sessionDurationMinutes = (node.get("sessionDurationMinutes")?.asInt ?: 60).coerceIn(1, 1440)
+            sessionDurationMinutes = (node.get("sessionDurationMinutes")?.asInt ?: 60).coerceIn(1, 1440),
+            announceWindow = id != "halloween" && (node.get("windowAnnouncements")?.let { runCatching { it.asBoolean }.getOrNull() } ?: true)
         )
     }
 
@@ -185,7 +191,12 @@ object WonderTradeSeasons {
         val types = season.types.joinToString(", ") { WonderTradeRules.typeName(it) }
         return mapOf("name" to season.name, "event" to season.name, "types" to types,
             "start" to season.startDate(today).format(formatter), "end" to season.endDate(today).format(formatter),
-            "duration" to WonderTradeEvents.formatDuration(season.sessionDurationMinutes * 60L))
+            "duration" to WonderTradeEvents.formatDuration(season.sessionDurationMinutes * 60L),
+            "sessions" to season.sessionsPerDay,
+            "sessionsInfo" to (if (season.sessionsPerDay > 0)
+                Lang.t("Cada día habrá {0} sesiones de {1} en horas aleatorias; cada una se avisa en el chat.", season.sessionsPerDay, WonderTradeEvents.formatDuration(season.sessionDurationMinutes * 60L))
+            else Lang.tr("La pool temática estará activa durante todo el periodo.")),
+            "rules" to (if (season.restrictTrades) Lang.tr("Mientras dure, solo se podrán ofrecer Pokémon de esa temática.") else ""))
     }
 
     fun poolAllows(pokemon: Pokemon): Boolean = current()?.matches(pokemon) ?: true
@@ -243,6 +254,8 @@ object WonderTradeSeasons {
         val today = LocalDate.now(WonderTradeSchedule.zone())
         val enabled = ConfigManager.bool("seasonal.enabled", true)
         val season = if (enabled) allSeasons().firstOrNull { it.contains(today) } else null
+        if (enabled) runCatching { windowAnnouncements(server, today) }
+            .onFailure { WonderTradePlus.LOGGER.error("Falló el aviso de apertura/cierre de la temporada.", it) }
         if (activeId != null) {
             if (phase == "paused") {
                 val configured = ConfigManager.bool("seasonal.enabled", true) && allSeasons().any { it.id == activeId }
@@ -269,6 +282,36 @@ object WonderTradeSeasons {
             val duration = season.sessionDurationMinutes * 60_000L
             begin(server, season, now + duration)
         }
+    }
+
+    /** Aviso único de apertura (00:00 del primer día) y de cierre (23:59 del último día) de la temporada. */
+    private fun windowAnnouncements(server: MinecraftServer, today: LocalDate) {
+        val time = java.time.LocalTime.now(WonderTradeSchedule.zone())
+        for (season in allSeasons()) {
+            if (!season.announceWindow || !season.contains(today)) continue
+            if (today == season.startDate(today)) markAndAnnounce("open:${season.id}:$today") { announceWindow(server, season, true) }
+            if (today == season.endDate(today) && time.hour == 23 && time.minute == 59)
+                markAndAnnounce("close:${season.id}:$today") { announceWindow(server, season, false) }
+        }
+    }
+
+    private fun markAndAnnounce(key: String, action: () -> Unit) {
+        if (!announced.add(key)) return
+        while (announced.size > 20) announced.remove(announced.first())
+        saveState()
+        action()
+    }
+
+    private fun announceWindow(server: MinecraftServer, season: Season, opening: Boolean) {
+        WonderTradeEvents.broadcast(server) {
+            WonderTradeService.format(
+                if (opening) ConfigManager.string("messages.seasonWindowOpen", "&b&l❄ ¡Ya es Navidad en Wonder Trade!\n&7Desde ahora y hasta el &f{end} &7pueden aparecer &bhoras navideñas&7.\n&7{sessionsInfo}\n&7Durante cada una la pool se llena de Pokémon de tipo &f{types}&7. {rules}\n&7Al terminar, la pool habitual vuelve tal como estaba.")
+                else ConfigManager.string("messages.seasonWindowClose", "&b&l❄ Termina la Navidad en Wonder Trade\n&7La temporada navideña acaba ahora: no volverán a aparecer horas navideñas hasta el &f{start} &7del año que viene.\n&7¡Gracias por participar y feliz año nuevo!"),
+                placeholders(season)
+            )
+        }
+        runCatching { WonderTradeDiscord.seasonWindow(season, opening) }
+            .onFailure { WonderTradePlus.LOGGER.error("No se pudo enviar el aviso de Discord de la temporada «{}».", season.id, it) }
     }
 
     /** Inicia una sesión inmediata desde el panel admin, incluso fuera del calendario navideño. */

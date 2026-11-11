@@ -209,6 +209,27 @@ object WonderTradeDiscord {
         }
     }
 
+    /** Aviso de apertura (00:00 del primer día) o cierre (23:59 del último día) de la temporada navideña. */
+    fun seasonWindow(season: Season, opening: Boolean) {
+        Lang.withPlayer(null) {
+            if (!eventsEnabled("seasonal")) return
+            val values = WonderTradeSeasons.placeholders(season)
+            val description = WonderTradeService.format(
+                if (opening) ConfigManager.string("discord.seasonWindowOpenMessage", "Desde ahora y hasta el **{end}** pueden aparecer **horas navideñas**.\n{sessionsInfo}\nDurante cada una la pool se llena de Pokémon de tipo **{types}**. {rules}\nAl terminar, la pool habitual vuelve tal como estaba.")
+                else ConfigManager.string("discord.seasonWindowCloseMessage", "La temporada navideña acaba ahora: no volverán a aparecer horas navideñas hasta el **{start}** del año que viene.\n¡Gracias por participar y feliz año nuevo!"),
+                values
+            )
+            val title = if (opening) ConfigManager.string("discord.titles.seasonWindowOpen", "🎄 ¡Ya es Navidad en Wonder Trade!")
+            else ConfigManager.string("discord.titles.seasonWindowClose", "🎁 Termina la Navidad en Wonder Trade")
+            val embed = Embed(title, description, colorOf(if (opening) "seasonWindowOpen" else "seasonWindowClose", if (opening) "#28AA50" else "#E62832"))
+            if (opening) {
+                embed.field(Lang.tr("📅 Fechas"), "${values["start"]} – ${values["end"]}")
+                embed.field(Lang.tr("🧊 Temática"), season.types.joinToString(", ") { WonderTradeRules.typeName(it) })
+            }
+            postEvent(embed, if (opening) seasonRole(false) else null)
+        }
+    }
+
     /** Avisos de cada sesión de temporada (por ejemplo, la hora navideña). */
     fun season(season: Season, started: Boolean, count: Int, durationSeconds: Long = season.sessionDurationMinutes * 60L) {
         Lang.withPlayer(null) {

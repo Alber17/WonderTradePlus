@@ -163,7 +163,6 @@
       "events": 0,
       "topDonations": 0,
       "topAdmin": 0,
-      "megaHunt": 0,
       "toggle": 0,
       "penalties": 0,
       "history": 0,
@@ -428,6 +427,7 @@
       {
         "id": "navidad",
         "enabled": true,
+        "windowAnnouncements": true,
         "name": "Navidad",
         "startDate": "12-25",
         "endDate": "01-06",

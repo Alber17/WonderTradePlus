@@ -1212,5 +1212,15 @@
   "&7Se activa con &e/wt megahunt <especie>": "&7Si attiva con &e/wt megahunt <specie>",
   "&cQuitar el bloqueo": "&cRimuovi il blocco",
   "&7Ya se podrán intercambiar esos Pokémon.": "&7Quei Pokémon potranno essere scambiati di nuovo.",
-  "&8Quitar el bloqueo": "&8Rimuovi il blocco"
+  "&8Quitar el bloqueo": "&8Rimuovi il blocco",
+  "messages.seasonWindowOpen": "&b&l❄ È Natale su Wonder Trade!\n&7Da adesso fino al &f{end} &7possono comparire &bore natalizie&7.\n&7{sessionsInfo}\n&7Durante ognuna la pool si riempie di Pokémon di tipo &f{types}&7. {rules}\n&7Al termine, la pool abituale torna esattamente com'era.",
+  "messages.seasonWindowClose": "&b&l❄ Il Natale su Wonder Trade è finito\n&7La stagione natalizia finisce adesso: le ore natalizie non torneranno fino al &f{start} &7dell'anno prossimo.\n&7Grazie per aver partecipato e buon anno!",
+  "discord.seasonWindowOpenMessage": "Da adesso fino al **{end}** possono comparire **ore natalizie**.\n{sessionsInfo}\nDurante ognuna la pool si riempie di Pokémon di tipo **{types}**. {rules}\nAl termine, la pool abituale torna esattamente com'era.",
+  "discord.seasonWindowCloseMessage": "La stagione natalizia finisce adesso: le ore natalizie non torneranno fino al **{start}** dell'anno prossimo.\nGrazie per aver partecipato e buon anno!",
+  "discord.titles.seasonWindowOpen": "🎄 È Natale su Wonder Trade!",
+  "discord.titles.seasonWindowClose": "🎁 Il Natale su Wonder Trade è finito",
+  "Cada día habrá {0} sesiones de {1} en horas aleatorias; cada una se avisa en el chat.": "Ogni giorno ci saranno {0} sessioni da {1} a orari casuali; ognuna viene annunciata in chat.",
+  "La pool temática estará activa durante todo el periodo.": "La pool a tema sarà attiva per tutto il periodo.",
+  "Mientras dure, solo se podrán ofrecer Pokémon de esa temática.": "Finché dura, si potranno offrire solo Pokémon di quel tema.",
+  "📅 Fechas": "📅 Date"
 }

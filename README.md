@@ -218,6 +218,13 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.29.8
+
+- Se quita del panel de administración el botón de MegaHunt (el comando `/wt megahunt` sigue igual).
+- Navidad: dos avisos nuevos, en el chat y en Discord. El 25 de diciembre a las 00:00 se anuncia que hasta el 6 de enero pueden aparecer horas navideñas (explica cuántas sesiones hay, cuánto duran, la temática y que la pool vuelve como estaba). El 6 de enero a las 23:59 se anuncia que la temporada ha terminado. Cada aviso se envía una sola vez, aunque se reinicie el servidor. El de apertura menciona el rol de Navidad de Discord.
+- Se desactivan con `seasonal.events[navidad].windowAnnouncements: false`. Los avisos de inicio y fin de cada hora navideña no cambian.
+- Textos editables: `messages.seasonWindowOpen/Close`, `discord.seasonWindowOpenMessage/CloseMessage`, `discord.titles.seasonWindowOpen/Close` y colores `discord.style.colors.seasonWindowOpen/Close`.
+
 ## 0.29.7
 
 - Panel de administración: nuevo botón «Gestionar Top Donaciones» (cerrar el Top del mes ya, con confirmación, y ver las recompensas pendientes; un clic entrega la recompensa si su dueño está conectado y tiene espacio).

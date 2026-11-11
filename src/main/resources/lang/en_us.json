@@ -1212,5 +1212,15 @@
   "&7Se activa con &e/wt megahunt <especie>": "&7Activate it with &e/wt megahunt <species>",
   "&cQuitar el bloqueo": "&cRemove the block",
   "&7Ya se podrán intercambiar esos Pokémon.": "&7Those Pokémon can be traded again.",
-  "&8Quitar el bloqueo": "&8Remove the block"
+  "&8Quitar el bloqueo": "&8Remove the block",
+  "messages.seasonWindowOpen": "&b&l❄ It's Christmas in Wonder Trade!\n&7From now until &f{end} &bChristmas hours &7may appear.\n&7{sessionsInfo}\n&7During each one the pool fills with &f{types}&7-type Pokémon. {rules}\n&7When it ends, the regular pool comes back exactly as it was.",
+  "messages.seasonWindowClose": "&b&l❄ Christmas in Wonder Trade is over\n&7The Christmas season ends now: Christmas hours will not appear again until &f{start} &7next year.\n&7Thanks for taking part and happy new year!",
+  "discord.seasonWindowOpenMessage": "From now until **{end}** **Christmas hours** may appear.\n{sessionsInfo}\nDuring each one the pool fills with **{types}**-type Pokémon. {rules}\nWhen it ends, the regular pool comes back exactly as it was.",
+  "discord.seasonWindowCloseMessage": "The Christmas season ends now: Christmas hours will not appear again until **{start}** next year.\nThanks for taking part and happy new year!",
+  "discord.titles.seasonWindowOpen": "🎄 It's Christmas in Wonder Trade!",
+  "discord.titles.seasonWindowClose": "🎁 Christmas in Wonder Trade is over",
+  "Cada día habrá {0} sesiones de {1} en horas aleatorias; cada una se avisa en el chat.": "Every day there will be {0} sessions of {1} at random hours; each one is announced in chat.",
+  "La pool temática estará activa durante todo el periodo.": "The themed pool will be active during the whole period.",
+  "Mientras dure, solo se podrán ofrecer Pokémon de esa temática.": "While it lasts, only Pokémon of that theme can be offered.",
+  "📅 Fechas": "📅 Dates"
 }

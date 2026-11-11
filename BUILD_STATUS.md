@@ -1,12 +1,19 @@
 # Estado de compilación
 
-- Versión actual: **0.29.7**.
+- Versión actual: **0.29.8**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
 - Los comandos `/wt admin ...`, el historial, el cooldown de 12 h y el autocompletado (v0.3.0) están pendientes de probar en juego.
 - Los anuncios de legendarios, Ultraentes y Paradoja pasado/futuro (v0.2.1) están pendientes de probar en juego.
 - No es una versión NeoForge/Arclight. El JAR es solo Fabric.
+
+## Cambios de la versión 0.29.8
+
+- Se quita del panel de administración el botón de MegaHunt (el comando `/wt megahunt` sigue igual).
+- Navidad: dos avisos nuevos, en el chat y en Discord. El 25 de diciembre a las 00:00 se anuncia que hasta el 6 de enero pueden aparecer horas navideñas (explica cuántas sesiones hay, cuánto duran, la temática y que la pool vuelve como estaba). El 6 de enero a las 23:59 se anuncia que la temporada ha terminado. Cada aviso se envía una sola vez, aunque se reinicie el servidor. El de apertura menciona el rol de Navidad de Discord.
+- Se desactivan con `seasonal.events[navidad].windowAnnouncements: false`. Los avisos de inicio y fin de cada hora navideña no cambian.
+- Textos editables: `messages.seasonWindowOpen/Close`, `discord.seasonWindowOpenMessage/CloseMessage`, `discord.titles.seasonWindowOpen/Close` y colores `discord.style.colors.seasonWindowOpen/Close`.
 
 ## Cambios de la versión 0.29.7
 
