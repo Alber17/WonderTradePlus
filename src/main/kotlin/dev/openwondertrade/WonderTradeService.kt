@@ -40,6 +40,7 @@ object WonderTradeService {
         WonderTradePenalties.load(directory)
         WonderTradeSeasons.load(directory)
         WonderTradeMegaHunt.load(directory)
+        WonderTradeConfigCheck.log(WonderTradeConfigCheck.run())
         pool.load()
         raiseGeneratedSpecialLevels()
         trimAndSave()
@@ -61,7 +62,8 @@ object WonderTradeService {
         ConfigManager.load()
     }
 
-    fun reload() {
+    /** Recarga todo y devuelve los avisos de la revisión de configuración (vacío si está todo bien). */
+    fun reload(): List<String> {
         ConfigManager.load()
         entryCategoryCache.clear()
         WonderTradeEvents.load()
@@ -81,6 +83,7 @@ object WonderTradeService {
         val donationsRemoved = donationHistory.pruneOlderThanDays(historyDays)
         if (donationsRemoved > 0) WonderTradePlus.LOGGER.info("Historial de donaciones: {} entradas antiguas eliminadas al recargar.", donationsRemoved)
         pending.clear()
+        return WonderTradeConfigCheck.run().also { WonderTradeConfigCheck.log(it) }
     }
 
     // ------------------------------------------------------------ interruptor global (/wt on | off)
@@ -1627,21 +1630,36 @@ object WonderTradeService {
     }
 
     /** Copia pool.json, player-data.json y history.json a backups/<fecha>. Devuelve el nombre de la carpeta. */
+    /** Archivos de datos que incluye la copia de seguridad (los que no existan se ignoran). */
+    private val BACKUP_FILES = listOf(
+        "pool.json", "player-data.json", "history.json", "donation-history.json", "top-donations.json",
+        "penalties.json", "seasonal-state.json", "megahunt.json", "event.json", "event-schedule.json", "maintenance-state.json"
+    )
+
     fun backupNow(): String? = runCatching {
         val directory = FabricLoader.getInstance().configDir.resolve("wondertradeplus")
         val stamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
         val root = directory.resolve("backups")
         val target = root.resolve(stamp)
         Files.createDirectories(target)
-        for (name in listOf("pool.json", "player-data.json", "history.json")) {
+        for (name in BACKUP_FILES) {
             val source = directory.resolve(name)
             if (Files.exists(source)) Files.copy(source, target.resolve(name), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        }
+        // Pool original guardada durante los eventos de temporada (por si el servidor cae en mitad de uno).
+        val seasonal = directory.resolve("seasonal")
+        if (Files.isDirectory(seasonal)) {
+            Files.createDirectories(target.resolve("seasonal"))
+            Files.list(seasonal).use { files ->
+                files.filter { Files.isRegularFile(it) }.forEach {
+                    Files.copy(it, target.resolve("seasonal").resolve(it.fileName.toString()), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                }
+            }
         }
         val keep = ConfigManager.int("backup.keep", 10).coerceAtLeast(1)
         val folders = Files.list(root).use { stream -> stream.filter { Files.isDirectory(it) }.sorted().toList() }
         folders.dropLast(keep).forEach { folder ->
-            Files.list(folder).use { files -> files.forEach { Files.deleteIfExists(it) } }
-            Files.deleteIfExists(folder)
+            Files.walk(folder).use { paths -> paths.toList().sortedByDescending { it.toString().length }.forEach { Files.deleteIfExists(it) } }
         }
         stamp
     }.onFailure { WonderTradePlus.LOGGER.error("No se pudo crear la copia de seguridad.", it) }.getOrNull()

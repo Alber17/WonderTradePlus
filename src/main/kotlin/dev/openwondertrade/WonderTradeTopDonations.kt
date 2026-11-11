@@ -347,6 +347,36 @@ object WonderTradeTopDonations {
 
     enum class ClaimResult { OK, GONE, NO_SPACE }
 
+    /** Vista de una recompensa pendiente para el panel de administración. */
+    class PendingView(val uuid: String, val name: String, val rank: Int, val period: String, val title: String, val points: Int, val donations: Int)
+
+    /** Todas las recompensas pendientes (más antiguas primero). */
+    fun pendingList(): List<PendingView> = pending.sortedBy { it.createdAt }.map { item ->
+        val period = runCatching { YearMonth.parse(item.period) }.getOrNull()
+        PendingView(item.uuid, item.name, item.rank, item.period, if (period != null) monthName(period) else item.period, item.points, item.donations)
+    }
+
+    /** ¿Se puede cerrar ahora el Top de este mes? (activado, mes con Top y aún sin cerrar). */
+    fun canCloseNow(): Boolean {
+        if (!enabled()) return false
+        val period = YearMonth.now(zone())
+        return isActiveMonth(period) && keyOf(period) !in closed
+    }
+
+    /** Cierra el Top del mes actual ya (anuncia ganadores y crea las recompensas pendientes). */
+    fun closeNow(server: MinecraftServer): Boolean {
+        if (!canCloseNow()) return false
+        val period = YearMonth.now(zone())
+        finish(server, keyOf(period), period)
+        return true
+    }
+
+    /** Entrega una recompensa pendiente a su dueño si está conectado. Devuelve null si no lo está. */
+    fun adminGive(server: MinecraftServer, uuid: String, period: String): ClaimResult? {
+        val target = server.playerList.players.firstOrNull { it.uuid.toString() == uuid } ?: return null
+        return claim(server, target, period)
+    }
+
     private fun freeSlots(player: ServerPlayer): Int = player.inventory.items.count { it.isEmpty }
 
     /**

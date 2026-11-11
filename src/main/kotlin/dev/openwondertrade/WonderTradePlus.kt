@@ -186,8 +186,13 @@ class WonderTradePlus : ModInitializer {
                 })))
             // PERMISO: admin.permissionLevel (configurable; por defecto OP nivel 2).
             .then(literal("reload").requires { it.hasPermission(WonderTradeService.adminLevel()) }.executes { context ->
-                WonderTradeService.reload()
+                val problems = WonderTradeService.reload()
                 context.source.sendSuccess({ WonderTradeService.configuredMessage("reload", Lang.tr("&aConfiguración y pool recargados.")) }, true)
+                if (problems.isNotEmpty()) {
+                    context.source.sendFailure(WonderTradeService.info(Lang.t("&eLa revisión de la configuración ha encontrado &f{0} &eaviso(s):", problems.size)))
+                    problems.take(10).forEach { context.source.sendFailure(WonderTradeService.info("&7- &f$it")) }
+                    if (problems.size > 10) context.source.sendFailure(WonderTradeService.info(Lang.t("&7... y {0} más (mira la consola).", problems.size - 10)))
+                }
                 1
             })
             .then(adminCommands())
@@ -816,7 +821,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.29.4"
+        const val MOD_VERSION = "0.29.7"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

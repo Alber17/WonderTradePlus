@@ -75,6 +75,9 @@
     "intervalHours": 6,
     "keep": 10
   },
+  "configCheck": {
+    "enabled": true
+  },
   "discord": {
     "enabled": false,
     "webhookUrl": "",
@@ -89,6 +92,8 @@
       "pause": true,
       "topDonations": true,
       "mentionRoleId": "",
+      "mentionRoleIdChristmas": "",
+      "mentionRoleIdHalloween": "",
       "listPlayers": true,
       "maxPlayersListed": 15,
       "seasonal": true
@@ -157,6 +162,8 @@
       "deletePool": 0,
       "events": 0,
       "topDonations": 0,
+      "topAdmin": 0,
+      "megaHunt": 0,
       "toggle": 0,
       "penalties": 0,
       "history": 0,

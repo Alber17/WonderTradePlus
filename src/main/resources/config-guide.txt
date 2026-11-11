@@ -158,7 +158,8 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
 --------------------------------------------------------------------------------
  backup / history
 --------------------------------------------------------------------------------
- backup.intervalHours / keep   Copia automatica cada X horas y cuantas se guardan.
+ backup.intervalHours / keep   Copia automatica cada X horas y cuantas se guardan (incluye todos los datos).
+ configCheck.enabled           Avisa de errores de config al arrancar y con /wt reload (solo avisa).
  history.enabled               Guarda el historial de intercambios.
  history.autoDeleteAfterDays   Borra entradas mas viejas de X dias (0 = nunca).
  history.playersCanViewOwn     Cada jugador puede ver SU historial con /wt historial
@@ -175,6 +176,11 @@ Alias: /wt sounds = sonidos, /wt events = eventos,
                                   anticipado) y pausa/reanudacion.
  events.mentionRoleId             ID de un rol de Discord a mencionar en esos
                                   avisos (vacio = sin mencion).
+ events.mentionRoleIdChristmas / mentionRoleIdHalloween
+                                  Rol a mencionar SOLO cuando empieza una sesion de
+                                  Navidad o de Halloween (no al terminar). Si esta
+                                  vacio usa events.mentionRoleId. Vacio los dos = sin
+                                  mencion. Hay que poner el ID numerico del rol.
  events.listPlayers / maxPlayersListed
                                   Al terminar un evento, lista los nicks de quienes
                                   han conseguido algo gracias a el (maximo listado).

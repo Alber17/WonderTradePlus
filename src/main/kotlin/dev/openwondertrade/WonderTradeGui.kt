@@ -867,11 +867,16 @@ object WonderTradeGui {
                 openResetStatsMenu(it)
             }
 
+            btn(35, "topAdmin", named(Items.GOLD_INGOT, Lang.tr("&6Gestionar Top Donaciones"), Lang.tr("&7Cerrar el Top ya y ver las recompensas pendientes."), Lang.tr("&eClic para abrir"))) {
+                openTopAdmin(it)
+            }
+
             // Fila 4: sistema
             menu.put(36, named(Items.LIGHT_BLUE_STAINED_GLASS_PANE, Lang.tr("&bSistema")))
             btn(38, "reload", named(Items.COMPARATOR, ConfigManager.string("messages.adminMenuReload", "&bRecargar configuración"))) {
-                WonderTradeService.reload()
+                val problems = WonderTradeService.reload()
                 WonderTradeService.send(it, "reload")
+                if (problems.isNotEmpty()) it.sendSystemMessage(WonderTradeService.info(Lang.t("&eLa revisión de la configuración ha encontrado &f{0} &eaviso(s). Mira la consola o usa /wt reload.", problems.size)))
                 openAdmin(it)
             }
             btn(40, "maintenance", named(Items.REPEATING_COMMAND_BLOCK, ConfigManager.string("messages.adminMenuMaintenance", "&aEjecutar mantenimiento"), Lang.tr("&7Caducidad y purga de la pool."))) {
@@ -894,7 +899,123 @@ object WonderTradeGui {
                 p.sendSystemMessage(WonderTradeService.info(Lang.tr("&7Enviando mensaje de prueba a Discord…")))
             }
 
+            btn(46, "megaHunt", named(Items.TARGET, Lang.tr("&cMegaHunt"), Lang.tr("&7Ver o quitar el bloqueo de la especie ganadora."), Lang.tr("&eClic para abrir"))) {
+                openMegaHuntAdmin(it)
+            }
+
             menu.button(49, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
+        }
+    }
+
+    /** Gestión del Top Donaciones: cerrar el mes ya y revisar o entregar recompensas pendientes. */
+    private fun openTopAdmin(player: ServerPlayer, confirmClose: Boolean = false) {
+        if (!player.hasPermissions(WonderTradeService.adminLevel())) {
+            WonderTradeService.send(player, "adminOnly")
+            return
+        }
+        open(player, Lang.tr("&5Administración &8- &6Top Donaciones"), 3) { menu ->
+            fill(menu, 27)
+            val pendingCount = WonderTradeTopDonations.pendingList().size
+            menu.put(4, named(
+                Items.GOLD_INGOT, Lang.tr("&6Top Donaciones"),
+                if (WonderTradeTopDonations.enabled()) Lang.tr("&7Estado: &aactivado") else Lang.tr("&7Estado: &cdesactivado"),
+                if (WonderTradeTopDonations.canCloseNow()) Lang.tr("&7El Top de este mes sigue abierto.") else Lang.tr("&7No hay ningún Top abierto este mes."),
+                Lang.t("&7Recompensas pendientes: &f{0}", pendingCount)
+            ))
+            if (WonderTradeTopDonations.canCloseNow()) {
+                if (!confirmClose) {
+                    menu.button(11, named(
+                        Items.RED_CONCRETE, Lang.tr("&cCerrar el Top ahora"),
+                        Lang.tr("&7Anuncia a los ganadores y crea sus recompensas."),
+                        Lang.tr("&eClic para pedir confirmación")
+                    )) { openTopAdmin(it, true) }
+                } else {
+                    menu.button(11, named(
+                        Items.LIME_CONCRETE, Lang.tr("&a¿Seguro? Clic para confirmar"),
+                        Lang.tr("&7El mes quedará cerrado y no se podrá reabrir.")
+                    )) { p ->
+                        val ok = WonderTradeTopDonations.closeNow(p.server)
+                        p.sendSystemMessage(WonderTradeService.info(if (ok) Lang.tr("&aTop Donaciones cerrado.") else Lang.tr("&cNo hay ningún Top que cerrar.")))
+                        openTopAdmin(p)
+                    }
+                }
+            } else {
+                menu.put(11, named(Items.GRAY_CONCRETE, Lang.tr("&8Cerrar el Top ahora"), Lang.tr("&7No hay ningún Top abierto este mes.")))
+            }
+            menu.button(15, named(
+                Items.CHEST, Lang.tr("&ePendientes de reclamar"),
+                Lang.t("&7Recompensas sin reclamar: &f{0}", pendingCount),
+                Lang.tr("&eClic para ver")
+            )) { openTopPending(it) }
+            menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdmin(it) }
+            menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
+        }
+    }
+
+    /** Lista de recompensas pendientes: un clic entrega la recompensa si su dueño está conectado. */
+    private fun openTopPending(player: ServerPlayer) {
+        if (!player.hasPermissions(WonderTradeService.adminLevel())) {
+            WonderTradeService.send(player, "adminOnly")
+            return
+        }
+        open(player, Lang.tr("&5Top Donaciones &8- &ePendientes"), 6) { menu ->
+            fill(menu, 54)
+            val list = WonderTradeTopDonations.pendingList()
+            if (list.isEmpty()) {
+                menu.put(22, named(Items.BARRIER, Lang.tr("&7No hay recompensas pendientes.")))
+            }
+            list.take(36).forEachIndexed { index, item ->
+                val online = player.server.playerList.players.any { it.uuid.toString() == item.uuid }
+                menu.button(9 + index, named(
+                    if (online) Items.PAPER else Items.MAP,
+                    Lang.t("&f{0}", item.name),
+                    Lang.t("&7Periodo: &f{0}", item.title),
+                    if (item.rank == 0) Lang.t("&7Participación: &f{0} &7donaciones", item.donations) else Lang.t("&7Puesto: &f#{0} &7· &f{1} &7puntos", item.rank, item.points),
+                    if (online) Lang.tr("&aConectado: clic para entregar la recompensa") else Lang.tr("&cDesconectado: no se puede entregar ahora")
+                )) { p ->
+                    val result = WonderTradeTopDonations.adminGive(p.server, item.uuid, item.period)
+                    p.sendSystemMessage(WonderTradeService.info(when (result) {
+                        null -> Lang.t("&c{0} no está conectado.", item.name)
+                        WonderTradeTopDonations.ClaimResult.OK -> Lang.t("&aRecompensa entregada a &f{0}&a.", item.name)
+                        WonderTradeTopDonations.ClaimResult.NO_SPACE -> Lang.t("&c{0} no tiene espacio en el inventario.", item.name)
+                        WonderTradeTopDonations.ClaimResult.GONE -> Lang.tr("&cEsa recompensa ya no está pendiente.")
+                    }))
+                    openTopPending(p)
+                }
+            }
+            if (list.size > 36) menu.put(44, named(Items.PAPER, Lang.t("&7... y {0} más (no caben en el menú).", list.size - 36)))
+            menu.button(48, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openTopAdmin(it) }
+            menu.button(50, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
+        }
+    }
+
+    /** Estado del MegaHunt y botón para quitar el bloqueo (la especie se pone con /wt megahunt <especie>). */
+    private fun openMegaHuntAdmin(player: ServerPlayer) {
+        if (!player.hasPermissions(WonderTradeService.adminLevel())) {
+            WonderTradeService.send(player, "adminOnly")
+            return
+        }
+        open(player, Lang.tr("&5Administración &8- &cMegaHunt"), 3) { menu ->
+            fill(menu, 27)
+            val active = WonderTradeMegaHunt.isActive()
+            menu.put(4, named(
+                Items.TARGET, Lang.tr("&cMegaHunt"),
+                if (!WonderTradeMegaHunt.enabled()) Lang.tr("&7La regla está desactivada (megaHunt.enabled).")
+                else if (active) Lang.t("&7Bloqueada la línea de &f{0}", WonderTradeMegaHunt.rootName())
+                else Lang.tr("&7No hay ningún bloqueo activo."),
+                if (active) Lang.t("&7Incluye: &f{0}", WonderTradeMegaHunt.lineNames()) else Lang.tr("&7Se activa con &e/wt megahunt <especie>")
+            ))
+            if (active) {
+                menu.button(13, named(Items.RED_CONCRETE, Lang.tr("&cQuitar el bloqueo"), Lang.tr("&7Ya se podrán intercambiar esos Pokémon."))) { p ->
+                    WonderTradeMegaHunt.clear()
+                    p.sendSystemMessage(WonderTradeService.info(Lang.tr("&aMegaHunt desactivado: ya se pueden intercambiar esos Pokémon.")))
+                    openMegaHuntAdmin(p)
+                }
+            } else {
+                menu.put(13, named(Items.GRAY_CONCRETE, Lang.tr("&8Quitar el bloqueo"), Lang.tr("&7No hay ningún bloqueo activo.")))
+            }
+            menu.button(22, named(Items.LIME_STAINED_GLASS_PANE, Lang.tr("&aVolver"))) { openAdmin(it) }
+            menu.button(26, named(Items.BARRIER, Lang.tr("&cCerrar"))) { it.closeContainer() }
         }
     }
 
