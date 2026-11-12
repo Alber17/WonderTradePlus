@@ -1090,15 +1090,16 @@ object WonderTradeService {
         // Si se activa el bonus, se prioriza un especial que ya exista en el pool.
         // Si no hay especiales disponibles, se entrega cualquier entrada válida del pool.
         // Nunca se inventan Pokémon ni se exige compatibilidad con el Pokémon ofrecido.
-        var chosenEntry: PoolEntry? = if (forceSpecial) choosePoolEntry(forceSpecial = true, player = player) else null
-        if (chosenEntry == null) chosenEntry = choosePoolEntry(forceSpecial = false, player = player)
+        val offeredSpecies = offered.species.resourceIdentifier.path.lowercase()
+        var chosenEntry: PoolEntry? = if (forceSpecial) choosePoolEntry(forceSpecial = true, player = player, offeredSpecies = offeredSpecies) else null
+        if (chosenEntry == null) chosenEntry = choosePoolEntry(forceSpecial = false, player = player, offeredSpecies = offeredSpecies)
 
         // Eventos «Recibir …»: probabilidad extra de que la entrega sea de la categoría del evento.
         for (event in WonderTradeEvents.receiveEvents()) {
             val current = chosenEntry ?: break
             if (entryMatchesEvent(current, event, registryAccess)) continue
             if (Random.nextDouble() * 100.0 >= event.value) continue
-            val pick = eligibleEntries(player).filter { entryMatchesEvent(it, event, registryAccess) }.randomOrNull()
+            val pick = pickAvoidingSame(eligibleEntries(player).filter { entryMatchesEvent(it, event, registryAccess) }, offeredSpecies)
             if (pick != null) chosenEntry = pick
         }
 
@@ -1210,10 +1211,26 @@ object WonderTradeService {
         }
     }
 
-    private fun choosePoolEntry(forceSpecial: Boolean, player: ServerPlayer): PoolEntry? {
+    private fun choosePoolEntry(forceSpecial: Boolean, player: ServerPlayer, offeredSpecies: String? = null): PoolEntry? {
         val eligible = eligibleEntries(player)
         val candidates = if (forceSpecial) eligible.filter { WonderTradeRules.isRareEntry(it) } else eligible
-        return candidates.randomOrNull()
+        return pickAvoidingSame(candidates, offeredSpecies)
+    }
+
+    /**
+     * Elige al azar una entrada intentando no devolver la misma especie que ofreció el jugador.
+     * `trade.sameSpeciesChancePercent`: 0 = nunca la misma especie (salvo que no haya otra opción),
+     * 100 = sin ningún ajuste, y un valor intermedio reduce proporcionalmente su probabilidad.
+     */
+    private fun pickAvoidingSame(candidates: List<PoolEntry>, offeredSpecies: String?): PoolEntry? {
+        if (candidates.isEmpty()) return null
+        val percent = ConfigManager.int("trade.sameSpeciesChancePercent", 20).coerceIn(0, 100)
+        if (offeredSpecies == null || percent >= 100) return candidates.random()
+        val (same, other) = candidates.partition { it.species.substringAfter(':').equals(offeredSpecies, ignoreCase = true) }
+        if (same.isEmpty()) return other.random()
+        if (other.isEmpty()) return same.random()
+        val sameWeight = same.size * percent / 100.0
+        return if (Random.nextDouble() * (sameWeight + other.size) < sameWeight) same.random() else other.random()
     }
 
     /** Entradas de la pool que este jugador podría recibir ahora mismo. */

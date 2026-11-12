@@ -27,6 +27,7 @@
     "adminBypassPermissionLevel": 2,
     "cooldownBypassPermissionLevel": 5,
     "blockRepeatSpecies": true,
+    "sameSpeciesChancePercent": 20,
     "specialLabels": [
       "legendary",
       "mythical",

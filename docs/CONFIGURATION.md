@@ -127,6 +127,7 @@ El mantenimiento manual con `/wt admin maintenance` solo elimina entradas caduca
 
 ## Límites y filtros de la pool
 
+- `trade.sameSpeciesChancePercent`: probabilidad relativa de recibir la misma especie que ofreces (`0` = nunca salvo que no haya otra, `100` = sin ajuste). Por defecto `20`: la misma especie sale con una quinta parte de la probabilidad normal.
 - `pool.maxSameSpecies`: máximo de Pokémon de la misma especie en la pool; al llegar, no se aceptan más de esa especie (`0` = sin límite). Por defecto `10`.
 - `general.blockPasturedPokemon`: impide ofrecer Pokémon que estén en un redil de Cobblemon. Por defecto `true`.
 - `discord.notifyNormal`: publica también en Discord las aportaciones e intercambios de Pokémon normales. Por defecto `false`.

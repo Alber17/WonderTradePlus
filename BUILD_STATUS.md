@@ -1,12 +1,20 @@
 # Estado de compilación
 
-- Versión actual: **0.32.0**.
+- Versión actual: **0.32.2**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
 - Los comandos `/wt admin ...`, el historial, el cooldown de 12 h y el autocompletado (v0.3.0) están pendientes de probar en juego.
 - Los anuncios de legendarios, Ultraentes y Paradoja pasado/futuro (v0.2.1) están pendientes de probar en juego.
 - No es una versión NeoForge/Arclight. El JAR es solo Fabric.
+
+## Cambios de la versión 0.32.2
+
+- `trade.sameSpeciesChancePercent` pasa de `0` a `20` por defecto: recibir la misma especie que ofreces sigue siendo posible, pero con una quinta parte de la probabilidad normal. Si ya tienes el valor en tu `config.json`, cámbialo allí.
+
+## Cambios de la versión 0.32.1
+
+- Al intercambiar, ya no te devuelve la misma especie que ofreciste (si ofreces un Staravia, no te toca otro Staravia). Opción `trade.sameSpeciesChancePercent`: `0` = nunca la misma especie (salvo que en la pool no haya otra opción), `100` = sin ajuste, y un valor intermedio reduce proporcionalmente la probabilidad. Aplica también a los eventos de «Recibir». Compara la especie exacta, no su línea evolutiva.
 
 ## Cambios de la versión 0.32.0
 

@@ -218,6 +218,14 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.32.2
+
+- `trade.sameSpeciesChancePercent` pasa de `0` a `20` por defecto: recibir la misma especie que ofreces sigue siendo posible, pero con una quinta parte de la probabilidad normal. Si ya tienes el valor en tu `config.json`, cámbialo allí.
+
+## 0.32.1
+
+- Al intercambiar, ya no te devuelve la misma especie que ofreciste (si ofreces un Staravia, no te toca otro Staravia). Opción `trade.sameSpeciesChancePercent`: `0` = nunca la misma especie (salvo que en la pool no haya otra opción), `100` = sin ajuste, y un valor intermedio reduce proporcionalmente la probabilidad. Aplica también a los eventos de «Recibir». Compara la especie exacta, no su línea evolutiva.
+
 ## 0.32.0
 
 - **Rediles:** no se puede ofrecer un Pokémon que esté en un redil (pasture) de Cobblemon; el jugador recibe un aviso y en el menú aparece como «No se puede ofrecer ahora». Opción `general.blockPasturedPokemon` (por defecto `true`). La detección usa reflexión sobre los datos de atadura de Cobblemon: hay que probarla en el servidor.
