@@ -125,6 +125,13 @@ El mantenimiento manual con `/wt admin maintenance` solo elimina entradas caduca
 - `windowAnnouncements`: avisos de apertura (00:00 del primer día) y cierre (23:59 del último día) de la temporada, con el Top 3 de intercambios en el cierre. Por defecto `true`.
 - `announceSessions`: si es `true`, cada hora de temporada se avisa en el chat y en Discord al empezar y terminar. Por defecto `false` (la gente la descubre por sorpresa).
 
+## Límites y filtros de la pool
+
+- `pool.maxSameSpecies`: máximo de Pokémon de la misma especie en la pool; al llegar, no se aceptan más de esa especie (`0` = sin límite). Por defecto `10`.
+- `general.blockPasturedPokemon`: impide ofrecer Pokémon que estén en un redil de Cobblemon. Por defecto `true`.
+- `discord.notifyNormal`: publica también en Discord las aportaciones e intercambios de Pokémon normales. Por defecto `false`.
+- `maintenance.purge.afterHours` / `includePlayerDonations`: cada Pokémon normal con más de esas horas se sustituye por otro nuevo (168 h = una semana; los especiales no). Con `includePlayerDonations: false` solo se renuevan los del servidor.
+
 ## `alerts`
 
 Avisos solo para administradores (consola y chat de admins conectados; nunca Discord).

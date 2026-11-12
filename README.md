@@ -218,6 +218,13 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.32.0
+
+- **Rediles:** no se puede ofrecer un Pokémon que esté en un redil (pasture) de Cobblemon; el jugador recibe un aviso y en el menú aparece como «No se puede ofrecer ahora». Opción `general.blockPasturedPokemon` (por defecto `true`). La detección usa reflexión sobre los datos de atadura de Cobblemon: hay que probarla en el servidor.
+- **Límite por especie en la pool:** si la pool ya tiene `pool.maxSameSpecies` Pokémon de la misma especie (por defecto 10, cualquier forma), no se pueden ofrecer más de esa especie y se avisa al jugador. `0` desactiva el límite.
+- **Discord con Pokémon normales:** nueva opción `discord.notifyNormal` (por defecto `false`). Si se activa, las aportaciones y los intercambios de Pokémon normales también se publican en Discord, con títulos propios (`discord.titles.donationNormal` y `receivedNormal`).
+- **Renovación semanal de los Pokémon por defecto:** ya existía en `maintenance.purge`: cada Pokémon normal con más de `afterHours` horas (168 = una semana) se sustituye por otro nuevo; los especiales (shiny, legendarios, míticos, Ultraentes y Paradoja) no. Ahora, por defecto, solo se renuevan los generados por el servidor (`includePlayerDonations: false`). Si ya tenías el valor en tu `config.json`, hay que cambiarlo allí.
+
 ## 0.31.1
 
 - Los Pokémon especiales de especie (legendarios, míticos, Ultraentes y Paradoja) que genera el servidor ya nunca son shiny, y un shiny generado nunca es de una de esas especies. Aplica a «Añadir Pokémon aleatorios» (cualquier mezcla de categorías, por ejemplo Ultraente + Shiny), «Rellenar pool», los eventos con pool asegurada y las pools de Navidad y Halloween. Antes podía salir un especial shiny por la tirada natural de Cobblemon o por combinarlo con la categoría shiny.

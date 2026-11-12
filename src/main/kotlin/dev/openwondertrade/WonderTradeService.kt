@@ -147,7 +147,7 @@ object WonderTradeService {
             return
         }
         WonderTradeRules.validateOffer(pokemon)?.let { key ->
-            send(player, key, mapOf("min" to ConfigManager.int("general.minimumOfferedLevel", 1), "max" to ConfigManager.int("general.maximumOfferedLevel", 100)))
+            send(player, key, mapOf("min" to ConfigManager.int("general.minimumOfferedLevel", 1), "max" to ConfigManager.int("general.maximumOfferedLevel", 100), "species" to pokemon.species.name, "limit" to ConfigManager.int("pool.maxSameSpecies", 10)))
             return
         }
         checkLimits(player)?.let { return }
@@ -387,7 +387,7 @@ object WonderTradeService {
             return false
         }
         WonderTradeRules.validateOffer(pokemon)?.let { key ->
-            send(player, key, mapOf("min" to ConfigManager.int("general.minimumOfferedLevel", 1), "max" to ConfigManager.int("general.maximumOfferedLevel", 100)))
+            send(player, key, mapOf("min" to ConfigManager.int("general.minimumOfferedLevel", 1), "max" to ConfigManager.int("general.maximumOfferedLevel", 100), "species" to pokemon.species.name, "limit" to ConfigManager.int("pool.maxSameSpecies", 10)))
             return false
         }
         if (repeatedSpecies(player, pokemon)) return false
@@ -418,7 +418,7 @@ object WonderTradeService {
     fun precheck(player: ServerPlayer, pokemon: Pokemon): Boolean {
         if (!canTrade(player)) return false
         WonderTradeRules.validateOffer(pokemon)?.let { key ->
-            send(player, key, mapOf("min" to ConfigManager.int("general.minimumOfferedLevel", 1), "max" to ConfigManager.int("general.maximumOfferedLevel", 100)))
+            send(player, key, mapOf("min" to ConfigManager.int("general.minimumOfferedLevel", 1), "max" to ConfigManager.int("general.maximumOfferedLevel", 100), "species" to pokemon.species.name, "limit" to ConfigManager.int("pool.maxSameSpecies", 10)))
             return false
         }
         if (checkLimits(player) != null) return false
@@ -974,6 +974,10 @@ object WonderTradeService {
         return removed
     }
 
+    /** Cuántos Pokémon de esa especie (cualquier forma) hay ahora en la pool. */
+    fun poolSpeciesCount(speciesPath: String): Int =
+        pool.all().count { it.species.substringAfter(':').equals(speciesPath, ignoreCase = true) }
+
     /** Elimina de la pool todas las entradas de una especie (por ejemplo «bulbasaur»). */
     fun removeSpeciesEntries(species: String): Int {
         val removed = pool.removeWhere { it.species.substringAfter(':').equals(species, ignoreCase = true) }
@@ -1041,7 +1045,7 @@ object WonderTradeService {
             return
         }
         WonderTradeRules.validateOffer(offered)?.let { key ->
-            send(player, key, mapOf("min" to ConfigManager.int("general.minimumOfferedLevel", 1), "max" to ConfigManager.int("general.maximumOfferedLevel", 100)))
+            send(player, key, mapOf("min" to ConfigManager.int("general.minimumOfferedLevel", 1), "max" to ConfigManager.int("general.maximumOfferedLevel", 100), "species" to offered.species.name, "limit" to ConfigManager.int("pool.maxSameSpecies", 10)))
             return
         }
         if (repeatedSpecies(player, offered)) return
@@ -2158,6 +2162,8 @@ object WonderTradeService {
     private fun defaultMessage(key: String): String = when (key) {
         "tradeDisabled" -> Lang.tr("&cWonder Trade está desactivado temporalmente.")
         "megaHuntBlocked" -> Lang.tr("&cDurante el MegaHunt no se pueden intercambiar ni donar Pokémon de la línea de {species}.")
+        "pastureBlocked" -> Lang.tr("&cEse Pokémon está en un redil. Sácalo antes de ofrecerlo.")
+        "speciesPoolFull" -> Lang.tr("&cLa pool ya tiene {limit} Pokémon de la especie {species}: no se pueden añadir más por ahora.")
         "seasonTypeBlocked" -> Lang.tr("&cDurante el evento de {event} solo se pueden intercambiar Pokémon de tipo {types}.")
         "cooldownFinished" -> Lang.tr("&a¡Ya puedes hacer Wonder Trade otra vez! Usa &e/wt&a.")
         "emptySlot" -> Lang.tr("&cNo tienes ningún Pokémon en ese slot.")

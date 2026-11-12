@@ -1254,5 +1254,9 @@
   "&c⚠ Posible abuso: &f{0} &cha recibido &f{1} &cPokémon aportados por &f{2} &cen 24 horas.": "&c⚠ Possibile abuso: &f{0} &cha ricevuto &f{1} &cPokémon donati da &f{2} &cin 24 ore.",
   "&c⚠ Posible abuso: &f{0} &cy &f{1} &cse intercambian Pokémon entre sí (&f{2} &cy &f{3} &cveces en 24 horas).": "&c⚠ Possibile abuso: &f{0} &ce &f{1} &cs'scambiano Pokémon tra loro (&f{2} &ce &f{3} &cvolte in 24 ore).",
   "&c⚠ No se pudo enviar un aviso a Discord tras varios intentos. Revisa el webhook.": "&c⚠ Non è stato possibile inviare un avviso a Discord dopo vari tentativi. Controlla il webhook.",
-  "&c⚠ La pool original del evento «{0}» no se pudo restaurar. Revisa la consola.": "&c⚠ La pool originale dell'evento «{0}» non è stata ripristinata. Controlla la console."
+  "&c⚠ La pool original del evento «{0}» no se pudo restaurar. Revisa la consola.": "&c⚠ La pool originale dell'evento «{0}» non è stata ripristinata. Controlla la console.",
+  "&cEse Pokémon está en un redil. Sácalo antes de ofrecerlo.": "&cQuel Pokémon è in un recinto. Toglilo prima di offrirlo.",
+  "&cLa pool ya tiene {limit} Pokémon de la especie {species}: no se pueden añadir más por ahora.": "&cLa pool ha già {limit} Pokémon della specie {species}: per ora non se ne possono aggiungere altri.",
+  "discord.titles.donationNormal": "🎁 Nuovo contributo",
+  "discord.titles.receivedNormal": "🔄 Scambio completato"
 }

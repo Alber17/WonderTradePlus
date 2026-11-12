@@ -278,5 +278,7 @@
   "discord.halloweenWindowOpenMessage": "Desde ahora y hasta el **{end}** pueden aparecer sesiones de **Noche de Brujas**.\n{sessionsInfo}\nDurante cada una la pool se llena de Pokémon de tipo **{types}**. {rules}\nAl terminar, la pool habitual vuelve tal como estaba.",
   "discord.halloweenWindowCloseMessage": "La Noche de Brujas acaba ahora: no volverán a aparecer sesiones de miedo hasta el **{start}** del año que viene.\n¡Gracias por participar!",
   "discord.titles.halloweenWindowOpen": "🎃 ¡Evento de Halloween!",
-  "discord.titles.halloweenWindowClose": "🎃 Termina el Evento de Halloween"
+  "discord.titles.halloweenWindowClose": "🎃 Termina el Evento de Halloween",
+  "discord.titles.donationNormal": "🎁 Nueva aportación",
+  "discord.titles.receivedNormal": "🔄 Intercambio realizado"
 }

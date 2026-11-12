@@ -9,6 +9,7 @@
     "allowSpecialPokemon": true,
     "allowAlphaPokemon": true,
     "allowHeldItems": true,
+    "blockPasturedPokemon": true,
     "minimumOfferedLevel": 1,
     "maximumOfferedLevel": 100,
     "speciesBlacklist": [],
@@ -38,6 +39,7 @@
     "acceptDonations": true,
     "randomFallback": false,
     "maximumEntries": 500,
+    "maxSameSpecies": 10,
     "trimOldestFirst": true,
     "clampDonatedLevel": false,
     "donatedMinimumLevel": 1,
@@ -68,7 +70,7 @@
     "purge": {
       "enabled": true,
       "afterHours": 168,
-      "includePlayerDonations": true
+      "includePlayerDonations": false
     }
   },
   "backup": {
@@ -98,6 +100,7 @@
     "username": "WonderTrade",
     "notifyDonations": true,
     "notifyReceived": true,
+    "notifyNormal": false,
     "events": {
       "enabled": true,
       "start": true,

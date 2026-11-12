@@ -1,12 +1,19 @@
 # Estado de compilación
 
-- Versión actual: **0.31.1**.
+- Versión actual: **0.32.0**.
 - Objetivo: Minecraft 1.21.1, Java 21, Fabric y Cobblemon 1.8.4.
 - Compila con Gradle 8.14 mediante GitHub Actions en cada push.
 - Probado en juego: menú del equipo y del PC, confirmación, vista del pool, intercambios y comandos.
 - Los comandos `/wt admin ...`, el historial, el cooldown de 12 h y el autocompletado (v0.3.0) están pendientes de probar en juego.
 - Los anuncios de legendarios, Ultraentes y Paradoja pasado/futuro (v0.2.1) están pendientes de probar en juego.
 - No es una versión NeoForge/Arclight. El JAR es solo Fabric.
+
+## Cambios de la versión 0.32.0
+
+- **Rediles:** no se puede ofrecer un Pokémon que esté en un redil (pasture) de Cobblemon; el jugador recibe un aviso y en el menú aparece como «No se puede ofrecer ahora». Opción `general.blockPasturedPokemon` (por defecto `true`). La detección usa reflexión sobre los datos de atadura de Cobblemon: hay que probarla en el servidor.
+- **Límite por especie en la pool:** si la pool ya tiene `pool.maxSameSpecies` Pokémon de la misma especie (por defecto 10, cualquier forma), no se pueden ofrecer más de esa especie y se avisa al jugador. `0` desactiva el límite.
+- **Discord con Pokémon normales:** nueva opción `discord.notifyNormal` (por defecto `false`). Si se activa, las aportaciones y los intercambios de Pokémon normales también se publican en Discord, con títulos propios (`discord.titles.donationNormal` y `receivedNormal`).
+- **Renovación semanal de los Pokémon por defecto:** ya existía en `maintenance.purge`: cada Pokémon normal con más de `afterHours` horas (168 = una semana) se sustituye por otro nuevo; los especiales (shiny, legendarios, míticos, Ultraentes y Paradoja) no. Ahora, por defecto, solo se renuevan los generados por el servidor (`includePlayerDonations: false`). Si ya tenías el valor en tu `config.json`, hay que cambiarlo allí.
 
 ## Cambios de la versión 0.31.1
 

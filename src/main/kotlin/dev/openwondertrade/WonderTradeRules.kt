@@ -181,6 +181,17 @@ object WonderTradeRules {
         if (!isVariantAllowed(pokemon)) return "speciesBlocked"
         if (!WonderTradeSeasons.allows(pokemon)) return "seasonTypeBlocked"
         if (WonderTradeMegaHunt.blocks(pokemon)) return "megaHuntBlocked"
+        if (ConfigManager.bool("general.blockPasturedPokemon", true) && isInPasture(pokemon)) return "pastureBlocked"
+        val limit = ConfigManager.int("pool.maxSameSpecies", 10)
+        if (limit > 0 && WonderTradeService.poolSpeciesCount(pokemon.species.resourceIdentifier.path) >= limit) return "speciesPoolFull"
         return null
+    }
+
+    /**
+     * ¿Está el Pokémon atado a un redil (pasture) de Cobblemon? Se consulta por reflexión (tetheringId / tethering)
+     * para no depender de un nombre concreto de la API: si no existe, se considera que no está en un redil.
+     */
+    fun isInPasture(pokemon: Pokemon): Boolean = listOf("getTetheringId", "getTethering").any { name ->
+        runCatching { pokemon.javaClass.getMethod(name).invoke(pokemon) != null }.getOrDefault(false)
     }
 }
