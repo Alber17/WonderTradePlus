@@ -1670,7 +1670,7 @@ object WonderTradeService {
     /** Copia pool.json, player-data.json y history.json a backups/<fecha>. Devuelve el nombre de la carpeta. */
     /** Archivos de datos que incluye la copia de seguridad (los que no existan se ignoran). */
     private val BACKUP_FILES = listOf(
-        "pool.json", "player-data.json", "history.json", "donation-history.json", "top-donations.json",
+        "config.json", "pool.json", "player-data.json", "history.json", "donation-history.json", "top-donations.json",
         "penalties.json", "seasonal-state.json", "megahunt.json", "event.json", "event-schedule.json", "maintenance-state.json"
     )
 

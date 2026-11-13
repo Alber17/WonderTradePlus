@@ -25,6 +25,7 @@ class WonderTradePlus : ModInitializer {
             runCatching { WonderTradeService.rememberPlayer(handler.player) }
             Lang.withPlayer(handler.player) { WonderTradeEventDisplay.onJoin(handler.player) }
             runCatching { WonderTradePenalties.onJoin(handler.player) }
+            runCatching { WonderTradeConfigCheck.notifyAdmin(handler.player) }
         }
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
             registerCommands(dispatcher, "wt")
@@ -821,7 +822,7 @@ class WonderTradePlus : ModInitializer {
     }
 
     companion object {
-        const val MOD_VERSION = "0.32.2"
+        const val MOD_VERSION = "0.32.3"
         val LOGGER = LoggerFactory.getLogger("WonderTradePlus")
     }
 }

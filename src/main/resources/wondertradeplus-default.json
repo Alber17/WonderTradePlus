@@ -79,7 +79,8 @@
     "keep": 10
   },
   "configCheck": {
-    "enabled": true
+    "enabled": true,
+    "notifyAdminsOnJoin": true
   },
   "alerts": {
     "enabled": true,

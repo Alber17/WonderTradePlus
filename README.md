@@ -218,6 +218,11 @@ El mod queda en `build/libs/`. El proyecto no incluye Gradle Wrapper.
 Las contribuciones se aceptan bajo MIT. Conserva `LICENSE` si publicas el proyecto. No incluye código de otros mods de Wonder Trade.
 
 
+## 0.32.3
+
+- Las copias de seguridad automáticas (y `/wt admin backup`) incluyen ahora también `config.json`. Esas copias contienen el webhook de Discord: no las subas a GitHub.
+- Cuando un admin entra al servidor, se le resumen los avisos pendientes de la última revisión de configuración (hasta 5; el resto en consola). Se desactiva con `configCheck.notifyAdminsOnJoin: false`.
+
 ## 0.32.2
 
 - `trade.sameSpeciesChancePercent` pasa de `0` a `20` por defecto: recibir la misma especie que ofreces sigue siendo posible, pero con una quinta parte de la probabilidad normal. Si ya tienes el valor en tu `config.json`, cámbialo allí.

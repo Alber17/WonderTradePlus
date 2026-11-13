@@ -3,6 +3,7 @@ package dev.openwondertrade
 import com.cobblemon.mod.common.api.pokemon.PokemonSpecies
 import com.google.gson.JsonParser
 import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.server.level.ServerPlayer
 import java.nio.file.Files
 import java.time.MonthDay
 
@@ -19,14 +20,31 @@ object WonderTradeConfigCheck {
     private val barColors = setOf("PINK", "BLUE", "RED", "GREEN", "YELLOW", "PURPLE", "WHITE")
     private val hex = Regex("^#[0-9a-fA-F]{6}$")
 
+    /** Resultado de la última revisión (arranque o /wt reload); se enseña a los admins cuando entran. */
+    @Volatile
+    private var lastProblems: List<String> = emptyList()
+
     /** Devuelve la lista de problemas ya traducidos (vacía si todo está bien). */
     fun run(): List<String> {
-        if (!ConfigManager.bool("configCheck.enabled", true)) return emptyList()
+        if (!ConfigManager.bool("configCheck.enabled", true)) { lastProblems = emptyList(); return emptyList() }
         val problems = mutableListOf<String>()
         runCatching { check(problems) }.onFailure {
             WonderTradePlus.LOGGER.error("No se pudo completar la revisión de la configuración.", it)
         }
+        lastProblems = problems.toList()
         return problems
+    }
+
+    /** Al entrar un admin, le resume los avisos pendientes de la última revisión (`configCheck.notifyAdminsOnJoin`). */
+    fun notifyAdmin(player: ServerPlayer) {
+        if (!ConfigManager.bool("configCheck.enabled", true) || !ConfigManager.bool("configCheck.notifyAdminsOnJoin", true)) return
+        val problems = lastProblems
+        if (problems.isEmpty() || !player.hasPermissions(WonderTradeService.adminLevel())) return
+        Lang.withPlayer(player) {
+            player.sendSystemMessage(WonderTradeService.info(Lang.t("&eLa revisión de la configuración ha encontrado &f{0} &eaviso(s):", problems.size)))
+            problems.take(5).forEach { player.sendSystemMessage(WonderTradeService.info("&7- &f$it")) }
+            if (problems.size > 5) player.sendSystemMessage(WonderTradeService.info(Lang.t("&7... y {0} más (mira la consola).", problems.size - 5)))
+        }
     }
 
     /** Escribe los problemas en la consola. */

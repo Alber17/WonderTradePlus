@@ -147,6 +147,7 @@ Avisos solo para administradores (consola y chat de admins conectados; nunca Dis
 
 ## `configCheck`
 
+- `notifyAdminsOnJoin`: resume los avisos pendientes a los admins cuando entran. Por defecto `true`.
 - `enabled`: revisa la configuración al arrancar y con `/wt reload` y avisa de errores (fechas, especies, colores, enlaces, webhook, roles). Solo avisa; no modifica nada. Por defecto `true`.
 
 ## `backup`
